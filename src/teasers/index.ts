@@ -1,18 +1,19 @@
 import { scheduleJob } from "node-schedule";
-import * as teasers from "./teaserData.json";
+import teasers from "./teaserData.json";
 import { Message, Client, TextChannel, MessageAttachment } from "discord.js";
 import Teaser from "./types/Teaser";
 
 export default class Teasers {
     constructor(private client: Client) {
         scheduleJob(new Date("August 29, 2020 20:33:00"), () => console.log("its time"));
-        console.log(new Date("August 29, 2020 20:37:00"));
-        console.log(new Date("August 29, 2020 20:38:00"));
-        console.log(new Date("August 29, 2020 20:39:00"));
+        console.log(new Date("August 29, 2020 20:57:00"));
+        console.log(new Date("August 29, 2020 21:00:00"));
+        console.log(new Date("August 29, 2020 20:33:00"));
         this.scheduleJobs();
     }
 
     private scheduleJobs(): void {
+        console.log(teasers)
         for (const t of teasers) {
             console.log("scheduleing.. ");
             const utcDate = new Date(t.time)
