@@ -6,8 +6,8 @@ import Teaser from "./types/Teaser";
 export default class Teasers {
     constructor(private client: Client) {
         console.log(new Date("August 30, 2020 20:00:00"));
-        console.log(new Date("August 29, 2020 21:30:00"));
-        console.log(new Date("August 29, 2020 23:00:00"));
+        console.log(new Date("August 30, 2020 21:30:00"));
+        console.log(new Date("August 30, 2020 23:00:00"));
         this.scheduleJobs();
     }
 
