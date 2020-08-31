@@ -5,9 +5,10 @@ import Teaser from "./types/Teaser";
 
 export default class Teasers {
     constructor(private client: Client) {
-        console.log(new Date("August 30, 2020 19:00:00"));
-        console.log(new Date("August 30, 2020 19:15:00"));
-        console.log(new Date("August 30, 2020 19:20:00"));
+        teasers.forEach(t => console.log("local time", new Date(t.time).toLocaleString()))
+        console.log(new Date("8/31/2020, 9:00:00 PM"));
+        console.log(new Date("9/1/2020, 10:00:00 AM"));
+        console.log(new Date("9/2/2020, 10:00:00 AM"));
         this.scheduleJobs();
     }
 
