@@ -1,18 +1,27 @@
 import "dotenv/config";
+import './database';
+
 import { Client, MessageEmbed } from "discord.js";
 import Teasers from "./teasers";
+import { Music } from "./music/Music";
+import { News } from "./news/news";
 const client = new Client();
 client.login(process.env.BOT_TOKEN);
 const prefix = "c!";
 
+let music: Music;
+
 client.on("ready", () => {
     console.log(`${client.user.tag} has logged in.`);
     client.user.setActivity("c!creeper-bot-help");
-    new Teasers(client);
+    new News(client);
+    // music = new Music(client);
+    // new Teasers(client);
 });
 
-client.on("message", (message) => {
+client.on("message", async (message) => {
     let args = message.content.substring(prefix.length).split(" ");
+
 
     switch (args[0]) {
         case "test":
@@ -57,9 +66,17 @@ client.on("message", (message) => {
         case "creeper-bot-help":
             const HelpEmbed = new MessageEmbed();
             HelpEmbed.setTitle("Help");
-            HelpEmbed.setDescription("All commands and info about the bot will be listed here soon!");
+            HelpEmbed.setDescription("All commands and info about the bot will be listed here never!");
             HelpEmbed.setColor("#2186DB");
             message.author.send(HelpEmbed);
+            break;
+
+        case "join":
+            music.join();
+            break;
+
+        case "leave":
+            music.leave(message);
             break;
     }
 });
