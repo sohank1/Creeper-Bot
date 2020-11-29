@@ -7,6 +7,12 @@ export class News {
     public responseObject: NewsResponseObject;
 
     constructor(private client: Client) {
+        this._init();
+    }
+
+    private async _init(): Promise<void> {
+        await this.fetch();
+        await this.save();
         this.interval();
     }
 
@@ -28,15 +34,16 @@ export class News {
                 this.responseObject.data.stw.date !== db.data.stw.date) {
                 console.log("Fortnite servers have new news.")
 
+                console.log("Saving this new data to the database.")
+                await this.save();
+
                 console.log("Sending the message.")
                 this.send(db);
 
-                console.log("Saving this new data to the database.")
-                await this.save();
             } else
                 console.log("Already up to date.")
 
-        }, 8000)
+        }, 3000)
     }
 
     private send(db: NewsResponseObject): void {

@@ -17,6 +17,54 @@ client.on("ready", () => {
     new News(client);
     // music = new Music(client);
     // new Teasers(client);
+
+
+    const oldObj = [
+        {
+            id: 'The Fortnite Crew Announcement',
+            title: 'The Fortnite Crew',
+            tabTitle: 'New Subscription',
+            body: 'Coming in Season 5, join the Fortnite Crew to unlock the Battle Pass for the full Season, get a monthly exclusive Crew Pack and 1,000 V-bucks every month! Learn more at fn.gg/FortniteCrew',
+            image: 'https://cdn2.unrealengine.com/en-14br-social-subscriptions-motd-1920x1080-1920x1080-617263273.jpg',
+            tileImage: 'https://cdn2.unrealengine.com/en-14br-social-subscriptions-motd-1024x512-1024x512-617263267.jpg',
+            sortingPriority: 50,
+            hidden: false
+        },
+        {
+            id: 'Devourer of Worlds - Battle Bus Render Image',
+            title: 'The Devourer of Worlds',
+            tabTitle: 'Galactus Approaches',
+            body: 'You do know how to drive the Battle Bus... right? Galactus arrives Tuesday, December 1 at 4 PM ET. Learn more at fn.gg/DevourerOfWorlds',
+            image: 'https://cdn2.unrealengine.com/14br-battlebus-render-motd-1920x1080-lasersgopewpew-1920x1080-658872810.jpg',
+            tileImage: 'https://cdn2.unrealengine.com/14br-battlebus-render-motd-1024x512-lasersgopewpew-1024x512-658872797.jpg',
+            sortingPriority: 40,
+            hidden: false
+        }
+    ]
+
+    const newObj = [
+        {
+            id: 'The Fortnite Crew Announcement',
+            title: 'The Fortnite Crew',
+            tabTitle: 'New Subscription',
+            body: 'Coming in Season 5, join the Fortnite Crew to unlock the Battle Pass for the full Season, get a monthly exclusive Crew Pack and 1,000 V-bucks every month! Learn more at fn.gg/FortniteCrew',
+            image: 'https://cdn2.unrealengine.com/en-14br-social-subscriptions-motd-1920x1080-1920x1080-617263273.jpg',
+            tileImage: 'https://cdn2.unrealengine.com/en-14br-social-subscriptions-motd-1024x512-1024x512-617263267.jpg',
+            sortingPriority: 50,
+            hidden: false
+        },
+        {
+            id: 'Devourer of Worlds - Battle Bus Render Image',
+            title: 'The Devourer of Worlds',
+            tabTitle: 'Galactus Approaches',
+            body: 'You do know how to drive the Battle Bus... right? Galactus arrives Tuesday, December 1 at 4 PM ET. Learn more at fn.gg/DevourerOfWorlds',
+            image: 'https://cdn2.unrealengine.com/14br-battlebus-render-motd-1920x1080-lasersgopewpew-1920x1080-658872810.jpg',
+            tileImage: 'https://cdn2.unrealengine.com/14br-battlebus-render-motd-1024x512-lasersgopewpew-1024x512-658872797.jpg',
+            sortingPriority: 40,
+            hidden: false
+        }
+    ]
+
 });
 
 client.on("message", async (message) => {
