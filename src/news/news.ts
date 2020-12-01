@@ -11,8 +11,8 @@ export class News {
     }
 
     private async _init(): Promise<void> {
-        await this.fetch();
-        await this.save();
+        // await this.fetch();
+        // await this.save();
         this.interval();
     }
 

@@ -53,7 +53,7 @@ export class DonaldTracker {
 
     public async sendMessage(doc: DonaldData | any): Promise<void> {
         const e = new MessageEmbed()
-            .setTitle('Donald Mustard Update')
+            .setTitle('Donald Mustard Stalker')
             .setDescription('I detected that Donald Mustard was updated!')
             .setColor('2186DB')
             .setImage(this.data.banner)
