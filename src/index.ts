@@ -5,6 +5,7 @@ import { Client, MessageEmbed } from "discord.js";
 import Teasers from "./teasers";
 import { Music } from "./music/Music";
 import { News } from "./news/news";
+import { DonaldTracker } from "./DonaldTracker/DonaldTracker";
 const client = new Client();
 client.login(process.env.BOT_TOKEN);
 const prefix = "c!";
@@ -15,6 +16,7 @@ client.on("ready", () => {
     console.log(`${client.user.tag} has logged in.`);
     client.user.setActivity("c!creeper-bot-help");
     new News(client);
+    new DonaldTracker(client);
     // music = new Music(client);
     // new Teasers(client);
 
@@ -64,6 +66,22 @@ client.on("ready", () => {
             hidden: false
         }
     ]
+    // const oldObj = [
+    //     { name: "bob" },
+    //     { name: "joe" }
+    // ];
+
+    // const newObj = [
+    //     { name: "sam" },
+    //     { name: "bob" }
+    // ];
+    // const diff = [];
+    // for (const newItem of newObj) {
+    //     for (const oldItem of oldObj) {
+    //         if (!oldObj.includes(newItem)) diff.push(newItem);
+    //     }
+    // }
+    // console.log(diff)
 
 });
 
