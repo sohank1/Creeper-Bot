@@ -8,7 +8,7 @@ export class DonaldTracker {
 
     constructor(private client: Client) {
         console.log(execSync('npm i').toString());
-        console.log(execSync(`apt-get update \ # Install latest chrome dev package, which installs the necessary libs to # make the bundled version of Chromium that Puppeteer installs work. && apt-get install -y wget --no-install-recommends \ && wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add - \ && sh -c 'echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google.list' \ && apt-get update \ && apt-get install -y google-chrome-unstable --no-install-recommends \ && rm -rf /var/lib/apt/lists/* \ && wget --quiet https://raw.githubusercontent.com/vishnubob/wait-for-it/master/wait-for-it.sh -O /usr/sbin/wait-for-it.sh \ && chmod +x /usr/sbin/wait-for-it.sh`).toString());
+        console.log(execSync('apt install libgconf-2-4 libatk1.0-0 libatk-bridge2.0-0 libgdk-pixbuf2.0-0 libgtk-3-0 libgbm-dev libnss3-dev libxss-dev').toString());
         console.log(execSync('node node_modules/puppeteer/install.js').toString());
         this.scrape();
     }
