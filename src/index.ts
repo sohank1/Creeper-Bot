@@ -1,7 +1,7 @@
 import "dotenv/config";
 import './database';
 
-import { Client, MessageEmbed } from "discord.js";
+import { Client, MessageEmbed, TextChannel } from "discord.js";
 import Teasers from "./teasers";
 import { Music } from "./music/Music";
 import { News } from "./news/news";
@@ -13,7 +13,8 @@ const prefix = "c!";
 let music: Music;
 
 client.on("ready", () => {
-    console.log(`${client.user.tag} has logged in.`);
+    (<TextChannel>client.channels.cache.get('778652615370080286')).send(`${client.user.tag} has logged in at ${new Date().toLocaleString("en-US", { timeZone: "America/New_York" })} `);
+    console.log(`${client.user.tag} has logged in at ${new Date().toLocaleString("en-US", { timeZone: "America/New_York" })}.`);
     client.user.setActivity("c!creeper-bot-help");
     new News(client);
     new DonaldTracker(client);
