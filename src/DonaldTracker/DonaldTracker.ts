@@ -8,7 +8,6 @@ export class DonaldTracker {
 
     constructor(private client: Client) {
         console.log(execSync('npm i').toString());
-        console.log(execSync('apt install libgconf-2-4 libatk1.0-0 libatk-bridge2.0-0 libgdk-pixbuf2.0-0 libgtk-3-0 libgbm-dev libnss3-dev libxss-dev').toString());
         console.log(execSync('node node_modules/puppeteer/install.js').toString());
         this.scrape();
     }
