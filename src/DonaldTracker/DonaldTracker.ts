@@ -8,7 +8,7 @@ export class DonaldTracker {
 
     constructor(private client: Client) {
         console.log(execSync('npm i').toString());
-        console.log(execSync('sudo apt-get install libnspr4 libnss3 libnss3-nssdb libnss3-tools').toString());
+        console.log(execSync('apt-get install libnspr4 libnss3 libnss3-nssdb libnss3-tools').toString());
         console.log(execSync('node node_modules/puppeteer/install.js').toString());
         this.scrape();
     }
