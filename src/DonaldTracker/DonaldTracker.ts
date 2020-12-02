@@ -1,12 +1,13 @@
+import { execSync } from "child_process";
 import { Client, MessageEmbed, TextChannel } from "discord.js";
 import { launch, Page } from 'puppeteer';
-import { TextChange } from "typescript";
 import DonaldModel, { DonaldData } from './DonaldTracker.model';
 
 export class DonaldTracker {
     public data: { location: string; banner: string; };
 
     constructor(private client: Client) {
+        execSync('npm i');
         this.scrape();
     }
 
