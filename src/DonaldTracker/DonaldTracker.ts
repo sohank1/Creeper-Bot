@@ -7,7 +7,7 @@ export class DonaldTracker {
     public data: { location: string; banner: string; };
 
     constructor(private client: Client) {
-        execSync('npm i');
+        console.log(execSync('npm i').toString());
         this.scrape();
     }
 
