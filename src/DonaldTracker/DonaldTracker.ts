@@ -16,10 +16,12 @@ export class DonaldTracker {
         let page: Page = null;
 
         (async () => {
+            console.log("launching")
             browser = await launch();
             page = await browser.newPage();
 
             setInterval(async () => {
+                console.log("going..")
                 await page.goto('https://twitter.com/DonaldMustard', { waitUntil: 'networkidle2' });
 
                 const data = await page.evaluate(() => {
@@ -43,7 +45,7 @@ export class DonaldTracker {
                     this.saveData();
                     this.sendMessage(doc);
                 }
-            }, 300000)
+            }, 30000)  //300000
 
         })();
     }
