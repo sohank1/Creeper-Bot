@@ -18,8 +18,8 @@ client.on("ready", () => {
     console.log(`${client.user.tag} has logged in at ${new Date().toLocaleString("en-US", { timeZone: "America/New_York" })}.`);
     client.user.setActivity("c!creeper-bot-help");
     new Counting(client);
-    // new News(client);
-    // new DonaldTracker(client);
+    new News(client);
+    new DonaldTracker(client);
     // music = new Music(client);
     // new Teasers(client);
 
