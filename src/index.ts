@@ -6,6 +6,7 @@ import Teasers from "./teasers";
 import { Music } from "./music/Music";
 import { News } from "./news/news";
 import { DonaldTracker } from "./DonaldTracker/DonaldTracker";
+import { Counting } from "./Counting/Counting";
 const client = new Client();
 client.login(process.env.BOT_TOKEN);
 const prefix = "c!";
@@ -16,8 +17,9 @@ client.on("ready", () => {
     (<TextChannel>client.channels.cache.get('778652615370080286')).send(`${client.user.tag} has logged in at ${new Date().toLocaleString("en-US", { timeZone: "America/New_York" })} `);
     console.log(`${client.user.tag} has logged in at ${new Date().toLocaleString("en-US", { timeZone: "America/New_York" })}.`);
     client.user.setActivity("c!creeper-bot-help");
-    new News(client);
-    new DonaldTracker(client);
+    new Counting(client);
+    // new News(client);
+    // new DonaldTracker(client);
     // music = new Music(client);
     // new Teasers(client);
 
