@@ -15,7 +15,11 @@ export class Counting {
         });
     }
 
-    public async getStats(): Promise<Message> {
+    // private async claimSave(): Promise<void> {
+
+    // }
+
+    private async getStats(): Promise<Message> {
         const doc = await CountingModel.findOne({ guildId: this.message.guild.id });
         if (!doc) return this.message.channel.send("You don't have any stats. Use `c!set-counting #channel` or `c!set-counting` in the channel to activate the counting feature.");
 

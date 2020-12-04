@@ -6,4 +6,6 @@ export interface CountingData {
         numberNow: number,
         userId: string,
     }
+
+    users?: { id: string; saves?: number; canVoteAt: Date }[];
 }

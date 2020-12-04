@@ -14,7 +14,8 @@ const prefix = "c!";
 let music: Music;
 
 client.on("ready", () => {
-    (<TextChannel>client.channels.cache.get('778652615370080286')).send(`${client.user.tag} has logged in at ${new Date().toLocaleString("en-US", { timeZone: "America/New_York" })} `);
+    console.log(client.guilds.cache);
+    (<TextChannel>client.channels.cache.get('705842827233591446')).send(`${client.user.tag} has logged in at ${new Date().toLocaleString("en-US", { timeZone: "America/New_York" })} `);
     console.log(`${client.user.tag} has logged in at ${new Date().toLocaleString("en-US", { timeZone: "America/New_York" })}.`);
     client.user.setActivity("c!creeper-bot-help");
     new Counting(client);
@@ -147,5 +148,15 @@ client.on("message", async (message) => {
         case "leave":
             music.leave(message);
             break;
+    }
+
+    if (message.content.startsWith('c!shutdown')) {
+        if (message.author.id !== '481158632008974337') return message.channel.send("What a idiot!. You don't have permission to preform that action.");
+        if (process.env.NODE_ENV === 'production') {
+            message.channel.send('Instance is on **production**. Shutting down to stop counting from breaking...');
+            process.exit(0);
+
+        }
+        else message.channel.send('Instance is on **development**. Did not shut down.');
     }
 });

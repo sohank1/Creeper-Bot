@@ -9,6 +9,12 @@ const countingSchema = new mongoose.Schema({
     current: {
         userId: { type: String, required: false },
         numberNow: { type: Number, required: false, default: 0 }
+    },
+    users: {
+        type: Array, required: false, default: [],
+        id: { type: String, required: true },
+        saves: { type: Number, required: false, default: 0 },
+        canVoteAt: { type: Date, required: false, default: new Date() },
     }
 });
 
