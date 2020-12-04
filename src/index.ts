@@ -14,9 +14,10 @@ const prefix = "c!";
 let music: Music;
 
 client.on("ready", () => {
+    const instance = process.env.NODE_ENV === 'production' ? process.env.NODE_ENV : 'development'
     console.log(client.guilds.cache);
-    (<TextChannel>client.channels.cache.get('705842827233591446')).send(`${client.user.tag} has logged in at ${new Date().toLocaleString("en-US", { timeZone: "America/New_York" })} `);
-    console.log(`${client.user.tag} has logged in at ${new Date().toLocaleString("en-US", { timeZone: "America/New_York" })}.`);
+    (<TextChannel>client.channels.cache.get('767763290004652037')).send(`${client.user.tag} has logged in at ${new Date().toLocaleString("en-US", { timeZone: "America/New_York" })}. Instance is on **${instance}**`);
+    console.log(`${client.user.tag} has logged in at ${new Date().toLocaleString("en-US", { timeZone: "America/New_York" })}. Instance is on **${instance}**`);
     client.user.setActivity("c!creeper-bot-help");
     new Counting(client);
     new News(client);
@@ -152,10 +153,10 @@ client.on("message", async (message) => {
 
     if (message.content.startsWith('c!shutdown')) {
         if (message.author.id !== '481158632008974337') return message.channel.send("What a idiot!. You don't have permission to preform that action.");
+
         if (process.env.NODE_ENV === 'production') {
             message.channel.send('Instance is on **production**. Shutting down to stop counting from breaking...');
             process.exit(0);
-
         }
         else message.channel.send('Instance is on **development**. Did not shut down.');
     }
