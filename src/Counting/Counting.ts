@@ -65,10 +65,22 @@ export class Counting {
                 doc.current.numberNow = doc.current.numberNow + 1;
                 doc.current.userId = this.message.author.id;
                 this.message.react('☑️');
+
+                if (Number((this.message.content)) === 42) this.message.react('🌐');
+                if (Number((this.message.content)) === 64) this.message.react('🟫');
+                if (Number((this.message.content)) === 164) ['1️⃣', '🟫',].forEach(e => this.message.react(e));
+                if (Number((this.message.content)) === 264) ['2️⃣', '🟫',].forEach(e => this.message.react(e));
+                if (Number((this.message.content)) === 364) ['3️⃣', '🟫',].forEach(e => this.message.react(e));
+                if (Number((this.message.content)) === 464) ['4️⃣', '🟫',].forEach(e => this.message.react(e));
+                if (Number((this.message.content)).toString().includes('69')) ['😉', '🐠', this.client.emojis.cache.get('781787884906348584'), '😜'].forEach(e => this.message.react(e));
+                if (Number((this.message.content)) === 100) this.message.react('💯');
+                if (Number((this.message.content)) === 123 || Number((this.message.content)) === 1234) this.message.react('🔢');
+                if (Number((this.message.content)) === 151) this.message.react('🐭');
             }
 
             else {
-                doc.current.numberNow = doc.current.numberNow = 0;
+                const badPool = [];
+                doc.current.numberNow = 0;
                 doc.current.userId = '';
                 this.message.react('❌');
                 this.message.channel.send(`**${this.message.author.username}** ruined it! The next number is 1.`);
