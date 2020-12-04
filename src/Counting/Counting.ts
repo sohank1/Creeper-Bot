@@ -11,13 +11,40 @@ export class Counting {
             if (message.content.startsWith('c!set-counting')) return this.setChannel();
             if (message.content.startsWith('c!stats')) return this.getStats();
             if (message.content.startsWith('c!info')) return this.getStats();
+            if (message.content.startsWith('c!claim')) return this.claimSaves();
             this.check();
         });
     }
 
-    // private async claimSave(): Promise<void> {
+    private async claimSaves(): Promise<Message> {
+        const doc = await CountingModel.findOne({ guildId: this.message.guild.id });
+        if (!doc) return this.message.channel.send("You don't have a counting channel!. Use `c!set-counting #channel` or `c!set-counting` in the channel to activate the counting feature.");
 
-    // }
+        let isNewUser = false;
+        let user = doc.users.find(u => u.id === this.message.author.id);
+        if (!user) {
+            user = { id: this.message.author.id, saves: 0, lastVotedAt: new Date() }
+            doc.users.push(user);
+            isNewUser = true;
+        }
+
+        if (Date.now() - user.lastVotedAt.getTime() >= 8.64e+7 || isNewUser) {
+            const lootPool = [1, 2, 3, 3, 3,];
+
+            user.saves += lootPool[Math.floor(Math.random() * lootPool.length)];
+            user.lastVotedAt = new Date();
+            this.message.channel.send(`You now have **${user.saves}** saves!`);
+        }
+        else {
+            const h = Math.floor((user.lastVotedAt.getTime() % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const m = Math.floor((user.lastVotedAt.getTime() % (1000 * 60 * 60)) / (1000 * 60));
+            const s = Math.floor((user.lastVotedAt.getTime() % (1000 * 60)) / 1000);
+            this.message.channel.send(`Please use this command again in **${h}h ${m}m ${s}s** to claim saves.`);
+        }
+
+        await doc.save();
+
+    }
 
     private async getStats(): Promise<Message> {
         const doc = await CountingModel.findOne({ guildId: this.message.guild.id });
@@ -83,14 +110,24 @@ export class Counting {
             }
 
             else {
-                const badPool = [];
-                doc.current.numberNow = 0;
-                doc.current.userId = '';
-                this.message.react('❌');
-                this.message.channel.send(`**${this.message.author.username}** ruined it! The next number is 1.`);
+                const user = doc.users.find(u => u.id === this.message.author.id)
+                if (user?.saves > 0) {
+                    user.saves--;
+                    doc.users[doc.users.findIndex(u => u.id === this.message.author.id)] = user;
+                    this.message.react('🥅');
+                    this.message.channel.send(`Saved by the keeper! ${this.message.author} you now have **${user.saves}** saves. The next number is ${doc.current.numberNow}.`);
+                }
+                else {
+                    const badPool = [];
+                    doc.current.numberNow = 0;
+                    doc.current.userId = '';
+                    this.message.react('❌');
+                    this.message.channel.send(`**${this.message.author.username}** ruined it! The next number is 1.`);
+                }
             }
 
             await doc.save();
+            console.log(doc)
         }
     }
 }

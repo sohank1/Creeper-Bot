@@ -7,5 +7,5 @@ export interface CountingData {
         userId: string,
     }
 
-    users?: { id: string; saves?: number; canVoteAt: Date }[];
+    users?: { id: string; saves?: number; lastVotedAt?: Date }[];
 }
