@@ -19,7 +19,7 @@ client.on("ready", () => {
     client.user.setActivity("c!creeper-bot-help");
     new Counting(client);
     new News(client);
-    // new DonaldTracker(client);
+    new DonaldTracker(client);
     // music = new Music(client);
     // new Teasers(client);
 
