@@ -110,12 +110,15 @@ export class Counting {
             }
 
             else {
-                const user = doc.users.find(u => u.id === this.message.author.id)
+                const user = doc.users.find(u => u.id === this.message.author.id);
+                console.log("F", user, user.saves > 0)
                 if (user?.saves > 0) {
-                    user.saves--;
-                    doc.users[doc.users.findIndex(u => u.id === this.message.author.id)] = user;
+                    doc.users.find(u => u.id === this.message.author.id).saves--;
                     this.message.react('🥅');
                     this.message.channel.send(`Saved by the keeper! ${this.message.author} you now have **${user.saves}** saves. The next number is ${doc.current.numberNow}.`);
+                    //@ts-ignore
+                    doc.current.userId = '04444444444444444444444444444'
+                    await doc.save();
                 }
                 else {
                     const badPool = [];
