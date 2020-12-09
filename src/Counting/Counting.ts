@@ -116,9 +116,8 @@ export class Counting {
                     doc.users.find(u => u.id === this.message.author.id).saves--;
                     this.message.react('🥅');
                     this.message.channel.send(`Saved by the keeper! ${this.message.author} you now have **${user.saves}** saves. The next number is ${doc.current.numberNow}.`);
-                    //@ts-ignore
-                    doc.current.userId = '04444444444444444444444444444'
-                    await doc.save();
+
+                    await doc.updateOne(doc);
                 }
                 else {
                     const badPool = [];
