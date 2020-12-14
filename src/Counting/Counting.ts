@@ -107,27 +107,28 @@ export class Counting {
                 if (Number((this.message.content)) === 100) this.message.react('💯');
                 if (Number((this.message.content)) === 123 || Number((this.message.content)) === 1234) this.message.react('🔢');
                 if (Number((this.message.content)) === 151) this.message.react('🐭');
+                if (Number((this.message.content)) === 360) ['🚫', '👀', '🔫'].forEach(this.message.react);
                 if (Number((this.message.content)) === 404) ['🚫', '🇳', '🇴', '🇹', '⬛', '🇫', '🅾️', '🇺', '🆖', '🇩'].forEach(this.message.react);
                 if (Number((this.message.content)) === 420) this.message.react('🍀');
             }
 
             else {
-                const user = doc.users.find(u => u.id === this.message.author.id);
-                console.log("F", user, user.saves > 0)
-                if (user?.saves > 0) {
-                    doc.users.find(u => u.id === this.message.author.id).saves--;
-                    this.message.react('🥅');
-                    this.message.channel.send(`Saved by the keeper! ${this.message.author} you now have **${user.saves}** saves. The next number is ${doc.current.numberNow}.`);
+                // const user = doc.users.find(u => u.id === this.message.author.id);
+                // console.log("F", user, user.saves > 0)
+                // if (user?.saves > 0) {
+                //     doc.users.find(u => u.id === this.message.author.id).saves--;
+                //     this.message.react('🥅');
+                //     this.message.channel.send(`Saved by the keeper! ${this.message.author} you now have **${user.saves}** saves. The next number is ${doc.current.numberNow}.`);
 
-                    await doc.updateOne(doc);
-                }
-                else {
-                    const badPool = [];
-                    doc.current.numberNow = 0;
-                    doc.current.userId = '';
-                    this.message.react('❌');
-                    this.message.channel.send(`**${this.message.author.username}** ruined it! The next number is 1.`);
-                }
+                //     await doc.updateOne(doc);
+                // }
+                // else {
+                const badPool = ['What a idiot!', 'What an aerial!', ''];
+                doc.current.numberNow = 0;
+                doc.current.userId = '';
+                this.message.react('❌');
+                this.message.channel.send(`**${this.message.author.username}** ruined it! The next number is 1.`);
+                // }
             }
 
             await doc.save();
