@@ -127,7 +127,7 @@ export class Counting {
                 doc.current.numberNow = 0;
                 doc.current.userId = '';
                 this.message.react('❌');
-                this.message.channel.send(`**${this.message.author.username}** ruined it! The next number is 1.`);
+                this.message.channel.send(`**${this.message.author.username}** ruined it! ${badPool[Math.round(badPool.length * Math.random())]} The next number is 1.`);
                 // }
             }
 
