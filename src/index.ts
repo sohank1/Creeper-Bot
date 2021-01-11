@@ -7,7 +7,7 @@ import { Music } from "./music/Music";
 import { News } from "./news/news";
 import { DonaldTracker } from "./DonaldTracker/DonaldTracker";
 import { Counting } from "./Counting/Counting";
-const client = new Client();
+const client = new Client({ restTimeOffset: 30 });
 client.login(process.env.BOT_TOKEN);
 const prefix = "c!";
 
