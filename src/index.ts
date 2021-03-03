@@ -232,5 +232,4 @@ client.on("messageDeleteBulk", (messages) => {
         .setFooter("Corona Bot by Creeper " + version);
       await purgedChannel.send(purgedMessageEmbed);
     }
-  });
 });
