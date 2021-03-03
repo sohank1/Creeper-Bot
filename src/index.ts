@@ -175,6 +175,7 @@ client.on("messageDelete", async (message) => {
         .addField("Author", `${message.author.tag} (${message.author.id})`)
         .addField("Deleter (Can be wrong if message deleted by bot.", `${entry.executor}`)
         .addField("Server", `${message.guild.name} (${message.guild.id})`)
+        //@ts-ignore
         .addField("Channel", `${message.channel.name} (${message.channel.id})`)
         .setThumbnail("https://media.graytvinc.com/images/810*455/Coronavirus52.jpg")
         .setColor("FFC433")
@@ -199,6 +200,7 @@ client.on("messageUpdate", (oldMessage, newMessage) => {
       .addField("Message Edited Timestamp", oldMessage.editedTimestamp)
       .addField("Author", `${oldMessage.author.tag} (${oldMessage.author.id})`)
       .addField("Server", `${oldMessage.guild.name} (${oldMessage.guild.id})`)
+      //@ts-ignore
       .addField("Channel", `${oldMessage.channel.name} (${oldMessage.channel.id})`)
       .setThumbnail("https://media.graytvinc.com/images/810*455/Coronavirus52.jpg")
       .setColor("FFC433")
@@ -222,7 +224,8 @@ client.on("messageDeleteBulk", (messages) => {
         .addField("Message", message.content)
         .addField("Author", `${message.author.tag} (${message.author.id})`)
         .addField("Server", `${message.guild.name} (${message.guild.id})`)
-        .addField("Channel", `${message.channel.name} (${message.channel.id})`)
+        //@ts-ignore
+        .addField("Channel", `${(<string>message.channel.name)} (${message.channel.id})`)
         .addField("Time Message Was Created", `${message.createdAt.toLocaleString()}`)
         .addField("Message Edits", `${message.edits}`)
         .addField("Message Edits Time", `${message.editedAt}`)
