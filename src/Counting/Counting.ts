@@ -123,7 +123,7 @@ export class Counting {
                 //     await doc.updateOne(doc);
                 // }
                 // else {
-                const badPool = ['What a idiot!', 'What an aerial!', 'I guess we can confirm now, math isn't your strong suite.', `${this.message.author.username} missed an open net!`, `${this.message.author.username} whiffed!`];
+                const badPool = ['What a idiot!', 'What an aerial!', "I guess we can confirm now, math isn't your strong suite.", `${this.message.author.username} missed an open net!`, `${this.message.author.username} whiffed!`];
                 doc.current.numberNow = 0;
                 doc.current.userId = '';
                 this.message.react('❌');
