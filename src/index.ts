@@ -1,6 +1,6 @@
 import "dotenv/config";
 import './database';
-
+import axios from "axios";
 import { Client, MessageEmbed, TextChannel } from "discord.js";
 import Teasers from "./teasers";
 import { Music } from "./music/Music";
@@ -91,6 +91,15 @@ client.on("ready", () => {
 });
 
 client.on("message", async (message) => {
+  if (message.content.toLowerCase().startsWith("c!level")) {
+    const username = message.content.split("c!level ")[0];
+    const r = await axios.get(`https://fortnite-api.com/v1/stats/br/v2?image=all&name=${username}`);
+    return message.channel.send(`${username} is level ${r.data.data.battlePass.level}.${r.data.data.battlePass.progress}`);
+  }
+  
+  
+  
+  
   let args = message.content.substring(prefix.length).split(" ");
 
 
