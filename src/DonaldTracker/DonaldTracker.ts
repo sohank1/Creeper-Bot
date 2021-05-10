@@ -7,8 +7,6 @@ export class DonaldTracker {
     public data: { location: string; banner: string; };
 
     constructor(private client: Client) {
-        console.log(execSync('npm i').toString());
-        console.log(execSync('node node_modules/puppeteer/install.js').toString());
         this.scrape();
     }
 
