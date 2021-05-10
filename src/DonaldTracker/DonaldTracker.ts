@@ -16,7 +16,12 @@ export class DonaldTracker {
 
         (async () => {
             console.log("launching")
-            browser = await launch();
+            browser = await launch({
+args: [
+    '--no-sandbox',
+    '--disable-setuid-sandbox',
+  ],
+});
             page = await browser.newPage();
 
             setInterval(async () => {
