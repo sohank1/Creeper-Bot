@@ -26,17 +26,21 @@ export default class Teasers {
     }
 
     private async sendMessage(teaser: Teaser) {
-        const channels = <TextChannel[]>[this.client.channels.cache.get("711611880048951338"), this.client.channels.cache.get("711612340788920341")];
+        // [tts, n30]
+        // const channels = <TextChannel[]>[this.client.channels.cache.get("570565934042054666"), this.client.channels.cache.get("686023355517894729")];
+        // secert channels
+        const channels = <TextChannel[]>[this.client.channels.cache.get("719937901252706425"), this.client.channels.cache.get("849690609307615257")];
         for (const c of channels) {
             const attachment = new MessageAttachment(process.cwd() + teaser.imageUrl, teaser.name,);
             const m = await c.send(teaser.description, { files: [process.cwd() + teaser.imageUrl] });
-            this.react(m)
-            this.client.user.setActivity(teaser.status, {})
+            this.react(m);
+            this.client.user.setActivity(teaser.status, {});
         }
     }
 
     private react(message: Message): void {
-        message.react("👀")
-        message.react("😱")
+        message.react("👀");
+        message.react("😱");
+        message.react("🎵");
     }
 }
