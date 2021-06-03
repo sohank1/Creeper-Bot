@@ -95,16 +95,17 @@ client.on("message", async (message) => {
     const username = message.content.split("c!fn ")[1];
     console.log(username, message.content.split("c!fn "))
     const r = await axios.get(`https://fortnite-api.com/v1/stats/br/v2?image=all&name=${username}`);
+    if (!r.data) return message.channel.send("Profile doesn't exist or it is private.")
     // message.channel.send(`${username} is level ${r.data.data.battlePass.level}.${r.data.data.battlePass.progress}. Wins: ${r.data.data.stats.all.overall.wins} KD: ${r.data.data.stats.all.overall.kd} Kills: ${r.data.data.stats.all.overall.kills} Matches: ${r.data.data.stats.all.overall.matches} Stats as of: ${new Date(r.data.data.stats.all.overall.lastModified).toLocaleString("en-US", { timeZone: "America/New_York" })}`);
     const e = new MessageEmbed()
         .setTitle(`Fortnite Stats for ${r.data.data.account.name}`)
         .addField("Battle Pass Level", `${r.data.data.battlePass.level}.${r.data.data.battlePass.progress}` || "No data")
         .addField("Wins", r.data.data.stats.all.overall.wins || "No data")
-        .addField("Solo Wins", r.data.data.stats.all.solo.wins || "No data")
-        .addField("Duo Wins", r.data.data.stats.all.duo.wins || "No data")
-        .addField("Trio Wins", r.data.data.stats.all.trio.wins || "No data")
-        .addField("Squad Wins", r.data.data.stats.all.squad.wins || "No data")
-        .addField("LTM Wins", r.data.data.stats.all.ltm.wins || "No data")
+        .addField("Solo Wins", r.data.data.stats.all?.solo?.wins || "No data")
+        .addField("Duo Wins", r.data.data.stats.all?.duo?.wins || "No data")
+        .addField("Trio Wins", r.data.data.stats.all?.trio?.wins || "No data")
+        .addField("Squad Wins", r.data.data.stats.all?.squad?.wins || "No data")
+        .addField("LTM Wins", r.data.data.stats.all?.ltm?.wins || "No data")
         .addField("KD", r.data.data.stats.all.overall.kd || "No data")
         .addField("Win Rate", r.data.data.stats.all.overall.winRate + "%" || "No data")
         .addField("Kills", r.data.data.stats.all.overall.kills || "No data")
