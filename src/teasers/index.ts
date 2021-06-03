@@ -31,7 +31,7 @@ export default class Teasers {
             const attachment = new MessageAttachment(process.cwd() + teaser.imageUrl, teaser.name,);
             const m = await c.send(teaser.description, { files: [process.cwd() + teaser.imageUrl] });
             this.react(m)
-            this.client.user.setActivity(teaser.description, {})
+            this.client.user.setActivity(teaser.status, {})
         }
     }
 
