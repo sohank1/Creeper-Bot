@@ -106,7 +106,7 @@ client.on("message", async (message) => {
         .addField("Squad Wins", r.data.data.stats.all.squad.wins)
         .addField("LTM Wins", r.data.data.stats.all.ltm.wins)
         .addField("KD", r.data.data.stats.all.overall.kd)
-        .addField("Win Rate", r.data.data.stats.all.overall.winrate + "%")
+        .addField("Win Rate", r.data.data.stats.all.overall.winRate + "%")
         .addField("Kills", r.data.data.stats.all.overall.kills)
         .addField("Matches", r.data.data.stats.all.overall.matches)
         .addField("Days Played", r.data.data.stats.all.overall.minutesPlayed / 60 / 24)
