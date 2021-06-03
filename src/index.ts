@@ -121,7 +121,9 @@ client.on("message", async (message) => {
     }
   }
   
-  
+  if (message.content === "c!admin command don't use") {
+     message.channel.send("here u go", { files: [process.cwd() + "/assets/Final.mp4"] });
+  }
   
   
   let args = message.content.substring(prefix.length).split(" ");
