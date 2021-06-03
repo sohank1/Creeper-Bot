@@ -3,18 +3,21 @@
     "name": "ctzw-v3.0-t1",
     "imageUrl": "/assets/Creeper's-Turtle-Zone-Wars-Every-Beta-Patch-Notes.png",
     "description": "8.29.20 👀 1",
+    "status": "some random status",
     "time": "2020-09-01T18:00:00.000Z"
   },
   {
     "name": "ctzw-v3.0-t2",
     "imageUrl": "/assets/Creepers-Turtle-Zone-Wars-v2.0.png",
     "description": "8.29.20 👀 2",
+    "status": "some random status",
     "time": "2020-09-02T14:00:00.000Z"
   },
   {
     "name": "ctzw-v3.0-t3",
     "imageUrl": "/assets/Creeper's-Turtle-Zone-Wars-Release-pg-3.png",
     "description": "8.29.20 👀 3",
+    "status": "some random status",
     "time": "2020-09-03T14:00:00.000Z"
   }
 ]
