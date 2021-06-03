@@ -95,7 +95,7 @@ client.on("message", async (message) => {
     const username = message.content.split("c!level ")[1];
     console.log(username, message.content.split("c!level "))
     const r = await axios.get(`https://fortnite-api.com/v1/stats/br/v2?image=all&name=${username}`);
-    return message.channel.send(`${username} is level ${r.data.data.battlePass.level}.${r.data.data.battlePass.progress}`);
+    return message.channel.send(`${username} is level ${r.data.data.battlePass.level}.${r.data.data.battlePass.progress}. Wins: ${r.data.data.stats.all.overall.wins} KD: ${r.data.data.stats.all.overall.kd} Kills: ${r.data.data.stats.all.overall.kills} Matches: ${r.data.data.stats.all.overall.matches} Stats as of: ${new Date(r.data.data.stats.all.overall.lastModified).toLocaleString("en-US", { timeZone: "America/New_York" })}`);
   }
   
   
