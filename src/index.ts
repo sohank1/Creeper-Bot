@@ -95,7 +95,27 @@ client.on("message", async (message) => {
     const username = message.content.split("c!fn ")[1];
     console.log(username, message.content.split("c!fn "))
     const r = await axios.get(`https://fortnite-api.com/v1/stats/br/v2?image=all&name=${username}`);
-    return message.channel.send(`${username} is level ${r.data.data.battlePass.level}.${r.data.data.battlePass.progress}. Wins: ${r.data.data.stats.all.overall.wins} KD: ${r.data.data.stats.all.overall.kd} Kills: ${r.data.data.stats.all.overall.kills} Matches: ${r.data.data.stats.all.overall.matches} Stats as of: ${new Date(r.data.data.stats.all.overall.lastModified).toLocaleString("en-US", { timeZone: "America/New_York" })}`);
+    // message.channel.send(`${username} is level ${r.data.data.battlePass.level}.${r.data.data.battlePass.progress}. Wins: ${r.data.data.stats.all.overall.wins} KD: ${r.data.data.stats.all.overall.kd} Kills: ${r.data.data.stats.all.overall.kills} Matches: ${r.data.data.stats.all.overall.matches} Stats as of: ${new Date(r.data.data.stats.all.overall.lastModified).toLocaleString("en-US", { timeZone: "America/New_York" })}`);
+    const e = new MessageEmbed()
+        .setTitle(`Fortnite Stats for ${r.data.data.account.name}`)
+        .addField("Battle Pass Level", `${r.data.data.battlePass.level}.${r.data.data.battlePass.progress}`)
+        .addField("Wins", r.data.data.stats.all.overall.wins)
+        .addField("Solo Wins", r.data.data.stats.all.solo.wins)
+        .addField("Duo Wins", r.data.data.stats.all.duo.wins)
+        .addField("Trio Wins", r.data.data.stats.all.trio.wins)
+        .addField("Squad Wins", r.data.data.stats.all.squad.wins)
+        .addField("LTM Wins", r.data.data.stats.all.ltm.wins)
+        .addField("KD", r.data.data.stats.all.overall.kd)
+        .addField("Win Rate", r.data.data.stats.all.overall.winrate + "%")
+        .addField("Kills", r.data.data.stats.all.overall.kills)
+        .addField("Matches", r.data.data.stats.all.overall.matches)
+        .addField("Days Played", r.data.data.stats.all.overall.minutesPlayed / 60 / 24)
+        .addField("Last Update", new Date(r.data.data.stats.all.overall.lastModified).toLocaleString("en-US", { timeZone: "America/New_York" }))
+        .setColor("2186DB")
+        .setTimestamp();
+    
+    message.channel.send(e); 
+
   }
   
   
