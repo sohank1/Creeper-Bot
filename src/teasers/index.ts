@@ -32,7 +32,7 @@ export default class Teasers {
         const channels = <TextChannel[]>[this.client.channels.cache.get("719937901252706425"), this.client.channels.cache.get("849690609307615257")];
         for (const c of channels) {
             const attachment = new MessageAttachment(process.cwd() + teaser.imageUrl, teaser.name,);
-            const m = await c.send(teaser.description, { files: [process.cwd() + teaser.imageUrl] });
+            const m = teaser.imageUrl ? await c.send(teaser.description, { files: [process.cwd() + teaser.imageUrl] }) : await c.send(teaser.description);
             this.react(m);
             this.client.user.setActivity(teaser.status, {});
         }
