@@ -3,4 +3,5 @@ export default interface Teaser {
     imageUrl: string;
     description: string;
     time: string;
+    status: string;
 }
