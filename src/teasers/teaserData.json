@@ -1,23 +1,28 @@
 [
   {
-    "name": "ctzw-v3.0-t1",
-    "imageUrl": "/assets/Final.mp4",
-    "description": "test bro",
-    "status": ".",
-    "time": "2020-06-03T20:00:00.000Z"
+    "name": "mtcp-t1",
+    "imageUrl": "/assets/4dLhF3R.png",
+    "description": "First teaser: penguin long story here (test should be 7:00 PM Friday)",
+    "status": "genie doesn't know how to use me",
+    "time": ""2021-06-04T23:00:00.000Z"
   },
   {
-    "name": "ctzw-v3.0-t2",
-    "imageUrl": "/assets/Creepers-Turtle-Zone-Wars-v2.0.png",
-    "description": "8.29.20 👀 2",
-    "status": "some random status",
-    "time": "2020-09-02T14:00:00.000Z"
+    "name": "mtcp-t2",
+    "imageUrl": "/assets/Teaser 2.mp4",
+    "description": "second teaser: should say the release date (test is it sat 8 pm)",
+    "status": "genie can't read",
+    "time": "2021-06-05T12:00:00.000Z"
   },
   {
-    "name": "ctzw-v3.0-t3",
-    "imageUrl": "/assets/Creeper's-Turtle-Zone-Wars-Release-pg-3.png",
-    "description": "8.29.20 👀 3",
-    "status": "some random status",
-    "time": "2020-09-03T14:00:00.000Z"
+    "name": "mtcp-t3"
+    "description": "3rd teaser should say it comes tommorow + yt link (is it 8 am)",
+    "status": "legs stupid",
+    "time": "2021-06-05T12:00:00.000Z"
+  },
+  {
+    "name": "mtcp-t4"
+    "description": "4th and last teaser should say it is out + all platform links (is it 9 am)",
+    "status": "legs dumb",
+    "time": "2021-06-05T13:00:00.000Z"
   }
 ]
