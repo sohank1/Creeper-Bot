@@ -23,7 +23,7 @@ client.on("ready", () => {
   new News(client);
   new DonaldTracker(client);
   // music = new Music(client);
-  // new Teasers(client);
+   new Teasers(client);
 
 
   const oldObj = [
