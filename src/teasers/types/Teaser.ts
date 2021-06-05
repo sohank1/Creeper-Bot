@@ -1,6 +1,6 @@
 export default interface Teaser {
-    name: string;
-    imageUrl: string;
+    name: string | undefined;
+    imageUrl: string | undefined;
     description: string;
     time: string;
     status: string;
