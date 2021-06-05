@@ -2,16 +2,16 @@
   {
     "name": "mtcp-t1",
     "imageUrl": "/assets/4dLhF3R.png",
-    "description": "First teaser: penguin long story here (test should be 7:00 PM Friday)",
+    "description": "First teaser: penguin long story here (test should be 8:45 PM Friday)",
     "status": "genie doesn't know how to use me",
-    "time": "2021-06-04T23:00:00.000Z"
+    "time": "2021-06-05T00:45:00.000Z"
   },
   {
     "name": "mtcp-t2",
     "imageUrl": "/assets/Teaser 2.mp4",
-    "description": "second teaser: should say the release date (test is it sat 8 pm)",
+    "description": "second teaser: should say the release date (test is it sat 9 pm)",
     "status": "genie can't read",
-    "time": "2021-06-05T12:00:00.000Z"
+    "time": "2021-06-05T01:00:00.000Z"
   },
   {
     "name": "mtcp-t3",
