@@ -8,10 +8,10 @@
   },
   {
     "name": "mtcp-t2",
-    "imageUrl": "/assets/Teaser 2.mp4",
-    "description": "second teaser: should say the release date (test is it fri 9 pm)",
+    "imageUrl": "/assets/Teaser-2.mp4",
+    "description": "second teaser: should say the release date (test is it 11:30am)",
     "status": "genie can't read",
-    "time": "2021-06-05T01:00:00.000Z"
+    "time": "2021-06-05T15:30:00.000Z"
   },
   {
     "name": "mtcp-t3",
