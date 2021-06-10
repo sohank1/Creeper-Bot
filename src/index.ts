@@ -125,11 +125,16 @@ client.on("message", async (message) => {
     const dateStr = message.content.split("c!date ")[1];
     if (!dateStr) return message.channel.send("Please enter a date string");
     
+    try {
     const utcDate = new Date(dateStr);
-    if (!utcDate) return message.channel.send("Please format your date string using valid JavaScript Date rules. ex. **9/1/2020, 2:00:00 PM**");
     const estDate = new Date(utcDate.toLocaleString("en-US", { timeZone: "America/New_York" }));
     
-    return message.channel.send(`\`\`\`json\n${estDate.toISOString()}\n\`\`\``);
+    return message.channel.send(`\`\`\`\n${estDate.toISOString()}\n\`\`\``);
+      
+      
+    } catch(e) {
+      return message.channel.send("Please format your date string using valid JavaScript Date rules. ex. **9/1/2020, 2:00:00 PM**");
+    }
   }
   
   
