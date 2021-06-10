@@ -121,8 +121,15 @@ client.on("message", async (message) => {
     }
   }
   
-  if (message.content === "c!admin command don't use") {
-     message.channel.send("here u go", { files: [process.cwd() + "/assets/Final.mp4"] });
+  if (message.content.toLowerCase().startsWith("c!date")) {
+    const dateStr = message.content.split("c!date ")[1];
+    if (!dateStr) return message.channel.send("Please enter a date string");
+    
+    const utcDate = new Date(dateStr);
+    if (!utcDate) return message.channel.send("Please format your date string using valid JavaScript Date rules. ex. **9/1/2020, 2:00:00 PM**");
+    const estDate = new Date(utcDate.toLocaleString("en-US", { timeZone: "America/New_York" }));
+    
+    return message.channel.send(`\`\`\`json\n${estDate.toISOString()}\n\`\`\``);
   }
   
   
