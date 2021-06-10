@@ -126,8 +126,7 @@ client.on("message", async (message) => {
     if (!dateStr) return message.channel.send("Please enter a date string");
     
     try {
-    const utcDate = new Date(dateStr);
-    const estDate = new Date(utcDate.toLocaleString("en-US", { timeZone: "America/New_York" }));
+    const estDate = new Date(new Date(dateStr).toLocaleString("en-US", {timeZone: "America/New_York"}))
     
     return message.channel.send(`\`\`\`\n${estDate.toISOString()}\n\`\`\``);
       
