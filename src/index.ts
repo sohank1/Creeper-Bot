@@ -133,7 +133,7 @@ client.on("message", async (message) => {
       
       
     } catch(e) {
-      return message.channel.send("Please format your date string using valid JavaScript Date rules. ex. **9/1/2020, 2:00:00 PM**");
+      return message.channel.send(`Please format your date string using valid JavaScript Date rules. ex. **${new Date().toLocaleString("en-US", { timeZone: "America/New_York" })}**`);
     }
   }
   
