@@ -123,26 +123,12 @@ client.on("message", async (message) => {
   
   if (message.content.toLowerCase().startsWith("c!date")) {
     
-    function changeTimezone(date: Date, ianatz: string) {
-
-  // suppose the date is 12:00 UTC
-  var invdate = new Date(date.toLocaleString('en-US', {
-    timeZone: ianatz
-  }));
-
-  // then invdate will be 07:00 in Toronto
-  // and the diff is 5 hours
-  var diff = date.getTime() - invdate.getTime();
-
-  // so 12:00 in Toronto is 17:00 UTC
-  return new Date(date.getTime() - diff); // needs to substract
-
-}
-    const dateStr = message.content.split("c!date ")[1];
+   
+    const dateStr = `${message.content.split("c!date ")[1]} EST`;
     if (!dateStr) return message.channel.send("Please enter a date string");
     
     try {
-    const estDate = changeTimezone(new Date(dateStr), "America/New_York");
+    const estDate = new Date(dateStr);
     
     return message.channel.send(`\`\`\`\n${estDate.toISOString()}\n\`\`\``);
       
