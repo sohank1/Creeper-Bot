@@ -123,7 +123,7 @@ client.on("message", async (message) => {
   
   if (message.content.toLowerCase().startsWith("c!date")) {
     
-    function changeTimezone(date, ianatz) {
+    function changeTimezone(date: Date, ianatz: string) {
 
   // suppose the date is 12:00 UTC
   var invdate = new Date(date.toLocaleString('en-US', {
