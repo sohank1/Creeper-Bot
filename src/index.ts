@@ -4,7 +4,7 @@ import axios from "axios";
 import { Client, MessageEmbed, TextChannel } from "discord.js";
 // import Teasers from "./teasers";
 // import { Music } from "./music/Music";
-// import { News } from "./news/news";
+ import { News } from "./news/news";
 // import { DonaldTracker } from "./DonaldTracker/DonaldTracker";
 import { Counting } from "./Counting/Counting";
 const client = new Client({ restTimeOffset: 30 });
@@ -21,7 +21,7 @@ client.on("ready", () => {
   console.log(`${client.user.tag} has logged in at ${new Date().toLocaleString("en-US", { timeZone: "America/New_York" })}. Instance is on **${instance}**.`);
   client.user.setActivity("c!creeper-bot-help");
   new Counting(client);
-  // new News(client);
+   new News(client);
   // new DonaldTracker(client);
   // music = new Music(client);
    // new Teasers(client);
