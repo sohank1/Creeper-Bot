@@ -2,10 +2,10 @@ import "dotenv/config";
 import './database';
 import axios from "axios";
 import { Client, MessageEmbed, TextChannel } from "discord.js";
-// import Teasers from "./teasers";
+ import Teasers from "./teasers";
 // import { Music } from "./music/Music";
  import { News } from "./news/news";
-// import { DonaldTracker } from "./DonaldTracker/DonaldTracker";
+ import { DonaldTracker } from "./DonaldTracker/DonaldTracker";
 import { Counting } from "./Counting/Counting";
 const client = new Client({ restTimeOffset: 30 });
 client.login(process.env.BOT_TOKEN);
@@ -22,9 +22,9 @@ client.on("ready", () => {
   client.user.setActivity("c!creeper-bot-help");
   new Counting(client);
    new News(client);
-  // new DonaldTracker(client);
+   new DonaldTracker(client);
   // music = new Music(client);
-   // new Teasers(client);
+    new Teasers(client);
 
 
   const oldObj = [
