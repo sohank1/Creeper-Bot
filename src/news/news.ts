@@ -20,10 +20,10 @@ export class News {
     private interval(): void {
         // Check to see if news has been updated every 15 seconds.
         setInterval(async () => {
-            console.log("Getting data from Fortnite servers.")
+         //   console.log("Getting data from Fortnite servers.")
             await this.fetch();
 
-            console.log("Getting data from database.")
+         //   console.log("Getting data from database.")
             const db = (await NewsModel.findOne()).responseObject;
 
             console.log("db", new Date(db.data.br.date), "real", new Date(this.responseObject.data.br.date))
@@ -34,20 +34,20 @@ export class News {
                 this.responseObject.data.stw.date !== db.data.stw.date) {
                 console.log("Fortnite servers have new news.")
 
-                console.log("Saving this new data to the database.")
+          //      console.log("Saving this new data to the database.")
                 await this.save();
 
-                console.log("Sending the message.")
+           //     console.log("Sending the message.")
                 this.send(db);
 
             } else
-                console.log("Already up to date.")
+            //    console.log("Already up to date.")
 
         }, 3000)
     }
 
     private send(db: NewsResponseObject): void {
-        console.log("Looping through the news.")
+     //   console.log("Looping through the news.")
         this.loop(this.responseObject.data.br, "br", db);
         this.loop(this.responseObject.data.creative, "creative", db);
         this.loop(this.responseObject.data.stw, "stw", db);
