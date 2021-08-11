@@ -41,7 +41,7 @@ export class News {
                 this.send(db);
 
             } else
-            //    console.log("Already up to date.")
+               console.log("Already up to date.")
 
         }, 3000)
     }
