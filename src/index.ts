@@ -11,7 +11,7 @@ const client = new Client({ restTimeOffset: 30 });
 client.login(process.env.BOT_TOKEN);
 const prefix = "c!";
 
-let music: Music;
+// let music: Music;
 
 client.on("ready", () => {
   const instance = process.env.NODE_ENV === 'production' ? process.env.NODE_ENV : 'development'
