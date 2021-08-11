@@ -1,1 +1,1 @@
-worker: npm run prod
+worker: tsc && node dist/index.js
