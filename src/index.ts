@@ -13,6 +13,7 @@ const prefix = "c!";
 
 // let music: Music;
 
+
 client.on("ready", () => {
   const instance = process.env.NODE_ENV === 'production' ? process.env.NODE_ENV : 'development'
   console.log(client.guilds.cache);
@@ -191,11 +192,11 @@ client.on("message", async (message) => {
       break;
 
     case "join":
-      music.join();
+     // music.join();
       break;
 
     case "leave":
-      music.leave(message);
+     // music.leave(message);
       break;
   }
 
