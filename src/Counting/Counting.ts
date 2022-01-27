@@ -5,13 +5,14 @@ export class Counting {
     private message: Message;
 
     constructor(private client: Client) {
-        client.on('message', (message) => {
+        client.on('messageCreate', (message) => {
+            console.log(message.content)
             if (message.author.bot) return;
             this.message = message;
-            if (message.content.startsWith('c!set-counting')) return this.setChannel();
-            if (message.content.startsWith('c!stats')) return this.getStats();
-            if (message.content.startsWith('c!info')) return this.getStats();
-            if (message.content.startsWith('c!claim')) return this.claimSaves();
+            if (message.content.startsWith('c!set-counting')) return void this.setChannel();
+            if (message.content.startsWith('c!stats')) return void this.getStats();
+            if (message.content.startsWith('c!info')) return void this.getStats();
+            if (message.content.startsWith('c!claim')) return void this.claimSaves();
             this.check();
         });
     }
@@ -53,11 +54,11 @@ export class Counting {
         const e = new MessageEmbed()
             .setTitle(`${this.message.guild.name}'s stats for Creeper Counting`)
             .setThumbnail(this.message.guild.iconURL())
-            .addField('Next Number', doc.current.numberNow + 1, true)
+            .addField('Next Number', (doc.current.numberNow + 1).toString(), true)
             .addField('Current Number', `${doc.current.numberNow} (Sent by ${this.client.users.cache.get(doc.current.userId)?.username})`, true)
-            .setColor('2186DB')
+            .setColor('#2186DB')
             .setTimestamp()
-        this.message.channel.send(e);
+        this.message.channel.send({ embeds: [e] });
     }
 
     private async setChannel(): Promise<Message> {
@@ -103,7 +104,7 @@ export class Counting {
                 if (Number((this.message.content)) === 264) ['2️⃣', '🟫',].forEach(e => this.message.react(e));
                 if (Number((this.message.content)) === 364) ['3️⃣', '🟫',].forEach(e => this.message.react(e));
                 if (Number((this.message.content)) === 464) ['4️⃣', '🟫',].forEach(e => this.message.react(e));
-                if (Number((this.message.content)).toString().includes('69')) ['😉', '🐠', this.client.emojis.cache.get('781787884906348584'), '😜'].forEach(e => this.message.react(e));
+                if (Number((this.message.content)).toString().includes('69')) ['😜', '🐠', this.client.emojis.cache.get('781787884906348584')].forEach(e => this.message.react(e));
                 if (Number((this.message.content)) === 100) this.message.react('💯');
                 if (Number((this.message.content)) === 123 || Number((this.message.content)) === 1234) this.message.react('🔢');
                 if (Number((this.message.content)) === 151) this.message.react('🐭');

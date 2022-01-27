@@ -48,9 +48,9 @@ export class News {
 
     private send(db: NewsResponseObject): void {
         //   console.log("Looping through the news.")
-        this.loop(this.responseObject.data.br, "br", db);
-        this.loop(this.responseObject.data.creative, "creative", db);
-        this.loop(this.responseObject.data.stw, "stw", db);
+        this.responseObject.data.br && this.loop(this.responseObject.data?.br, "br", db);
+        this.responseObject.data.creative && this.loop(this.responseObject.data?.creative, "creative", db);
+        this.responseObject.data.stw && this.loop(this.responseObject.data?.stw, "stw", db);
     }
 
     private loop(looper: Br | Creative | Stw, looperName: "br" | "creative" | "stw", db: NewsResponseObject) {
@@ -59,18 +59,21 @@ export class News {
 
             if (news !== db.data[looperName].motds[newsIndex]) {
                 console.log("The news is not in the same place. Send a message.")
+                console.log(news)
+                console.log(news.image, "\n", news.tileImage, "\n", news.id, "\n", news.title, "\n", news.tabTitle, "\n", news.body, "\n", `${news.image} ${news.tileImage}`, "\n", { text: `Updated at ${new Date(looper.date).toLocaleString("en-US", { timeZone: "America/New_York" })}` })
                 const e = new MessageEmbed()
                     .setTitle("Fortnite Servers were updated!")
-                    .setColor("2186DB")
+                    .setColor("#2186DB")
                     .setImage(news.image)
                     .setThumbnail(news.tileImage)
                     .addField("ID", news.id)
                     .addField("Title", news.title)
-                    .addField("Tab Title", news.tabTitle)
-                    .addField("Description", news.body)
+                    .addField("Tab Title", news.tabTitle || "None")
+                    .addField("Description", news?.body)
                     .addField("Image URLs", `${news.image} ${news.tileImage}`)
-                    .setFooter(`Updated at ${new Date(looper.date).toLocaleString("en-US", { timeZone: "America/New_York" })}`);
-                (<TextChannel>this.client.channels.cache.get('678266554088947712')).send(e);
+                    .setFooter({ text: `Updated at ${new Date(looper.date).toLocaleString("en-US", { timeZone: "America/New_York" })}` });
+
+                for (const id of ["678266554088947712", "936367568787243058"]) (<TextChannel>this.client.channels.cache.get(id)).send({ embeds: [e] });
             }
         }
     }

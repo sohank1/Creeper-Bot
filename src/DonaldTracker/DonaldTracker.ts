@@ -1,6 +1,5 @@
-import { execSync } from "child_process";
 import { Client, MessageEmbed, TextChannel } from "discord.js";
-import { launch, Page } from 'puppeteer';
+import Puppeteer from 'puppeteer';
 import DonaldModel, { DonaldData } from './DonaldTracker.model';
 
 export class DonaldTracker {
@@ -12,11 +11,11 @@ export class DonaldTracker {
 
     private async scrape(): Promise<void> {
         let browser = null;
-        let page: Page = null;
+        let page: Puppeteer.Page = null;
 
         (async () => {
             console.log("launching")
-            browser = await launch({
+            browser = await Puppeteer.launch({
                 args: [
                     '--no-sandbox',
                     '--disable-setuid-sandbox',
@@ -62,14 +61,14 @@ export class DonaldTracker {
         const e = new MessageEmbed()
             .setTitle('Donald Mustard Stalker')
             .setDescription('I detected that Donald Mustard was updated!')
-            .setColor('2186DB')
+            .setColor('#2186DB')
             .setImage(this.data.banner)
             .setThumbnail(doc.banner)
             .addField('Location', `~~${doc.location}~~\n${this.data.location}`)
             .addField('Banner', `~~${doc.banner}~~\n${this.data.banner}`)
             .setTimestamp(new Date());
 
-        (<TextChannel>this.client.channels.cache.get('678266554088947712')).send(e);
+        for (const id of ["678266554088947712", "936367568787243058"]) (<TextChannel>this.client.channels.cache.get(id)).send({ embeds: [e] });
     }
 
 }

@@ -7,7 +7,7 @@ import Teasers from "./teasers";
 import { News } from "./news/news";
 import { DonaldTracker } from "./DonaldTracker/DonaldTracker";
 import { Counting } from "./Counting/Counting";
-const client = new Client({ restTimeOffset: 30, intents: [Intents.FLAGS.GUILDS] });
+const client = new Client({ restTimeOffset: 30, intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES] });
 client.login(process.env.BOT_TOKEN);
 const prefix = "c!";
 
@@ -92,130 +92,124 @@ client.on("ready", () => {
 });
 
 client.on("messageCreate", async (message) => {
-  return "safd";
-  //  message.channel.send("adf")
-  // if (message.content.toLowerCase().startsWith("c!fn")) {
-  //   const username = message.content.split("c!fn ")[1];
-  //   console.log(username, message.content.split("c!fn "))
-  //   try {
-  //   const r = await axios.get(`https://fortnite-api.com/v1/stats/br/v2?image=all&name=${username}`);
-  //   // message.channel.send(`${username} is level ${r.data.data.battlePass.level}.${r.data.data.battlePass.progress}. Wins: ${r.data.data.stats.all.overall.wins} KD: ${r.data.data.stats.all.overall.kd} Kills: ${r.data.data.stats.all.overall.kills} Matches: ${r.data.data.stats.all.overall.matches} Stats as of: ${new Date(r.data.data.stats.all.overall.lastModified).toLocaleString("en-US", { timeZone: "America/New_York" })}`);
-  //   const e = new MessageEmbed()
-  //       .setTitle(`Fortnite Stats for ${r.data.data.account.name}`)
-  //       .addField("Battle Pass Level", `${r.data.data.battlePass.level}.${r.data.data.battlePass.progress}` || "No data")
-  //       .addField("Wins", r.data.data.stats.all.overall.wins || "No data")
-  //       .addField("Solo Wins", r.data.data.stats.all?.solo?.wins || "No data")
-  //       .addField("Duo Wins", r.data.data.stats.all?.duo?.wins || "No data")
-  //       .addField("Trio Wins", r.data.data.stats.all?.trio?.wins || "No data")
-  //       .addField("Squad Wins", r.data.data.stats.all?.squad?.wins || "No data")
-  //       .addField("LTM Wins", r.data.data.stats.all?.ltm?.wins || "No data")
-  //       .addField("KD", r.data.data.stats.all.overall.kd || "No data")
-  //       .addField("Win Rate", r.data.data.stats.all.overall.winRate + "%" || "No data")
-  //       .addField("Kills", r.data.data.stats.all.overall.kills || "No data")
-  //       .addField("Matches", r.data.data.stats.all.overall.matches || "No data")
-  //       .addField("Days Played", r.data.data.stats.all.overall.minutesPlayed / 60 / 24 || "No data")
-  //       .addField("Last Update", new Date(r.data.data.stats.all.overall.lastModified).toLocaleString("en-US", { timeZone: "America/New_York" }) || "No data")
-  //       .setColor("2186DB")
-  //       .setTimestamp();
+  if (message.content.toLowerCase().startsWith("c!fn")) {
+    const username = message.content.split("c!fn ")[1];
+    console.log(username, message.content.split("c!fn "))
+    try {
+      const r = await axios.get(`https://fortnite-api.com/v1/stats/br/v2?image=all&name=${username}`);
+      // message.channel.send(`${username} is level ${r.data.data.battlePass.level}.${r.data.data.battlePass.progress}. Wins: ${r.data.data.stats.all.overall.wins} KD: ${r.data.data.stats.all.overall.kd} Kills: ${r.data.data.stats.all.overall.kills} Matches: ${r.data.data.stats.all.overall.matches} Stats as of: ${new Date(r.data.data.stats.all.overall.lastModified).toLocaleString("en-US", { timeZone: "America/New_York" })}`);
+      const e = new MessageEmbed()
+        .setTitle(`Fortnite Stats for ${r.data.data.account.name}`)
+        .addField("Battle Pass Level", `${r.data.data.battlePass.level}.${r.data.data.battlePass.progress}` || "No data")
+        .addField("Wins", r.data.data.stats.all.overall.wins || "No data")
+        .addField("Solo Wins", r.data.data.stats.all?.solo?.wins || "No data")
+        .addField("Duo Wins", r.data.data.stats.all?.duo?.wins || "No data")
+        .addField("Trio Wins", r.data.data.stats.all?.trio?.wins || "No data")
+        .addField("Squad Wins", r.data.data.stats.all?.squad?.wins || "No data")
+        .addField("LTM Wins", r.data.data.stats.all?.ltm?.wins || "No data")
+        .addField("KD", r.data.data.stats.all.overall.kd || "No data")
+        .addField("Win Rate", r.data.data.stats.all.overall.winRate + "%" || "No data")
+        .addField("Kills", r.data.data.stats.all.overall.kills || "No data")
+        .addField("Matches", r.data.data.stats.all.overall.matches || "No data")
+        .addField("Days Played", (r.data.data.stats.all.overall.minutesPlayed / 60 / 24).toString() || "No data")
+        .addField("Last Update", new Date(r.data.data.stats.all.overall.lastModified).toLocaleString("en-US", { timeZone: "America/New_York" }) || "No data")
+        .setColor("#2186DB")
+        .setTimestamp();
 
-  //   // message.channel.send(e); 
-  //   } catch {
-  //     return message.channel.send("Dumbahh, profile doesn't exist or it's private.")
-  //   }
-  // }
+      // message.channel.send(e); 
+    } catch {
+      return void message.channel.send("Dumbahh, profile doesn't exist or it's private.")
+    }
+  }
 
-  // if (message.content.toLowerCase().startsWith("c!date")) {
+  if (message.content.toLowerCase().startsWith("c!date")) {
 
 
-  //   const dateStr = `${message.content.split("c!date ")[1]} EST`;
-  //   if (!dateStr) return message.channel.send("Please enter a date string");
+    const dateStr = `${message.content.split("c!date ")[1]} EST`;
+    if (!dateStr) return void message.channel.send("Please enter a date string");
 
-  //   try {
-  //   const estDate = new Date(dateStr);
+    try {
+      const estDate = new Date(dateStr);
 
-  //   return message.channel.send(`\`\`\`\n${estDate.toISOString()}\n\`\`\``);
-
-
-  //   } catch(e) {
-  //     return message.channel.send(`Please format your date string using valid JavaScript Date rules. ex. **${new Date().toLocaleString("en-US", { timeZone: "America/New_York" })}**`);
-  //   }
-  // }
+      return void message.channel.send(`\`\`\`\n${estDate.toISOString()}\n\`\`\``);
 
 
-  // let args = message.content.substring(prefix.length).split(" ");
+    } catch (e) {
+      return void message.channel.send(`Please format your date string using valid JavaScript Date rules. ex. **${new Date().toLocaleString("en-US", { timeZone: "America/New_York" })}**`);
+    }
+  }
 
 
-  // switch (args[0]) {
-  //   case "test":
-  //     message.channel.send("Test 18 works!");
-  //     break;
+  let args = message.content.substring(prefix.length).split(" ");
 
-  //   case "Patch":
-  //     message.channel.send("https://imgur.com/mEab2Sm");
-  //     break;
 
-  //   case "Creepers-Turtle-Wars-v3.0.1":
-  //     message.channel.send("https://imgur.com/hKrXraM");
-  //     break;
+  switch (args[0]) {
+    case "test":
+      message.channel.send("Test 18 works!");
+      break;
 
-  //   case "Creepers-Turtle-Wars-v4.0":
-  //     message.channel.send("https://imgur.com/6u32Dxa");
-  //     break;
+    case "Patch":
+      message.channel.send("https://imgur.com/mEab2Sm");
+      break;
 
-  //   case "Creepers Turtle Wars v4.0":
-  //     message.channel.send("https://imgur.com/6u32Dxa");
-  //     break;
+    case "Creepers-Turtle-Wars-v3.0.1":
+      message.channel.send("https://imgur.com/hKrXraM");
+      break;
 
-  //   case "log-off":
-  //     message.channel.send("Im still on.");
-  //     break;
+    case "Creepers-Turtle-Wars-v4.0":
+      message.channel.send("https://imgur.com/6u32Dxa");
+      break;
 
-  //   case "embed":
-  //     const embed = new MessageEmbed();
-  //     embed.setTitle("Username");
-  //     embed.setDescription(message.author.username);
-  //     message.channel.send(embed);
-  //     break;
+    case "Creepers Turtle Wars v4.0":
+      message.channel.send("https://imgur.com/6u32Dxa");
+      break;
 
-  //   case "embed-test":
-  //     const embedtest = new MessageEmbed();
-  //     embedtest.setTitle("Info");
-  //     embedtest.setDescription("This message is embeded. This is test 12.");
-  //     embedtest.setColor("#2186DB");
-  //     message.channel.send(embedtest);
-  //     break;
+    case "log-off":
+      message.channel.send("Im still on.");
+      break;
 
-  //   case "creeper-bot-help":
-  //     const HelpEmbed = new MessageEmbed();
-  //     HelpEmbed.setTitle("Help");
-  //     HelpEmbed.setDescription("All commands and info about the bot will be listed here never!");
-  //     HelpEmbed.setColor("#2186DB");
-  //     message.author.send(HelpEmbed);
-  //     break;
+    case "embed":
+      const embed = new MessageEmbed();
+      embed.setTitle("Username");
+      embed.setDescription(message.author.username);
+      message.channel.send({ embeds: [embed] });
+      break;
 
-  //   case "join":
-  //    // music.join();
-  //     break;
+    case "embed-test":
+      const embedtest = new MessageEmbed();
+      embedtest.setTitle("Info");
+      embedtest.setDescription("This message is embeded. This is test 12.");
+      embedtest.setColor("#2186DB");
+      message.channel.send({ embeds: [embedtest] });
+      break;
 
-  //   case "leave":
-  //    // music.leave(message);
-  //     break;
-  // }
+    case "creeper-bot-help":
+      const HelpEmbed = new MessageEmbed();
+      HelpEmbed.setTitle("Help");
+      HelpEmbed.setDescription("All commands and info about the bot will be listed here never!");
+      HelpEmbed.setColor("#2186DB");
+      message.author.send({ embeds: [HelpEmbed] });
+      break;
 
-  // if (message.content.startsWith('c!shutdown')) {
-  //   if (message.author.id !== '481158632008974337') return message.channel.send("What a idiot!. You don't have permission to preform that action.");
+    case "join":
+      // music.join();
+      break;
 
-  //   if (process.env.NODE_ENV === 'production') {
-  //     await message.channel.send('Instance is on **production**. Shutting down to stop counting from breaking...');
-  //     process.exit(1);
-  //   }
-  //   else message.channel.send('Instance is on **development**. Did not shut down.');
-  // }
+    case "leave":
+      // music.leave(message);
+      break;
+  }
+
+  if (message.content.startsWith('c!shutdown')) {
+    if (message.author.id !== '481158632008974337') return void message.channel.send("What a idiot!. You don't have permission to preform that action.");
+
+    if (process.env.NODE_ENV === 'production') {
+      await message.channel.send('Instance is on **production**. Shutting down to stop counting from breaking...');
+      process.exit(1);
+    }
+    else message.channel.send('Instance is on **development**. Did not shut down.');
+  }
 });
 
 
 client.on("ready", () => console.log(`${client.user.tag} has logged in.`));
-
-client.on("messageCreate", (message => {
-  return message.channelId;
-}))
