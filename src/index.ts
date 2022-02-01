@@ -13,7 +13,7 @@ const prefix = "c!";
 
 // let music: Music;
 
-
+try {
 client.on("ready", () => {
   const instance = process.env.NODE_ENV === 'production' ? process.env.NODE_ENV : 'development'
   console.log(client.guilds.cache);
@@ -213,4 +213,7 @@ client.on("message", async (message) => {
 
 
 client.on("ready", () => console.log(`${client.user.tag} has logged in.`));
+} catch(err) {
+ (<TextChannel>client.channels.cache.get('767763290004652037')).send(`An error has occurred: ${e}`);
+}
 
