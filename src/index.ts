@@ -7,9 +7,13 @@ import Teasers from "./teasers";
 import { News } from "./news/news";
 import { DonaldTracker } from "./DonaldTracker/DonaldTracker";
 import { Counting, countingCommand } from "./Counting/Counting";
+
 const client = new Client({ restTimeOffset: 30, intents: new Intents(32767) });
 client.login(process.env.BOT_TOKEN);
 const prefix = "c!";
+
+const version = `v${require("../package.json").version}`;
+
 
 // let music: Music;
 
@@ -28,9 +32,9 @@ client.on("ready", () => {
 
   const instance = process.env.NODE_ENV === 'production' ? process.env.NODE_ENV : 'development'
   console.log(client.guilds.cache);
-  (<TextChannel>client.channels.cache.get('767763290004652037')).send(`${client.user.tag} has logged in at ${new Date().toLocaleString("en-US", { timeZone: "America/New_York" })}. Instance is on **${instance}**.`);
+  (<TextChannel>client.channels.cache.get('767763290004652037')).send(`${client.user.tag} has logged in at ${new Date().toLocaleString("en-US", { timeZone: "America/New_York" })}. Instance is on **${instance}**. Version is ${version}`);
   console.log(`${client.user.tag} has logged in at ${new Date().toLocaleString("en-US", { timeZone: "America/New_York" })}. Instance is on **${instance}**.`);
-  client.user.setActivity("c!creeper-bot-help");
+  client.user.setActivity(`${version}, c!creeper-bot-help}`);
   new Counting(client);
   new News(client);
   new DonaldTracker(client);
@@ -108,6 +112,7 @@ client.on("messageCreate", async (message) => {
     console.log(username, message.content.split("c!fn "))
     try {
       const r = await axios.get(`https://fortnite-api.com/v1/stats/br/v2?image=all&name=${username}`);
+      console.log(r)
       // message.channel.send(`${username} is level ${r.data.data.battlePass.level}.${r.data.data.battlePass.progress}. Wins: ${r.data.data.stats.all.overall.wins} KD: ${r.data.data.stats.all.overall.kd} Kills: ${r.data.data.stats.all.overall.kills} Matches: ${r.data.data.stats.all.overall.matches} Stats as of: ${new Date(r.data.data.stats.all.overall.lastModified).toLocaleString("en-US", { timeZone: "America/New_York" })}`);
       const e = new MessageEmbed()
         .setTitle(`Fortnite Stats for ${r.data.data.account.name}`)

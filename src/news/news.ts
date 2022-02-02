@@ -55,7 +55,7 @@ export class News {
     }
 
     private loop(looper: Br | Creative | Stw, looperName: "br" | "creative" | "stw", db: NewsResponseObject) {
-        for (const newsIndex in looper.motds) {
+        for (const newsIndex in looper?.motds) {
             const news = looper.motds[newsIndex];
 
             if (news !== db.data[looperName].motds[newsIndex]) {
