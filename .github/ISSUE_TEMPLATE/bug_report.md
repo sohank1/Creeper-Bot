@@ -1,6 +1,6 @@
 ---
 name: Bug report
-about: Report a bug to help Creeper Bot
+about: Report a bug to help improve Creeper Bot
 title: "'...' not working"
 labels: bug
 assignees: CreeperPlanet26
