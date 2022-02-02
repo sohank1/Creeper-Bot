@@ -6,15 +6,26 @@ import Teasers from "./teasers";
 // import { Music } from "./music/Music";
 import { News } from "./news/news";
 import { DonaldTracker } from "./DonaldTracker/DonaldTracker";
-import { Counting } from "./Counting/Counting";
-const client = new Client({ restTimeOffset: 30, intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES] });
+import { Counting, countingCommand } from "./Counting/Counting";
+const client = new Client({ restTimeOffset: 30, intents: new Intents(32767) });
 client.login(process.env.BOT_TOKEN);
 const prefix = "c!";
 
 // let music: Music;
 
 
+
+
 client.on("ready", () => {
+
+  // Register Slash Commands
+  // client.application.commands.create(countingCommand)
+
+  // client.application.commands.create({
+  //   options: [{}]
+  //  })
+
+
   const instance = process.env.NODE_ENV === 'production' ? process.env.NODE_ENV : 'development'
   console.log(client.guilds.cache);
   (<TextChannel>client.channels.cache.get('767763290004652037')).send(`${client.user.tag} has logged in at ${new Date().toLocaleString("en-US", { timeZone: "America/New_York" })}. Instance is on **${instance}**.`);
@@ -213,3 +224,5 @@ client.on("messageCreate", async (message) => {
 
 
 client.on("ready", () => console.log(`${client.user.tag} has logged in.`));
+
+

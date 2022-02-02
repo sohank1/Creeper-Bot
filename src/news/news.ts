@@ -26,10 +26,10 @@ export class News {
             //   console.log("Getting data from database.")
             const db = (await NewsModel.findOne()).responseObject;
 
-            console.log("db", new Date(db.data.br.date), "real", new Date(this.responseObject.data.br.date))
+            // console.log("db", new Date(db.data.br.date), "real", new Date(this.responseObject.data.br?.date))
 
 
-            if (this.responseObject.data.br.date !== db.data.br.date ||
+            if (this.responseObject.data.br?.date !== db.data.br?.date ||
                 this.responseObject.data.creative?.date !== db.data.creative?.date ||
                 this.responseObject.data.stw.date !== db.data.stw.date) {
                 console.log("Fortnite servers have new news.")
@@ -40,8 +40,9 @@ export class News {
                 //     console.log("Sending the message.")
                 this.send(db);
 
-            } else
-                console.log("Already up to date.")
+            } else {
+                // console.log("Already up to date.")
+            }
 
         }, 3000)
     }
@@ -73,7 +74,7 @@ export class News {
                     .addField("Image URLs", `${news.image} ${news.tileImage}`)
                     .setFooter({ text: `Updated at ${new Date(looper.date).toLocaleString("en-US", { timeZone: "America/New_York" })}` });
 
-                for (const id of ["678266554088947712", "936367568787243058"]) (<TextChannel>this.client.channels.cache.get(id)).send({ embeds: [e] });
+                for (const id of ["936367568787243058", "936381169656799252"]) (<TextChannel>this.client.channels.cache.get(id))?.send({ embeds: [e] });
             }
         }
     }

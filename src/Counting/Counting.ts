@@ -1,8 +1,29 @@
+import { SlashCommandBuilder } from "@discordjs/builders";
 import { Client, Message, MessageEmbed, TextChannel } from "discord.js";
 import CountingModel from "./Counting.model";
+import { CountingService } from "./CountingService";
+
+
+export const countingCommand = new SlashCommandBuilder()
+    .setName('counting')
+    .setDescription('Get info about a user or a server!')
+
+    .addSubcommand(subcommand =>
+        subcommand.setName('stats')
+            .setDescription('Get the counting stats for this server'))
+
+    .addSubcommand(subcommand =>
+        subcommand
+            .setName('set')
+            .addChannelOption(o => o.setName('channel').setDescription('The channel to setup counting for')
+                // .setRequired(false)
+            )
+            .setDescription('Set the counting channel'))
+
 
 export class Counting {
     private message: Message;
+    private _service = new CountingService();
 
     constructor(private client: Client) {
         client.on('messageCreate', (message) => {
@@ -18,7 +39,9 @@ export class Counting {
     }
 
     private async claimSaves(): Promise<Message> {
-        const doc = await CountingModel.findOne({ guildId: this.message.guild.id });
+        const doc = await this._service.findOneByGuild(this.message.guild.id);
+
+        // const doc = await CountingModel.findOne({ guildId: this.message.guild.id });
         if (!doc) return this.message.channel.send("You don't have a counting channel!. Use `c!set-counting #channel` or `c!set-counting` in the channel to activate the counting feature.");
 
         let isNewUser = false;
@@ -43,12 +66,13 @@ export class Counting {
             this.message.channel.send(`Please use this command again in **${h}h ${m}m ${s}s** to claim saves.`);
         }
 
-        await doc.save();
+        await this._service.saveDoc(doc)
 
     }
 
     private async getStats(): Promise<Message> {
-        const doc = await CountingModel.findOne({ guildId: this.message.guild.id });
+        // const doc = await CountingModel.findOne({ guildId: this.message.guild.id });
+        const doc = await this._service.findOneByGuild(this.message.guild.id);
         if (!doc) return this.message.channel.send("You don't have any stats. Use `c!set-counting #channel` or `c!set-counting` in the channel to activate the counting feature.");
 
         const e = new MessageEmbed()
@@ -77,7 +101,7 @@ export class Counting {
             });
             else {
                 doc.channelId = channel.id;
-                await doc.save();
+                await this._service.saveDoc(doc)
             }
         }
 
@@ -89,14 +113,15 @@ export class Counting {
     }
 
     private async check(): Promise<void> {
-        const doc = await CountingModel.findOne({ guildId: this.message.guild.id });
+        console.time(this.message.id)
+        // const doc = await CountingModel.findOne({ guildId: this.message.guild.id });
+        const doc = await this._service.findOneByGuild(this.message.guild.id)
         if (!doc) return;
-
+        console.timeEnd(this.message.id)
         if (this.message.channel.id === doc.channelId && Number((this.message.content))) {
+
             if (Number((this.message.content)) && Number((this.message.content)) === doc.current.numberNow + 1 && this.message.author.id !== doc.current.userId) {
                 doc.current.numberNow = doc.current.numberNow + 1;
-                doc.current.userId = this.message.author.id;
-                this.message.react('☑️');
 
                 if (Number((this.message.content)) === 42) this.message.react('🌐');
                 if (Number((this.message.content)) === 64) this.message.react('🟫');
@@ -132,8 +157,10 @@ export class Counting {
                 // }
             }
 
-            await doc.save();
-            console.log(doc)
+            console.time("save")
+            await this._service.saveDoc(doc);
+            // await doc.save();
+            console.timeEnd("save")
         }
     }
 }
