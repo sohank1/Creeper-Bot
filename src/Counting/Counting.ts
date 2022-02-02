@@ -121,6 +121,8 @@ export class Counting {
 
             if (Number((this.message.content)) && Number((this.message.content)) === doc.current.numberNow + 1 && this.message.author.id !== doc.current.userId) {
                 doc.current.numberNow = doc.current.numberNow + 1;
+                doc.current.userId = this.message.author.id;
+                this.message.react('☑️');
 
                 if (Number((this.message.content)) === 42) this.message.react('🌐');
                 if (Number((this.message.content)) === 64) this.message.react('🟫');
@@ -136,7 +138,7 @@ export class Counting {
                 if (Number((this.message.content)) === 404) ['🚫', '🇳', '🇴', '🇹', '⬛', '🇫', '🅾️', '🇺', '🆖', '🇩'].forEach(this.message.react);
                 if (Number((this.message.content)) === 420) this.message.react('🍀');
                 if (Number((this.message.content)) === 115) this.message.react('🧟');
-}
+            }
 
             else {
                 // const user = doc.users.find(u => u.id === this.message.author.id);
