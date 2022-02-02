@@ -27,7 +27,6 @@ export class Counting {
 
     constructor(private client: Client) {
         client.on('messageCreate', (message) => {
-            console.log(message.content)
             if (message.author.bot) return;
             this.message = message;
             if (message.content.startsWith('c!set-counting')) return void this.setChannel();
