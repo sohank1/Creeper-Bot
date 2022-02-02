@@ -17,9 +17,7 @@ const version = `v${require("../package.json").version}`;
 
 // let music: Music;
 
-
-
-
+try {
 client.on("ready", () => {
 
   // Register Slash Commands
@@ -229,5 +227,8 @@ client.on("messageCreate", async (message) => {
 
 
 client.on("ready", () => console.log(`${client.user.tag} has logged in.`));
+} catch(err) {
+ (<TextChannel>client.channels.cache.get('767763290004652037')).send(`An error has occurred: ${err}`);
+}
 
 
