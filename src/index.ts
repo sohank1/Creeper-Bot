@@ -111,30 +111,37 @@ client.on("messageCreate", async (message) => {
     const username = message.content.split("c!fn ")[1];
     console.log(username, message.content.split("c!fn "))
     try {
-      const r = await axios.get(`https://fortnite-api.com/v1/stats/br/v2?image=all&name=${username}`);
-      console.log(r)
+      const r = await axios.get(`https://fortnite-api.com/v1/stats/br/v2?image=all&name=${username}`, {
+        headers: {
+          'content-type': "application/json",
+          'Authorization': process.env.FORTNITE_API_KEY
+        }
+      });
       // message.channel.send(`${username} is level ${r.data.data.battlePass.level}.${r.data.data.battlePass.progress}. Wins: ${r.data.data.stats.all.overall.wins} KD: ${r.data.data.stats.all.overall.kd} Kills: ${r.data.data.stats.all.overall.kills} Matches: ${r.data.data.stats.all.overall.matches} Stats as of: ${new Date(r.data.data.stats.all.overall.lastModified).toLocaleString("en-US", { timeZone: "America/New_York" })}`);
       const e = new MessageEmbed()
-        .setTitle(`Fortnite Stats for ${r.data.data.account.name}`)
+        .setTitle(`Fortnite Stats for ${r.data.data.account.name}` || "No data")
         .addField("Battle Pass Level", `${r.data.data.battlePass.level}.${r.data.data.battlePass.progress}` || "No data")
-        .addField("Wins", r.data.data.stats.all.overall.wins || "No data")
-        .addField("Solo Wins", r.data.data.stats.all?.solo?.wins || "No data")
-        .addField("Duo Wins", r.data.data.stats.all?.duo?.wins || "No data")
-        .addField("Trio Wins", r.data.data.stats.all?.trio?.wins || "No data")
-        .addField("Squad Wins", r.data.data.stats.all?.squad?.wins || "No data")
-        .addField("LTM Wins", r.data.data.stats.all?.ltm?.wins || "No data")
-        .addField("KD", r.data.data.stats.all.overall.kd || "No data")
-        .addField("Win Rate", r.data.data.stats.all.overall.winRate + "%" || "No data")
-        .addField("Kills", r.data.data.stats.all.overall.kills || "No data")
-        .addField("Matches", r.data.data.stats.all.overall.matches || "No data")
-        .addField("Days Played", (r.data.data.stats.all.overall.minutesPlayed / 60 / 24).toString() || "No data")
+        .addField("Wins", String(r.data.data.stats.all.overall.wins) || "No data")
+        .addField("Solo Wins", String(r.data.data.stats.all?.solo?.wins) || "No data")
+        .addField("Duo Wins", String(r.data.data.stats.all?.duo?.wins) || "No data")
+        .addField("Trio Wins", String(r.data.data.stats.all?.trio?.wins) || "No data")
+        .addField("Squad Wins", String(r.data.data.stats.all?.squad?.wins) || "No data")
+        .addField("LTM Wins", String(r.data.data.stats.all?.ltm?.wins) || "No data")
+        .addField("KD", String(r.data.data.stats.all.overall.kd) || "No data")
+        .addField("Win Rate", String(r.data.data.stats.all.overall.winRate + "%") || "No data")
+        .addField("Kills", String(r.data.data.stats.all.overall.kills) || "No data")
+        .addField("Matches", String(r.data.data.stats.all.overall.matches) || "No data")
+        .addField("Days Played", String((r.data.data.stats.all.overall.minutesPlayed / 60 / 24)) || "No data")
         .addField("Last Update", new Date(r.data.data.stats.all.overall.lastModified).toLocaleString("en-US", { timeZone: "America/New_York" }) || "No data")
         .setColor("#2186DB")
         .setTimestamp();
 
-      // message.channel.send(e); 
-    } catch {
+      console.log(e)
+      message.channel.send({ embeds: [e] });
+    } catch (e) {
+      console.log(e)
       return void message.channel.send("Dumbahh, profile doesn't exist or it's private.")
+
     }
   }
 
