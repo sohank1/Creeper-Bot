@@ -110,7 +110,7 @@ export class Counting {
                 if (Number((this.message.content)) === 360) ['🚫', '👀', '🔫'].forEach(this.message.react);
                 if (Number((this.message.content)) === 404) ['🚫', '🇳', '🇴', '🇹', '⬛', '🇫', '🅾️', '🇺', '🆖', '🇩'].forEach(this.message.react);
                 if (Number((this.message.content)) === 420) this.message.react('🍀');
-                if (Number((this.message.content)) === 115) this.message.react('🧟');            
+                if (Number((this.message.content)) === 115) this.message.react('🧟');
 }
 
             else {
