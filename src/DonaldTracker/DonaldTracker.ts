@@ -68,7 +68,7 @@ export class DonaldTracker {
             .addField('Banner', `~~${doc.banner}~~\n${this.data.banner}`)
             .setTimestamp(new Date());
 
-        for (const id of ["936367568787243058", "936381169656799252"]) (<TextChannel>this.client.channels.cache.get(id))?.send({ embeds: [e] });
+        for (const id of ["938528828798681128", "936381169656799252"]) (<TextChannel>this.client.channels.cache.get(id))?.send({ embeds: [e] });
     }
 
 }

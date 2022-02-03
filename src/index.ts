@@ -22,6 +22,8 @@ const version = `v${require("../package.json").version}`;
 try {
   client.on("ready", () => {
 
+    client.application.commands.fetch().then(console.log)
+
     // Register Slash Commands
     client.application.commands.create(countingCommand)
     client.application.commands.create(fortniteCommand)
@@ -31,8 +33,7 @@ try {
     //  })
 
 
-    const instance = process.env.NODE_ENV === 'production' ? process.env.NODE_ENV : 'development'
-    console.log(client.guilds.cache);
+    const instance = process.env.NODE_ENV === 'production' ? process.env.NODE_ENV : 'development';
     (<TextChannel>client.channels.cache.get('767763290004652037')).send(`${client.user.tag} has logged in at ${new Date().toLocaleString("en-US", { timeZone: "America/New_York" })}. Instance is on **${instance}**. Version is ${version}`);
     console.log(`${client.user.tag} has logged in at ${new Date().toLocaleString("en-US", { timeZone: "America/New_York" })}. Instance is on **${instance}**.`);
     client.user.setActivity(`${version}, c!creeper-bot-help}`);

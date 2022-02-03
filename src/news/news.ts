@@ -31,7 +31,7 @@ export class News {
 
             if (this.responseObject.data.br?.date !== db.data.br?.date ||
                 this.responseObject.data.creative?.date !== db.data.creative?.date ||
-                this.responseObject.data.stw.date !== db.data.stw.date) {
+                this.responseObject.data.stw?.date !== db.data.stw?.date) {
                 console.log("Fortnite servers have new news.")
 
                 //      console.log("Saving this new data to the database.")
@@ -74,7 +74,7 @@ export class News {
                     .addField("Image URLs", `${news.image} ${news.tileImage}`)
                     .setFooter({ text: `Updated at ${new Date(looper.date).toLocaleString("en-US", { timeZone: "America/New_York" })}` });
 
-                for (const id of ["936367568787243058", "936381169656799252"]) (<TextChannel>this.client.channels.cache.get(id))?.send({ embeds: [e] });
+                for (const id of ["938528828798681128", "936381169656799252"]) (<TextChannel>this.client.channels.cache.get(id))?.send({ embeds: [e] });
             }
         }
     }

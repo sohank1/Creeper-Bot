@@ -1,5 +1,5 @@
 import { SlashCommandBuilder } from "@discordjs/builders";
-import { Client, Message, MessageEmbed, TextChannel } from "discord.js";
+import { ApplicationCommandDataResolvable, BaseCommandInteraction, CacheType, Client, Message, MessageEmbed, TextChannel } from "discord.js";
 import CountingModel from "./Counting.model";
 import { CountingService } from "./CountingService";
 
@@ -10,19 +10,21 @@ export const countingCommand = new SlashCommandBuilder()
 
     .addSubcommand(subcommand =>
         subcommand.setName('stats')
-            .setDescription('Get the counting stats for this server'))
+            .setDescription('Get the counting stats for this server')).toJSON();
 
-    .addSubcommand(subcommand =>
-        subcommand
-            .setName('set')
-            .addChannelOption(o => o.setName('channel').setDescription('The channel to setup counting for')
-                // .setRequired(false)
-            )
-            .setDescription('Set the counting channel'))
+// .addSubcommand(subcommand =>
+//     subcommand
+//         .setName('set')
+//         .addChannelOption(o => o.setName('channel').setDescription('The channel to setup counting for')
+//             // .setRequired(false)
+//         )
+//         .setDescription('Set the counting channel'))
+
 
 
 export class Counting {
     private message: Message;
+    private interaction: BaseCommandInteraction<CacheType>;
     private _service = new CountingService();
 
     constructor(private client: Client) {
@@ -35,6 +37,17 @@ export class Counting {
             if (message.content.startsWith('c!claim')) return void this.claimSaves();
             this.check();
         });
+
+        client.on("interactionCreate", (i) => {
+            if (!i.isApplicationCommand()) return
+
+            if (i.commandName !== "counting") return
+            if (!i.options.data.find(e => e.name === "stats")) return
+
+            this.interaction = i;
+            return void this.getStatsByInteraction();
+
+        })
     }
 
     private async claimSaves(): Promise<Message> {
@@ -82,6 +95,21 @@ export class Counting {
             .setColor('#2186DB')
             .setTimestamp()
         this.message.channel.send({ embeds: [e] });
+    }
+
+    private async getStatsByInteraction(): Promise<void> {
+        // const doc = await CountingModel.findOne({ guildId: this.message.guild.id });
+        const doc = await this._service.findOneByGuild(this.interaction.guild.id);
+        if (!doc) return this.interaction.reply("You don't have any stats. Use `c!set-counting #channel` or `c!set-counting` in the channel to activate the counting feature.");
+
+        const e = new MessageEmbed()
+            .setTitle(`${this.interaction.guild.name}'s stats for Creeper Counting`)
+            .setThumbnail(this.interaction.guild.iconURL())
+            .addField('Next Number', (doc.current.numberNow + 1).toString(), true)
+            .addField('Current Number', `${doc.current.numberNow} (Sent by ${this.client.users.cache.get(doc.current.userId)?.username})`, true)
+            .setColor('#2186DB')
+            .setTimestamp()
+        this.interaction.reply({ embeds: [e] });
     }
 
     private async setChannel(): Promise<Message> {
