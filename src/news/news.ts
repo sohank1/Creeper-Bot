@@ -1,5 +1,5 @@
 import axios, { AxiosResponse } from "axios";
-import { Client, MessageEmbed, TextChannel } from "discord.js";
+import { Client, Collection, MessageEmbed, Snowflake, TextChannel } from "discord.js";
 import { Br, Creative, NewsResponseObject, Stw } from "./news.type";
 import NewsModel from './news.model'
 import newsChannels from "./newsChannels.json"
@@ -75,7 +75,8 @@ export class News {
                     .addField("Image URLs", `${news.image} ${news.tileImage}`)
                     .setFooter({ text: `Updated at ${new Date(looper.date).toLocaleString("en-US", { timeZone: "America/New_York" })}` });
 
-                for (const id of Object.values(newsChannels)) (<TextChannel>this.client.channels.cache.get(id))?.send({ embeds: [e] });
+                const channels = this.client.channels.cache.filter((c: TextChannel) => c.name.includes("fn-news")) as Collection<Snowflake, TextChannel>
+                channels.forEach(c => c.send({ embeds: [e] }))
             }
         }
     }

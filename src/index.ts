@@ -1,7 +1,7 @@
 import "dotenv/config";
 import './database';
 import axios from "axios";
-import { Client, Intents, MessageEmbed, TextChannel } from "discord.js";
+import { CategoryChannel, Client, Intents, MessageEmbed, TextChannel } from "discord.js";
 import Teasers from "./teasers";
 // import { Music } from "./music/Music";
 import { News } from "./news/news";
@@ -20,7 +20,7 @@ const version = `v${require("../package.json").version}`;
 // let music: Music;
 
 try {
-  client.on("ready", () => {
+  client.on("ready", async () => {
 
     client.application.commands.fetch().then(console.log)
 

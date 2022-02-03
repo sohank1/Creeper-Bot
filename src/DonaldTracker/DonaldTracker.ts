@@ -1,4 +1,4 @@
-import { Client, MessageEmbed, TextChannel } from "discord.js";
+import { Client, Collection, MessageEmbed, Snowflake, TextChannel } from "discord.js";
 import Puppeteer from 'puppeteer';
 import DonaldModel, { DonaldData } from './DonaldTracker.model';
 import newsChannels from "./../news/newsChannels.json"
@@ -70,7 +70,8 @@ export class DonaldTracker {
             .addField('Banner', `~~${doc.banner}~~\n${this.data.banner}`)
             .setTimestamp(new Date());
 
-        for (const id of Object.values(newsChannels)) (<TextChannel>this.client.channels.cache.get(id))?.send({ embeds: [e] });
+        const channels = this.client.channels.cache.filter((c: TextChannel) => c.name.includes("fn-news")) as Collection<Snowflake, TextChannel>
+        channels.forEach(c => c.send({ embeds: [e] }))
 
     }
 
