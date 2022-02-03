@@ -32,17 +32,17 @@ export class Counting {
             if (message.author.bot) return;
             this.message = message;
             if (message.content.startsWith('c!set-counting')) return void this.setChannel();
-            if (message.content.startsWith('c!stats')) return void this.getStats();
-            if (message.content.startsWith('c!info')) return void this.getStats();
+            // if (message.content.startsWith('c!stats')) return void this.getStats();
+            // if (message.content.startsWith('c!info')) return void this.getStats();
             if (message.content.startsWith('c!claim')) return void this.claimSaves();
             this.check();
         });
 
         client.on("interactionCreate", (i) => {
-            if (!i.isApplicationCommand()) return
+            if (!i.isCommand()) return
 
-            if (i.commandName !== "counting") return
-            if (!i.options.data.find(e => e.name === "stats")) return
+            if (i.commandName !== "counting") return;
+            if (i.options.getSubcommand() !== "stats") return;
 
             this.interaction = i;
             return void this.getStatsByInteraction();
@@ -82,31 +82,32 @@ export class Counting {
 
     }
 
-    private async getStats(): Promise<Message> {
-        // const doc = await CountingModel.findOne({ guildId: this.message.guild.id });
-        const doc = await this._service.findOneByGuild(this.message.guild.id);
-        if (!doc) return this.message.channel.send("You don't have any stats. Use `c!set-counting #channel` or `c!set-counting` in the channel to activate the counting feature.");
+    // private async getStats(): Promise<Message> {
+    //     // const doc = await CountingModel.findOne({ guildId: this.message.guild.id });
+    //     const doc = await this._service.findOneByGuild(this.message.guild.id);
+    //     if (!doc) return this.message.channel.send("You don't have any stats. Use `c!set-counting #channel` or `c!set-counting` in the channel to activate the counting feature.");
 
-        const e = new MessageEmbed()
-            .setTitle(`${this.message.guild.name}'s stats for Creeper Counting`)
-            .setThumbnail(this.message.guild.iconURL())
-            .addField('Next Number', (doc.current.numberNow + 1).toString(), true)
-            .addField('Current Number', `${doc.current.numberNow} (Sent by ${this.client.users.cache.get(doc.current.userId)?.username})`, true)
-            .setColor('#2186DB')
-            .setTimestamp()
-        this.message.channel.send({ embeds: [e] });
-    }
+    //     const e = new MessageEmbed()
+    //         .setTitle(`${this.message.guild.name}'s stats for Creeper Counting`)
+    //         .setThumbnail(this.message.guild.iconURL())
+    //         .addField('Next Number', (doc.current.numberNow + 1).toString(), true)
+    //         .addField('Current Number', `${doc.current.numberNow} (Sent by ${this.client.users.cache.get(doc.current.userId)?.username})`, true)
+    //         .setColor('#2186DB')
+    //         .setTimestamp()
+    //     this.message.channel.send({ embeds: [e] });
+    // }
 
     private async getStatsByInteraction(): Promise<void> {
         // const doc = await CountingModel.findOne({ guildId: this.message.guild.id });
         const doc = await this._service.findOneByGuild(this.interaction.guild.id);
         if (!doc) return this.interaction.reply("You don't have any stats. Use `c!set-counting #channel` or `c!set-counting` in the channel to activate the counting feature.");
 
+        const username = this.client.users.cache.get(doc.current.userId)?.username;
         const e = new MessageEmbed()
             .setTitle(`${this.interaction.guild.name}'s stats for Creeper Counting`)
             .setThumbnail(this.interaction.guild.iconURL())
             .addField('Next Number', (doc.current.numberNow + 1).toString(), true)
-            .addField('Current Number', `${doc.current.numberNow} (Sent by ${this.client.users.cache.get(doc.current.userId)?.username})`, true)
+            .addField('Current Number', username ? `${doc.current.numberNow} (Sent by ${username})` : "0", true)
             .setColor('#2186DB')
             .setTimestamp()
         this.interaction.reply({ embeds: [e] });

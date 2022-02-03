@@ -14,7 +14,7 @@ const client = new Client({ restTimeOffset: 30, intents: new Intents(32767) });
 client.login(process.env.BOT_TOKEN);
 const prefix = "c!";
 
-const version = `v${require("../package.json").version}`;
+export const version = `v${require("../package.json").version}`;
 
 
 // let music: Music;
@@ -22,7 +22,16 @@ const version = `v${require("../package.json").version}`;
 try {
   client.on("ready", async () => {
 
-    client.application.commands.fetch().then(console.log)
+    // console.log(client.guilds.cache.get("685935846557614120").channels.cache.forEach((c: TextChannel) => console.log(`Name: ${c.name}, Position: ${c.position}, Parent: ${c.parent?.name}`)))
+    const neo = client.guilds.cache.get("685935846557614120")
+    const mineChannel = <TextChannel>neo.channels.cache.get("685958708383056034")
+
+    mineChannel.parent.children.forEach((c: TextChannel) => console.log(`Name: ${c.name}, Position: ${c.position}, Parent: ${c.parent?.name}`))
+    console.log(mineChannel.position + 1)
+
+    // client.application.commands.fetch().then(console.log)
+
+    client.guilds.cache.get("570349873337991203").commands.set([])
 
     // Register Slash Commands
     client.application.commands.create(countingCommand)
@@ -112,44 +121,6 @@ try {
 
 
   client.on("messageCreate", async (message) => {
-    if (message.content.toLowerCase().startsWith("c!fn")) {
-      const username = message.content.split("c!fn ")[1];
-      console.log(username, message.content.split("c!fn "))
-      try {
-        const r = await axios.get(`https://fortnite-api.com/v1/stats/br/v2?image=all&name=${username}`, {
-          headers: {
-            'content-type': "application/json",
-            'Authorization': process.env.FORTNITE_API_KEY
-          }
-        });
-        // message.channel.send(`${username} is level ${r.data.data.battlePass.level}.${r.data.data.battlePass.progress}. Wins: ${r.data.data.stats.all.overall.wins} KD: ${r.data.data.stats.all.overall.kd} Kills: ${r.data.data.stats.all.overall.kills} Matches: ${r.data.data.stats.all.overall.matches} Stats as of: ${new Date(r.data.data.stats.all.overall.lastModified).toLocaleString("en-US", { timeZone: "America/New_York" })}`);
-        const e = new MessageEmbed()
-          .setTitle(`Fortnite Stats for ${r.data.data.account.name}` || "No data")
-          .addField("Battle Pass Level", `${r.data.data.battlePass.level}.${r.data.data.battlePass.progress}` || "No data")
-          .addField("Wins", String(r.data.data.stats.all.overall.wins) || "No data")
-          .addField("Solo Wins", String(r.data.data.stats.all?.solo?.wins) || "No data")
-          .addField("Duo Wins", String(r.data.data.stats.all?.duo?.wins) || "No data")
-          .addField("Trio Wins", String(r.data.data.stats.all?.trio?.wins) || "No data")
-          .addField("Squad Wins", String(r.data.data.stats.all?.squad?.wins) || "No data")
-          .addField("LTM Wins", String(r.data.data.stats.all?.ltm?.wins) || "No data")
-          .addField("KD", String(r.data.data.stats.all.overall.kd) || "No data")
-          .addField("Win Rate", String(r.data.data.stats.all.overall.winRate + "%") || "No data")
-          .addField("Kills", String(r.data.data.stats.all.overall.kills) || "No data")
-          .addField("Matches", String(r.data.data.stats.all.overall.matches) || "No data")
-          .addField("Days Played", String((r.data.data.stats.all.overall.minutesPlayed / 60 / 24)) || "No data")
-          .addField("Last Update", new Date(r.data.data.stats.all.overall.lastModified).toLocaleString("en-US", { timeZone: "America/New_York" }) || "No data")
-          .setColor("#2186DB")
-          .setTimestamp();
-
-        console.log(e)
-        message.channel.send({ embeds: [e] });
-      } catch (e) {
-        console.log(e)
-        return void message.channel.send("Dumbahh, profile doesn't exist or it's private.")
-
-      }
-    }
-
     if (message.content.toLowerCase().startsWith("c!date")) {
 
 
