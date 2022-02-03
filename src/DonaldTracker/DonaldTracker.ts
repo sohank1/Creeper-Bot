@@ -70,9 +70,18 @@ export class DonaldTracker {
             .addField('Banner', `~~${doc.banner}~~\n${this.data.banner}`)
             .setTimestamp(new Date());
 
-        const channels = this.client.channels.cache.filter((c: TextChannel) => c.name.includes("fn-news")) as Collection<Snowflake, TextChannel>
-        channels.forEach(c => c.send({ embeds: [e] }))
 
+        const channels = this.client.channels.cache.filter((c: TextChannel) => c.name.includes("fn-news")) as Collection<Snowflake, TextChannel>
+
+        const neo = this.client.guilds.cache.get(newsChannels.neo.guild)
+        if (!neo.channels.cache.find((c: TextChannel) => c.name.includes("fn-news"))) {
+            const mineChannel = <TextChannel>neo.channels.cache.get("685958708383056034")
+            const c = await neo.channels.create("fn-news", { topic: "Fortnite News and Donald Mustard updates", position: mineChannel.position + 1, parent: mineChannel.parent })
+            channels.set(c.id, <TextChannel>neo.channels.cache.get(c.id))
+        }
+
+
+        channels.forEach(c => c.send({ embeds: [e] }))
     }
 
 }

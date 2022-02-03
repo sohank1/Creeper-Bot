@@ -204,7 +204,7 @@ try {
 
       if (process.env.NODE_ENV === 'production') {
         await message.channel.send('Instance is on **production**. Shutting down to stop counting from breaking...');
-        process.exit(1);
+        process.exit();
       }
       else message.channel.send('Instance is on **development**. Did not shut down.');
     }

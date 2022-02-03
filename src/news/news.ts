@@ -59,7 +59,7 @@ export class News {
         for (const newsIndex in looper?.motds) {
             const news = looper.motds[newsIndex];
 
-            if (news !== db.data[looperName].motds[newsIndex]) {
+            if (news !== db.data[looperName]?.motds[newsIndex]) {
                 console.log("The news is not in the same place. Send a message.")
                 console.log(news)
                 console.log(news.image, "\n", news.tileImage, "\n", news.id, "\n", news.title, "\n", news.tabTitle, "\n", news.body, "\n", `${news.image} ${news.tileImage}`, "\n", { text: `Updated at ${new Date(looper.date).toLocaleString("en-US", { timeZone: "America/New_York" })}` })
