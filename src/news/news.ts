@@ -2,6 +2,7 @@ import axios, { AxiosResponse } from "axios";
 import { Client, MessageEmbed, TextChannel } from "discord.js";
 import { Br, Creative, NewsResponseObject, Stw } from "./news.type";
 import NewsModel from './news.model'
+import newsChannels from "./newsChannels.json"
 
 export class News {
     public responseObject: NewsResponseObject;
@@ -74,7 +75,7 @@ export class News {
                     .addField("Image URLs", `${news.image} ${news.tileImage}`)
                     .setFooter({ text: `Updated at ${new Date(looper.date).toLocaleString("en-US", { timeZone: "America/New_York" })}` });
 
-                for (const id of ["938528828798681128", "936381169656799252"]) (<TextChannel>this.client.channels.cache.get(id))?.send({ embeds: [e] });
+                for (const id of Object.values(newsChannels)) (<TextChannel>this.client.channels.cache.get(id))?.send({ embeds: [e] });
             }
         }
     }

@@ -1,6 +1,8 @@
 import { Client, MessageEmbed, TextChannel } from "discord.js";
 import Puppeteer from 'puppeteer';
 import DonaldModel, { DonaldData } from './DonaldTracker.model';
+import newsChannels from "./../news/newsChannels.json"
+
 
 export class DonaldTracker {
     public data: { location: string; banner: string; };
@@ -68,7 +70,8 @@ export class DonaldTracker {
             .addField('Banner', `~~${doc.banner}~~\n${this.data.banner}`)
             .setTimestamp(new Date());
 
-        for (const id of ["938528828798681128", "936381169656799252"]) (<TextChannel>this.client.channels.cache.get(id))?.send({ embeds: [e] });
+        for (const id of Object.values(newsChannels)) (<TextChannel>this.client.channels.cache.get(id))?.send({ embeds: [e] });
+
     }
 
 }
