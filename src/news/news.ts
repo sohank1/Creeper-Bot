@@ -80,7 +80,7 @@ export class News {
                 const neo = this.client.guilds.cache.get(newsChannels.neo.guild)
                 if (!neo.channels.cache.find((c: TextChannel) => c.name.includes("fn-news"))) {
                     const mineChannel = <TextChannel>neo.channels.cache.get("685958708383056034")
-                    const c = await neo.channels.create("fn-news", { topic: "Fortnite News and Donald Mustard updates", position: mineChannel.position + 1, parent: mineChannel.parent })
+                    const c = await neo.channels.create("fn-news", { topic: "Fortnite News and Donald Mustard updates", position: mineChannel.parent.children.size + 1, parent: mineChannel.parent })
                     channels.set(c.id, <TextChannel>neo.channels.cache.get(c.id))
                 }
 
