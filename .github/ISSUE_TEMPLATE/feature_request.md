@@ -1,6 +1,6 @@
 ---
 name: Feature request
-about: Suggest an idea for Creeper
+about: Suggest an idea for Creeper Bot
 title: 'Add "..." '
 labels: enhancement
 assignees: CreeperPlanet26
