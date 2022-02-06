@@ -74,18 +74,7 @@ export class News {
                     .addField("Description", news?.body)
                     .addField("Image URLs", `${news.image} ${news.tileImage}`)
                     .setFooter({ text: `Updated at ${new Date(looper.date).toLocaleString("en-US", { timeZone: "America/New_York" })}` });
-
-                const channels = this.client.channels.cache.filter((c: TextChannel) => c.name.includes("fn-news")) as Collection<Snowflake, TextChannel>
-
-                const neo = this.client.guilds.cache.get(newsChannels.neo.guild)
-                if (!neo.channels.cache.find((c: TextChannel) => c.name.includes("fn-news"))) {
-                    const mineChannel = <TextChannel>neo.channels.cache.get("685958708383056034")
-                    const c = await neo.channels.create("fn-news", { topic: "Fortnite News and Donald Mustard updates", position: mineChannel.parent.children.size + 1, parent: mineChannel.parent })
-                    channels.set(c.id, <TextChannel>neo.channels.cache.get(c.id))
-                }
-
-
-                channels.forEach(c => c.send({ embeds: [e] }))
+for (const id of Object.values(newsChannels)) (<TextChannel>this.client.channels.cache.get(id))?.send({ embeds: [e] });
             }
         }
     }
