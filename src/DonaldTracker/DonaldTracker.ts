@@ -70,7 +70,7 @@ export class DonaldTracker {
             .addField('Banner', `~~${doc.banner}~~\n${this.data.banner}`)
             .setTimestamp(new Date());
 
-for (const id of Object.values(newsChannels)) (<TextChannel>this.client.channels.cache.get(id))?.send({ embeds: [e] });
+for (const s of Object.values(newsChannels)) (<TextChannel>this.client.channels.cache.get(s.channel))?.send({ embeds: [e] });
     }
 
 }
