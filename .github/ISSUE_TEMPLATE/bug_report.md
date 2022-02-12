@@ -13,7 +13,7 @@ A clear and concise description of what the bug is.
 **To Reproduce**
 Steps to reproduce the behavior:
 1. Use '...' command
-3. Put '...' for the '...' argument
+2. Put '...' for the '...' argument
 
 **Expected behavior**
 A clear and concise description of what you expected to happen.
