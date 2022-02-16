@@ -11,4 +11,4 @@ updates:
      # We don't want the branch on master because it causes merge conflits when we merge another branch into it
     target-branch: "2022-Q1-features"
     labels:
-      - "dependencies
+      - "dependencies"
