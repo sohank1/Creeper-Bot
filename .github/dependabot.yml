@@ -8,3 +8,7 @@ updates:
     # Check the npm registry for updates every day (weekdays)
     schedule:
       interval: "daily"
+     # We don't want the branch on master because it causes merge conflits when we merge another branch into it
+    target-branch: "2022-Q1-features"
+    labels:
+      - "Dependencies"
