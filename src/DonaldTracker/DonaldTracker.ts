@@ -3,6 +3,13 @@ import Puppeteer from 'puppeteer';
 import DonaldModel, { DonaldData } from './DonaldTracker.model';
 import newsChannels from "./../news/newsChannels.json"
 
+export const browser = Puppeteer.launch({
+    args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--incognito',
+    ],
+});
 
 export class DonaldTracker {
     public data: { location: string; banner: string; };
@@ -12,47 +19,38 @@ export class DonaldTracker {
     }
 
     private async scrape(): Promise<void> {
-        let browser = null;
-        let page: Puppeteer.Page = null;
+        console.log("launching")
 
-        (async () => {
-            console.log("launching")
-            browser = await Puppeteer.launch({
-                args: [
-                    '--no-sandbox',
-                    '--disable-setuid-sandbox',
-                ],
-            });
-            page = await browser.newPage();
+        const page = await (await browser).newPage();
 
-            setInterval(async () => {
-                console.log("going..")
-                await page.goto('https://twitter.com/DonaldMustard', { waitUntil: 'networkidle2' });
+        setInterval(async () => {
+            console.log("going..")
+            await page.goto('https://twitter.com/DonaldMustard', { waitUntil: 'networkidle2' });
 
-                const data = await page.evaluate(() => {
-                    const location = document.querySelectorAll('span span span');
-                    const banner = <HTMLImageElement>document.querySelector('.css-9pa8cd');
+            const data = await page.evaluate(() => {
+                const location = document.querySelectorAll('span span span');
+                const banner = <HTMLImageElement>document.querySelector('.css-9pa8cd');
 
-                    return {
-                        location: Array.from(location).map(l => l.textContent)[1],
-                        banner: banner.src,
-                    }
-
-                });
-
-                this.data = data;
-                console.log(this.data);
-
-                const doc = await DonaldModel.findOne();
-                if (data.banner !== doc.banner || data.location !== doc.location) {
-                    // We have new data.
-
-                    this.saveData();
-                    this.sendMessage(doc);
+                return {
+                    location: Array.from(location).map(l => l.textContent)[1],
+                    banner: banner.src,
                 }
-            }, 30000)  //300000
 
-        })();
+            });
+
+            this.data = data;
+            console.log(this.data);
+
+            const doc = await DonaldModel.findOne();
+            if (data.banner !== doc.banner || data.location !== doc.location) {
+                // We have new data.
+
+                this.saveData();
+                this.sendMessage(doc);
+            }
+        }, 30000)  //300000
+
+
     }
 
     public async saveData(): Promise<void> {
@@ -70,7 +68,7 @@ export class DonaldTracker {
             .addField('Banner', `~~${doc.banner}~~\n${this.data.banner}`)
             .setTimestamp(new Date());
 
-for (const s of Object.values(newsChannels)) (<TextChannel>this.client.channels.cache.get(s.channel))?.send({ embeds: [e] });
+        for (const s of Object.values(newsChannels)) (<TextChannel>this.client.channels.cache.get(s.channel))?.send({ embeds: [e] });
     }
 
 }
