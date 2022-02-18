@@ -26,7 +26,7 @@ jobs:
                   }
                 }
               }
-            }' -f org=$ORGANIZATION -F number=$PROJECT_NUMBER > project_data.json
+            }' -f account=$ORGANIZATION -F number=$PROJECT_NUMBER > project_data.json
 
           echo 'PROJECT_ID='$(jq '.data.organization.projectNext.id' project_data.json) >> $GITHUB_ENV
           echo 'DATE_FIELD_ID='$(jq '.data.organization.projectNext.fields.nodes[] | select(.name== "Date posted") | .id' project_data.json) >> $GITHUB_ENV
