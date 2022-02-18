@@ -28,11 +28,12 @@ export class CountingService {
      * It will be in the cache if a message in the server was sent
      */
     public async saveDoc(doc: CountingDoc): Promise<CountingDoc> {
+        //  update it in the cache
+        this._cache.set(doc._id, doc);
+
         // save the doc to the db
         await doc.save();
 
-        // then update it in the cache
-        this._cache.set(doc._id, doc);
         return doc;
     }
 }
