@@ -10,7 +10,8 @@ import { Counting, countingCommand } from "./Counting/Counting";
 import { SlashCommandBuilder } from "@discordjs/builders";
 import { fortniteCommand, FortniteStats } from "./FortniteStats/FortniteStats";
 
-const client = new Client({ restTimeOffset: 30, intents: new Intents(32767) });
+// const client = new Client({ restTimeOffset: 30, intents: new Intents(32767) });
+const client = new Client({ intents: new Intents(32767) });
 client.login(process.env.BOT_TOKEN);
 const prefix = "c!";
 
