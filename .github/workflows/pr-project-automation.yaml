@@ -1,6 +1,8 @@
 name: Add PR to project
 on:
   pull_request:
+    types:
+      - opened
   
 jobs:
   track_pr:
