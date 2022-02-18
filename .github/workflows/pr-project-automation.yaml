@@ -59,6 +59,8 @@ jobs:
               $item: ID!
               $status_field: ID!
               $status_value: String!
+              $priority_field: ID!
+              $priority_value: String!
             ) {
               set_status: updateProjectNextItemField(input: {
                 projectId: $project
