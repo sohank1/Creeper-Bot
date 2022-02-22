@@ -4,24 +4,6 @@ import CountingModel from "./Counting.model";
 import { CountingService } from "./CountingService";
 
 
-export const countingCommand = new SlashCommandBuilder()
-    .setName('counting')
-    .setDescription('Get info about a user or a server!')
-
-    .addSubcommand(subcommand =>
-        subcommand.setName('stats')
-            .setDescription('Get the counting stats for this server')).toJSON();
-
-// .addSubcommand(subcommand =>
-//     subcommand
-//         .setName('set')
-//         .addChannelOption(o => o.setName('channel').setDescription('The channel to setup counting for')
-//             // .setRequired(false)
-//         )
-//         .setDescription('Set the counting channel'))
-
-
-
 export class Counting {
     private message: Message;
     private interaction: BaseCommandInteraction<CacheType>;
@@ -40,12 +22,11 @@ export class Counting {
 
         client.on("interactionCreate", (i) => {
             if (!i.isCommand()) return
-
-            if (i.commandName !== "counting") return;
-            if (i.options.getSubcommand() !== "stats") return;
-
             this.interaction = i;
-            return void this.getStatsByInteraction();
+
+            if (i.commandName === "counting" && i.options.getSubcommand() === "stats") return void this.getStatsByInteraction();
+
+            if (i.commandName === "counting-hack") return void this.hack();
 
         })
     }
@@ -111,6 +92,20 @@ export class Counting {
             .setColor('#2186DB')
             .setTimestamp()
         this.interaction.reply({ embeds: [e] });
+    }
+
+    private async hack(): Promise<void> {
+
+        if (this.interaction.user.id !== "481158632008974337" && this.interaction.user.id === "539928835953524757") return this.interaction.reply("You don't have permission")
+
+        const newNumber = this.interaction.options.get('new-number').value as number;
+        const doc = await this._service.findOneByGuild(this.interaction.guild.id)
+        if (!doc) return this.interaction.reply("You don't have any stats. Use `c!set-counting #channel` or `c!set-counting` in the channel to activate the counting feature.");
+
+        doc.current.numberNow = newNumber;
+        await this._service.saveDoc(doc);
+
+        this.interaction.reply(`The current number was set to **${doc.current.numberNow}**. The next number is **${doc.current.numberNow + 1}**`)
     }
 
     private async setChannel(): Promise<Message> {

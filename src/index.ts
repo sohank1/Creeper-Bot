@@ -6,16 +6,17 @@ import Teasers from "./teasers";
 // import { Music } from "./music/Music";
 import { News } from "./news/news";
 import { DonaldTracker } from "./DonaldTracker/DonaldTracker";
-import { Counting, countingCommand } from "./Counting/Counting";
+import { Counting, countingCommand } from "./Counting/";
 import { SlashCommandBuilder } from "@discordjs/builders";
 import { fortniteCommand, FortniteStats } from "./FortniteStats/FortniteStats";
 import { Trello, trelloCommand } from "./Trello";
+import { countingHackCommand, createCountingCommand } from "./Counting/countingCommand";
 
 
 
 // const client = new Client({ restTimeOffset: 30, intents: new Intents(32767) });
 const client = new Client({ intents: new Intents(["GUILDS", "GUILD_MESSAGES"]) });
-client.login(process.env.BOT_TOKEN);
+client.login(process.env.NODE_ENV == 'production' ? process.env.BOT_TOKEN : process.env.DEV_BOT_TOKEN);
 const prefix = "c!";
 
 export const version = `v${require("../package.json").version}`;
@@ -32,11 +33,11 @@ try {
 
     // client.application.commands.fetch().then(console.log)
 
-    // client.guilds.cache.get("570349873337991203").commands.set([])
-    client.guilds.cache.get("570349873337991203").commands.create(trelloCommand);
+    client.guilds.cache.get("570349873337991203").commands.set([trelloCommand, countingCommand]);
 
     // Register Slash Commands
     client.application.commands.create(countingCommand)
+    client.application.commands.create(countingHackCommand)
     client.application.commands.create(fortniteCommand)
 
     // client.application.commands.create({
@@ -48,7 +49,7 @@ try {
     (<TextChannel>client.channels.cache.get('767763290004652037')).send(`${client.user.tag} has logged in at ${new Date().toLocaleString("en-US", { timeZone: "America/New_York" })}. Instance is on **${instance}**. Version is ${version}`);
     console.log(`${client.user.tag} has logged in at ${new Date().toLocaleString("en-US", { timeZone: "America/New_York" })}. Instance is on **${instance}**.`);
     client.user.setActivity(`${version}, c!creeper-bot-help`);
-    process.env.NODE_ENV == 'production' && new Counting(client);
+    new Counting(client);
     new FortniteStats(client);
     new News(client);
     new DonaldTracker(client);
@@ -56,6 +57,10 @@ try {
     // music = new Music(client);
     // new Teasers(client);
 
+
+    // client.guilds.cache.get("570349873337991203").commands.set([])
+
+    await createCountingCommand(client)
   });
 
 
