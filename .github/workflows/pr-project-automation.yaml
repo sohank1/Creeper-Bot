@@ -8,6 +8,10 @@ jobs:
   track_pr:
     runs-on: ubuntu-latest
     steps:
+      - name: Login
+        env: 
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+        run: gh auth login --with-token > ${{ secrets.GH_TOKEN }}
       - name: Get project data
         env:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
