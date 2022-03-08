@@ -26,7 +26,7 @@ export class Counting {
 
             if (i.commandName === "counting" && i.options.getSubcommand() === "stats") return void this.getStatsByInteraction();
 
-            if (i.commandName === "counting-hack") return void this.hack();
+            if (i.commandName === "counting" && i.options.getSubcommand() === "hack") return void this.hack();
 
         })
     }

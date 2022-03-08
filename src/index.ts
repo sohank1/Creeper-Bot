@@ -10,8 +10,6 @@ import { Counting, countingCommand } from "./Counting/";
 import { SlashCommandBuilder } from "@discordjs/builders";
 import { fortniteCommand, FortniteStats } from "./FortniteStats/FortniteStats";
 import { Trello, trelloCommand } from "./Trello";
-import { countingHackCommand, createCountingCommand } from "./Counting/countingCommand";
-
 
 
 // const client = new Client({ restTimeOffset: 30, intents: new Intents(32767) });
@@ -20,24 +18,18 @@ client.login(process.env.NODE_ENV == 'production' ? process.env.BOT_TOKEN : proc
 const prefix = "c!";
 
 export const version = `v${require("../package.json").version}`;
-
+export const TEST_SERVER = "695646961763614740";
 
 // let music: Music;
 
 try {
   client.on("ready", async () => {
+    client.application.commands.fetch().then(console.log)
 
-
-
-    // console.log(client.guilds.cache.get("685935846557614120").channels.cache.forEach((c: TextChannel) => console.log(`Name: ${c.name}, Position: ${c.position}, Parent: ${c.parent?.name}`)))
-
-    // client.application.commands.fetch().then(console.log)
-
-    client.guilds.cache.get("570349873337991203").commands.set([trelloCommand, countingCommand]);
+    client.guilds.cache.get(TEST_SERVER).commands.set([]);
 
     // Register Slash Commands
     client.application.commands.create(countingCommand)
-    client.application.commands.create(countingHackCommand)
     client.application.commands.create(fortniteCommand)
 
     // client.application.commands.create({
@@ -46,7 +38,7 @@ try {
 
 
     const instance = process.env.NODE_ENV === 'production' ? process.env.NODE_ENV : 'development';
-    (<TextChannel>client.channels.cache.get('767763290004652037')).send(`${client.user.tag} has logged in at ${new Date().toLocaleString("en-US", { timeZone: "America/New_York" })}. Instance is on **${instance}**. Version is ${version}`);
+    (<TextChannel>client.channels.cache.get('767763290004652037')) || (<TextChannel>client.channels.cache.get("948702063171362897")).send(`${client.user.tag} has logged in at ${new Date().toLocaleString("en-US", { timeZone: "America/New_York" })}. Instance is on **${instance}**. Version is ${version}`);
     console.log(`${client.user.tag} has logged in at ${new Date().toLocaleString("en-US", { timeZone: "America/New_York" })}. Instance is on **${instance}**.`);
     client.user.setActivity(`${version}, c!creeper-bot-help`);
     new Counting(client);
@@ -59,8 +51,6 @@ try {
 
 
     // client.guilds.cache.get("570349873337991203").commands.set([])
-
-    await createCountingCommand(client)
   });
 
 
