@@ -146,6 +146,7 @@ export class Counting {
             if (Number((this.message.content)) && Number((this.message.content)) === doc.current.numberNow + 1 && this.message.author.id !== doc.current.userId) {
                 doc.current.numberNow = doc.current.numberNow + 1;
                 doc.current.userId = this.message.author.id;
+                console.log("reacting")
                 this.message.react('☑️');
 
                 if (Number((this.message.content)) === 42) this.message.react('🌐');

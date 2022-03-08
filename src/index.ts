@@ -13,7 +13,7 @@ import { Trello, trelloCommand } from "./Trello";
 
 
 // const client = new Client({ restTimeOffset: 30, intents: new Intents(32767) });
-const client = new Client({ intents: new Intents(["GUILDS", "GUILD_MESSAGES"]) });
+const client = new Client({ restTimeOffset: 75, intents: new Intents(["GUILDS", "GUILD_MESSAGES"]) });
 client.login(process.env.NODE_ENV == 'production' ? process.env.BOT_TOKEN : process.env.DEV_BOT_TOKEN);
 const prefix = "c!";
 
@@ -24,9 +24,10 @@ export const TEST_SERVER = "695646961763614740";
 
 try {
   client.on("ready", async () => {
+
     client.application.commands.fetch().then(console.log)
 
-    client.guilds.cache.get(TEST_SERVER).commands.set([]);
+    client.guilds.cache.get(TEST_SERVER)?.commands.set([]);
 
     // Register Slash Commands
     client.application.commands.create(countingCommand)
