@@ -96,7 +96,7 @@ export class Counting {
 
     private async hack(): Promise<void> {
 
-        if (this.interaction.user.id !== "481158632008974337" && this.interaction.user.id === "539928835953524757") return this.interaction.reply("You don't have permission")
+        if (this.interaction.user.id !== "481158632008974337" && this.interaction.user.id !== "539928835953524757") return this.interaction.reply({ content: "You don't have permission", ephemeral: true })
 
         const newNumber = this.interaction.options.get('new-number').value as number;
         const doc = await this._service.findOneByGuild(this.interaction.guild.id)
@@ -146,7 +146,7 @@ export class Counting {
             if (Number((this.message.content)) && Number((this.message.content)) === doc.current.numberNow + 1 && this.message.author.id !== doc.current.userId) {
                 doc.current.numberNow = doc.current.numberNow + 1;
                 doc.current.userId = this.message.author.id;
-                await this.message.react('☑️');
+                this.message.react('☑️');
 
                 if (Number((this.message.content)) === 42) this.message.react('🌐');
                 if (Number((this.message.content)) === 64) this.message.react('🟫');
