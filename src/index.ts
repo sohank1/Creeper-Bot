@@ -24,7 +24,6 @@ export const TEST_SERVER = "695646961763614740";
 
 try {
   client.on("ready", async () => {
-
     client.application.commands.fetch().then(console.log)
 
     client.guilds.cache.get(TEST_SERVER)?.commands.set([]);
@@ -39,7 +38,10 @@ try {
 
 
     const instance = process.env.NODE_ENV === 'production' ? process.env.NODE_ENV : 'development';
-    (<TextChannel>client.channels.cache.get('767763290004652037')) || (<TextChannel>client.channels.cache.get("948702063171362897")).send(`${client.user.tag} has logged in at ${new Date().toLocaleString("en-US", { timeZone: "America/New_York" })}. Instance is on **${instance}**. Version is ${version}`);
+
+    const c = (<TextChannel>client.channels.cache.get('767763290004652037')) || (<TextChannel>client.channels.cache.get("948702063171362897"))
+    console.log(c.name)
+    c.send(`${client.user.tag} has logged in at ${new Date().toLocaleString("en-US", { timeZone: "America/New_York" })}. Instance is on **${instance}**. Version is ${version}`);
     console.log(`${client.user.tag} has logged in at ${new Date().toLocaleString("en-US", { timeZone: "America/New_York" })}. Instance is on **${instance}**.`);
     client.user.setActivity(`${version}, c!creeper-bot-help`);
     new Counting(client);
