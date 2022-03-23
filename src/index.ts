@@ -8,8 +8,9 @@ import { News } from "./news/news";
 import { DonaldTracker } from "./DonaldTracker/DonaldTracker";
 import { Counting, countingCommand } from "./Counting/";
 import { SlashCommandBuilder } from "@discordjs/builders";
-import { fortniteCommand, FortniteStats } from "./FortniteStats/FortniteStats";
+import { fortniteCommand, FortniteStats } from "./FortniteStats/";
 import { Trello, trelloCommand } from "./Trello";
+import { Avatar, avatarCommand } from "./AvatarCommand";
 
 
 // const client = new Client({ restTimeOffset: 30, intents: new Intents(32767) });
@@ -31,6 +32,7 @@ try {
     // Register Slash Commands
     client.application.commands.create(countingCommand)
     client.application.commands.create(fortniteCommand)
+    client.application.commands.create(avatarCommand)
 
     // client.application.commands.create({
     //   options: [{}]
@@ -49,6 +51,7 @@ try {
     new News(client);
     new DonaldTracker(client);
     new Trello(client);
+    new Avatar(client)
     // music = new Music(client);
     // new Teasers(client);
 

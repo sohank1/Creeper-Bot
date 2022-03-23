@@ -1,16 +1,7 @@
-import { SlashCommandBuilder } from "@discordjs/builders";
 import axios from "axios";
 import { BaseCommandInteraction, CacheType, Client, MessageEmbed } from "discord.js";
 import { version } from "../index";
 
-export const fortniteCommand = new SlashCommandBuilder()
-    .setName('fortnite')
-    .setDescription('Fortnite commands')
-
-    .addSubcommand(subcommand =>
-        subcommand.setName('stats')
-            .setDescription('Get Fortnite Stats for a player')
-            .addStringOption(o => o.setName('epic').setDescription('The Epic Games username of the player').setRequired(true))).toJSON()
 
 export class FortniteStats {
     private interaction: BaseCommandInteraction<CacheType>;
@@ -18,7 +9,7 @@ export class FortniteStats {
     constructor(private client: Client) {
 
 
-        client.on("interactionCreate", (i) => {
+        this.client.on("interactionCreate", (i) => {
 
             if (!i.isCommand()) return
             if (i.commandName !== "fortnite") return

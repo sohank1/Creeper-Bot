@@ -1,2 +1,2 @@
-export { Counting } from "./Counting";
-export { countingCommand } from "./countingCommand";
+export * from "./Counting";
+export * from "./countingCommand";
