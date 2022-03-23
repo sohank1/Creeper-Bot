@@ -74,7 +74,7 @@ export class News {
                     .addField("Description", news?.body)
                     .addField("Image URLs", `${news.image} ${news.tileImage}`)
                     .setFooter({ text: `Updated at ${new Date(looper.date).toLocaleString("en-US", { timeZone: "America/New_York" })}` });
-for (const s of Object.values(newsChannels)) (<TextChannel>this.client.channels.cache.get(s.channel))?.send({ embeds: [e] });
+                for (const s of Object.values(newsChannels)) (<TextChannel>this.client.channels.cache.get(s.channel))?.send({ embeds: [e] });
             }
         }
     }
