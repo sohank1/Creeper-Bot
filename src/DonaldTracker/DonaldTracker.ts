@@ -33,7 +33,7 @@ export class DonaldTracker {
 
                 return {
                     location: Array.from(location).map(l => l.textContent)[1],
-                    banner: banner.src,
+                    banner: banner?.src,
                 }
 
             });
