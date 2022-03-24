@@ -42,7 +42,7 @@ export class DonaldTracker {
             console.log(this.data);
 
             const doc = await DonaldModel.findOne();
-            if (data.banner !== doc.banner || data.location !== doc.location) {
+            if (data.banner && data.banner !== doc.banner || data.location !== doc.location) {
                 // We have new data.
 
                 this.saveData();
