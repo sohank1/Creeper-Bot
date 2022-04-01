@@ -24,6 +24,16 @@ export const countingCommand = new SlashCommandBuilder()
             .setName('hack')
             .setDescription('Hack and change the current counting number for this server')
             .addNumberOption(o => o.setName('new-number').setDescription('The new number to change to').setRequired(true)))
+
+    // .addSubcommand(subcommand =>
+    //     subcommand
+    //         .setName('hack')
+    //         .setDescription('Hack and change the current counting number for this server')
+    //         .addNumberOption(o => o.setName('new-number').setDescription('The new number to change to'))
+    //         .addStringOption(o => o.setName('saves-user').setDescription('The user change to change saves for').setAutocomplete(true))
+    //         .addStringOption(o => o.setName('saves-server').setDescription('The server change to change saves for').setAutocomplete(true))
+    //         .addNumberOption(o => o.setName('new-saves-amount').setDescription('The new number of saves to set to'))
+    // )
     .toJSON()
 
 

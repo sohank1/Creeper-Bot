@@ -1,4 +1,4 @@
-import { BaseCommandInteraction, ButtonInteraction, CacheType, Client, Message, MessageActionRow, MessageButton, MessageEmbed, TextChannel, User } from "discord.js";
+import { ApplicationCommandOptionChoice, AutocompleteInteraction, BaseCommandInteraction, ButtonInteraction, CacheType, Client, Message, MessageActionRow, MessageButton, MessageEmbed, TextChannel, User } from "discord.js";
 import CountingModel from "./Counting.model";
 import { CountingService } from "./CountingService";
 
@@ -37,11 +37,12 @@ export class Counting {
 
         client.on("interactionCreate", (i) => {
             if (i.isButton() && i.customId.startsWith("counting-use-save")) return void this.handleSaveButton(i)
+            // if (i.isAutocomplete() && i.options.getSubcommand() === "hack") return void this.handleHackSaveUserAutoComplete(i)
             if (!i.isCommand()) return
             this.interaction = i;
 
             if (i.commandName === "counting" && i.options.getSubcommand() === "stats") return void this.getStatsByInteraction();
-            if (i.commandName === "counting" && i.options.getSubcommand() === "hack") return void this.hack();
+            if (i.commandName === "counting" && i.options.getSubcommand() === "hack") return void this.hack(i);
             if (i.commandName === "counting" && i.options.getSubcommand() === "claim") return void this.claimSaves(i);
 
         })
@@ -183,20 +184,68 @@ export class Counting {
         this.interaction.reply({ embeds: [e] });
     }
 
-    private async hack(): Promise<void> {
+    private async hack(i: BaseCommandInteraction<CacheType>): Promise<void> {
 
-        if (this.interaction.user.id !== "481158632008974337" && this.interaction.user.id !== "539928835953524757") return this.interaction.reply({ content: "You don't have permission", ephemeral: true })
+        if (i.user.id !== "481158632008974337" && i.user.id !== "539928835953524757") return i.reply({ content: "You don't have permission", ephemeral: true })
 
-        const newNumber = this.interaction.options.get('new-number').value as number;
-        const doc = await this._service.findOneByGuild(this.interaction.guild.id)
-        if (!doc) return this.interaction.reply("You don't have any stats. Use `c!set-counting #channel` or `c!set-counting` in the channel to activate the counting feature.");
+        const newNumber = i.options.get('new-number').value as number;
+        const doc = await this._service.findOneByGuild(i.guild.id)
+        if (!doc) return i.reply("You don't have any stats. Use `c!set-counting #channel` or `c!set-counting` in the channel to activate the counting feature.");
 
         doc.current.numberNow = newNumber;
-        doc.current.userId = this.interaction.user.id;
+        doc.current.userId = i.user.id;
         await this._service.saveDoc(doc);
 
-        this.interaction.reply(`The current number was set to **${doc.current.numberNow}**. The next number is **${doc.current.numberNow + 1}**`)
+        i.reply(`The current number was set to **${doc.current.numberNow}**. The next number is **${doc.current.numberNow + 1}**`)
     }
+
+
+    // private async hack(i: BaseCommandInteraction<CacheType>): Promise<void> {
+
+    //     if (i.user.id !== "481158632008974337" && i.user.id !== "539928835953524757") return i.reply({ content: "You don't have permission", ephemeral: true })
+
+    //     const newNumber = i.options.get('new-number')?.value as number;
+    //     const savesUser = i.options.get('saves-user')?.value as string;
+    //     const savesServer = i.options.get('saves-server')?.value as string;
+
+    //     const newSavesAmount = i.options.get('new-saves-amount')?.value as string;
+
+    //     if (savesUser && !newSavesAmount || newSavesAmount && !savesUser) return this.interaction.reply({ content: 'You need both "saves-user" and "new-saves-amount" to change someones saves!', ephemeral: true })
+
+    //     const doc = await this._service.findOneByGuild(i.guild.id)
+    //     if (!doc) return i.reply("You don't have any stats. Use `c!set-counting #channel` or `c!set-counting` in the channel to activate the counting feature.");
+
+    //     newNumber ? doc.current.numberNow = newNumber : null;
+    //     newNumber ? doc.current.userId = i.user.id : null;
+    //     const user = doc.current.
+
+    //     await this._service.saveDoc(doc);
+
+    //     let str = '';
+    //     newNumber ? str += `The current number was set to **${doc.current.numberNow}**. The next number is **${doc.current.numberNow + 1}**` : null;
+    //     i.reply(str)
+    // }
+
+    // private async handleHackSaveUserAutoComplete(i: AutocompleteInteraction<CacheType>) {
+    //     const users = new Set<User>()
+    //     const docs = await CountingModel.find()
+    //     for (const doc of docs) for (const { id } of doc.users) {
+
+    //         const u = await this.client.users.fetch(id).catch(() => null)
+    //         users.add(u)
+    //     }
+
+
+    //     const usernames = [...users].map(u => u.username);
+    //     const r: ApplicationCommandOptionChoice[] = []
+    //     for (const u of usernames) {
+    //         const o = <string>i.options.get("saves-user").value
+    //         if (u.toLowerCase().match(o.toLowerCase())) r.push({ name: u, value: this.client.users.cache.find(us => us.username === u).id })
+    //     }
+
+    //     console.log(r)
+    //     i.respond(r);
+    // }
 
     private async setChannel(): Promise<Message> {
         if (!this.message.member.permissions.has('ADMINISTRATOR'))

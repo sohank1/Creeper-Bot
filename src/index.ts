@@ -27,7 +27,7 @@ try {
   client.on("ready", async () => {
     client.application.commands.fetch().then(console.log);
 
-    // (await client.guilds.fetch(TEST_SERVER))?.commands.set([countingCommand]);
+    (await client.guilds.fetch(TEST_SERVER))?.commands.set([countingCommand]);
 
     // Register Slash Commands
     client.application.commands.create(countingCommand)
