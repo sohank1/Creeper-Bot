@@ -1,65 +1,133 @@
-import { SlashCommandBuilder } from "@discordjs/builders";
-import { ApplicationCommandDataResolvable, BaseCommandInteraction, CacheType, Client, Message, MessageEmbed, TextChannel } from "discord.js";
+import { BaseCommandInteraction, ButtonInteraction, CacheType, Client, Message, MessageActionRow, MessageButton, MessageEmbed, TextChannel, User } from "discord.js";
+import { truncate } from "fs";
 import CountingModel from "./Counting.model";
 import { CountingService } from "./CountingService";
 
+export
+    const savesLootPool = [1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 3, 3];
 
 export class Counting {
     private message: Message;
     private interaction: BaseCommandInteraction<CacheType>;
+    private saveTimeout = new Map<string, NodeJS.Timeout>();
+    /**
+     * guildId, Message
+     */
+    private warnings = new Map<string, Message>()
     private _service = new CountingService();
 
     constructor(private client: Client) {
-        client.on('messageCreate', (message) => {
+        // reset all waiting decisions for servers
+        CountingModel.find().then((docs) => {
+            for (const d of docs) {
+                d.current.waitingOnId = "";
+                this._service.saveDoc(d)
+            }
+        })
+
+        client.on('messageCreate', async (message) => {
             if (message.author.bot) return;
             this.message = message;
             if (message.content.startsWith('c!set-counting')) return void this.setChannel();
             // if (message.content.startsWith('c!stats')) return void this.getStats();
             // if (message.content.startsWith('c!info')) return void this.getStats();
-            if (message.content.startsWith('c!claim')) return void this.claimSaves();
-            this.check();
+            // if (message.content.startsWith('c!claim')) return void this.claimSaves();
+            this.check(message);
+
         });
 
         client.on("interactionCreate", (i) => {
+            if (i.isButton() && i.customId.startsWith("counting-use-save")) return void this.handleSaveButton(i)
             if (!i.isCommand()) return
             this.interaction = i;
 
             if (i.commandName === "counting" && i.options.getSubcommand() === "stats") return void this.getStatsByInteraction();
-
             if (i.commandName === "counting" && i.options.getSubcommand() === "hack") return void this.hack();
+            if (i.commandName === "counting" && i.options.getSubcommand() === "claim") return void this.claimSaves(i);
 
         })
     }
 
-    private async claimSaves(): Promise<Message> {
-        const doc = await this._service.findOneByGuild(this.message.guild.id);
+    private async claimSaves(i: BaseCommandInteraction<CacheType>): Promise<Message> {
 
-        // const doc = await CountingModel.findOne({ guildId: this.message.guild.id });
-        if (!doc) return this.message.channel.send("You don't have a counting channel!. Use `c!set-counting #channel` or `c!set-counting` in the channel to activate the counting feature.");
+        const doc = await this._service.findOneByGuild(this.interaction.guild.id);
+
+        // const doc = await CountingModel.findOne({ guildId: this.interaction.guild.id });
+        if (!doc) return this.interaction.channel.send("You don't have a counting channel!. Use `c!set-counting #channel` or `c!set-counting` in the channel to activate the counting feature.");
 
         let isNewUser = false;
-        let user = doc.users.find(u => u.id === this.message.author.id);
+        let user = doc.users.find(u => u.id === this.interaction.user.id);
+
+        // user.lastVotedAt = new Date("2022-02-21T15:33:18.439Z")
+        // console.log('doc before change', doc)
+        // doc.users[doc.users.findIndex(u => u.id === this.interaction.user.id)] = user
+        // console.log("doc after change", doc)
+        // await this._service.saveDoc(doc)
+        // doc.users[0].saves = 200
+        // doc.users[0].lastVotedAt = new Date("2022-02-21T15:33:18.439Z")
+        // await doc.overwrite(doc);
+
+
+        // doc.users[0].saves = 200
+        // doc.users[0].lastVotedAt = new Date("2022-02-21T15:33:18.439Z")
+        // doc.markModified("users")
+        // await doc.save();
+
+
+
         if (!user) {
-            user = { id: this.message.author.id, saves: 0, lastVotedAt: new Date() }
+            console.log("a user was not found")
+            user = { id: i.user.id, saves: 0, lastVotedAt: new Date() }
             doc.users.push(user);
             isNewUser = true;
         }
 
-        if (Date.now() - user.lastVotedAt.getTime() >= 8.64e+7 || isNewUser) {
-            const lootPool = [1, 2, 3, 3, 3,];
+        console.log("last voted", user.lastVotedAt.toLocaleString())
+        console.log("last voted day", user.lastVotedAt.getDate())
 
-            user.saves += lootPool[Math.floor(Math.random() * lootPool.length)];
+        const canVoteAgainAt = new Date(user.lastVotedAt.getTime()).setDate(user.lastVotedAt.getDate() + 7)
+        console.log("canvoteagain", new Date(canVoteAgainAt).toLocaleString())
+        console.log("canvoteagain day", new Date(canVoteAgainAt).getDate())
+
+        if (Date.now() >= canVoteAgainAt || isNewUser) {
+            console.log("isNewUser=", isNewUser)
+            console.log("is now more than the voted time", Date.now() >= canVoteAgainAt)
+            const savesChosen = savesLootPool[Math.floor(Math.random() * savesLootPool.length)];
+            user.saves += savesChosen
             user.lastVotedAt = new Date();
-            this.message.channel.send(`You now have **${user.saves}** saves!`);
-        }
-        else {
-            const h = Math.floor((user.lastVotedAt.getTime() % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-            const m = Math.floor((user.lastVotedAt.getTime() % (1000 * 60 * 60)) / (1000 * 60));
-            const s = Math.floor((user.lastVotedAt.getTime() % (1000 * 60)) / 1000);
-            this.message.channel.send(`Please use this command again in **${h}h ${m}m ${s}s** to claim saves.`);
+
+            doc.users[doc.users.findIndex(u => u.id === this.interaction.user.id)] = user
+            await this._service.saveDoc(doc)
+
+
+            let str = `You have claimed your daily save^. You now have **${user.saves}** save%! (+${savesChosen} save^!)`
+            if (savesChosen > 1) str = str.replaceAll("^", "s")
+            else str = str.replaceAll("^", "")
+            if (user.saves > 1) str = str.replaceAll("%", "s")
+            else str = str.replaceAll("%", "")
+            return void this.interaction.reply(str);
         }
 
+
+
+        let delta = Math.abs(canVoteAgainAt - Date.now()) / 1000;
+
+        const days = Math.floor(delta / 86400);
+        delta -= days * 86400;
+
+        const hours = Math.floor(delta / 3600) % 24;
+        delta -= hours * 3600;
+
+        const minutes = Math.floor(delta / 60) % 60;
+
+        delta -= minutes * 60;
+        const seconds = Math.floor(delta % 60)  // i
+
+        doc.users[doc.users.findIndex(u => u.id === this.interaction.user.id)] = user
         await this._service.saveDoc(doc)
+
+        return void this.interaction.reply(`Please use this command again in **${days}d ${hours}h ${minutes}m ${seconds}s** to claim more saves.`);
+
 
     }
 
@@ -83,12 +151,34 @@ export class Counting {
         const doc = await this._service.findOneByGuild(this.interaction.guild.id);
         if (!doc) return this.interaction.reply("You don't have any stats. Use `c!set-counting #channel` or `c!set-counting` in the channel to activate the counting feature.");
 
-        const username = this.client.users.cache.get(doc.current.userId)?.username;
+        let d = "";
+        for (const u of doc.users) if (u.saves > 0) d += `**${(await this.client.users.fetch(u.id))?.username || u.id}**: ${u.saves}\n`
+        if (doc.current.waitingOnId) {
+            const split = d.split("\n")
+            const name = (await this.client.users.fetch(doc.current.waitingOnId))?.username
+            let e = split.find(e => e.includes(name))
+            const index = split.indexOf(e)
+            e += " (Waiting for decision)"
+            split[index] = e
+            d = split.join("")
+
+            // const index = d.indexOf(name) + name.length
+
+            // console.log(index)
+            // if (index) d = `${d.substring(0, index) + "(Waiting for decision)" + d.substring(index, d.length)}`
+        }
+        // const username = await this.client.users.fetch(doc.current.userId).catch(() => null).username
+        let username: string;
+        try {
+            username = (await this.client.users.fetch(doc.current.userId)).username
+        } catch (e) { username = "" }
         const e = new MessageEmbed()
             .setTitle(`${this.interaction.guild.name}'s stats for Creeper Counting`)
             .setThumbnail(this.interaction.guild.iconURL())
+        d && e.addField("Saves", d);
+        e
             .addField('Next Number', (doc.current.numberNow + 1).toString(), true)
-            .addField('Current Number', username ? `${doc.current.numberNow} (Sent by ${username})` : "0", true)
+            .addField('Current Number', username ? `${doc.current.numberNow} (Sent by ${username})` : doc.current.numberNow.toString(), true)
             .setColor('#2186DB')
             .setTimestamp()
         this.interaction.reply({ embeds: [e] });
@@ -103,6 +193,7 @@ export class Counting {
         if (!doc) return this.interaction.reply("You don't have any stats. Use `c!set-counting #channel` or `c!set-counting` in the channel to activate the counting feature.");
 
         doc.current.numberNow = newNumber;
+        doc.current.userId = this.interaction.user.id;
         await this._service.saveDoc(doc);
 
         this.interaction.reply(`The current number was set to **${doc.current.numberNow}**. The next number is **${doc.current.numberNow + 1}**`)
@@ -135,17 +226,36 @@ export class Counting {
         this.message.channel.send(`Successfully set the counting channel to ${channel}`)
     }
 
-    private async check(): Promise<void> {
+    private async check(msg: Message): Promise<void> {
         console.time(this.message.id)
         // const doc = await CountingModel.findOne({ guildId: this.message.guild.id });
         const doc = await this._service.findOneByGuild(this.message.guild.id)
         if (!doc) return;
         console.timeEnd(this.message.id)
+
         if (this.message.channel.id === doc.channelId && Number((this.message.content))) {
 
+            if (doc.current.waitingOnId) {
+                this.message.react("⌛")
+                const m = await this.message.reply(`Waiting on ${(await this.client.users.fetch(doc.current.waitingOnId)).username} to finish their decision.`)
+                // fix this so its ephemeral
+                return void setTimeout(async () => {
+                    try {
+                        await msg.delete()
+                        await m.delete()
+                    } catch (e) {
+                        console.error(e);
+
+                    }
+                }, 1000)
+            }
+
             if (Number((this.message.content)) && Number((this.message.content)) === doc.current.numberNow + 1 && this.message.author.id !== doc.current.userId) {
+
                 doc.current.numberNow = doc.current.numberNow + 1;
-                doc.current.userId = this.message.author.id;
+                doc.current.userId = msg.author.id;
+                doc.current.waitingOnId = "";
+
                 console.log("reacting")
                 this.message.react('☑️');
 
@@ -176,18 +286,99 @@ export class Counting {
                 //     await doc.updateOne(doc);
                 // }
                 // else {
-                const badPool = ['What a idiot!', 'What an aerial!', "I guess we can confirm now, math isn't your strong suite.", `${this.message.author.username} missed an open net!`, `${this.message.author.username} whiffed!`, `${this.message.author.username} sold the game!`, `${this.message.author.username} threw the game!`];
-                doc.current.numberNow = 0;
-                doc.current.userId = '';
-                this.message.react('❌');
-                this.message.channel.send(`**${this.message.author.username}** ruined it! ${badPool[Math.floor(badPool.length * Math.random())]} The next number is 1.`);
-                // }
+                const badPool = [`What a idiot, **${this.message.author.username}**! You ruined it!`, `**${this.message.author.username}**, What an aerial! You ruined it!`, `**${this.message.author.username}**, I guess we can confirm now, math isn't your strong suite.`, `${this.message.author.username} missed an open net! You ruined it!`, `${this.message.author.username} whiffed! You ruined it!`, `${this.message.author.username} sold the game!`, `${this.message.author.username} threw the game!`];
+
+                const user = doc.users.find(u => u.id === this.message.author.id)
+                if (user?.saves > 0) {
+                    this.message.react('⚠️');
+                    this.message.channel.send(`${badPool[Math.floor(badPool.length * Math.random())]} but... There is a chance to fix it!`);
+                    this.warnings.set(doc.guildId, this.message)
+
+                    const row = new MessageActionRow()
+                        .addComponents(
+                            new MessageButton()
+                                .setCustomId(`counting-use-save-yes-${this.message.author.id}`)
+                                .setLabel('✅ Yes')
+                                .setStyle('PRIMARY'),
+                            new MessageButton()
+                                .setCustomId(`counting-use-save-no-${this.message.author.id}`)
+                                .setLabel('🚫 No')
+                                .setStyle('DANGER'),
+                        );
+                    console.log(doc.current)
+
+                    const m = await this.message.channel.send({
+                        content: `<@${this.message.author.id}>, you have **${user.saves}** saves. Would you like to use one to keep the current number as **${doc.current.numberNow.toString()}**?`,
+                        components: [row]
+                    })
+
+                    doc.current.waitingOnId = msg.author.id;
+                    await this._service.saveDoc(doc)
+
+                    this.saveTimeout.set(m.id, setTimeout(async () => {
+                        doc.current.numberNow = 0;
+                        doc.current.userId = '';
+                        doc.current.waitingOnId = "";
+                        await this._service.saveDoc(doc)
+                        await m.edit({ content: `**${msg.author.username}** took too long to decide if they should use a save. The next number is **1**`, components: [] })
+                        msg.react('❌');
+
+                    }, 15000))
+                }
+                else {
+                    doc.current.numberNow = 0;
+                    doc.current.userId = '';
+                    this.message.react('❌');
+                    this.message.channel.send(`${badPool[Math.floor(badPool.length * Math.random())]} The next number is 1.`);
+                    // }
+                }
             }
 
             console.time("save")
             await this._service.saveDoc(doc);
             // await doc.save();
             console.timeEnd("save")
+        }
+    }
+
+    private async handleSaveButton(buttonI: ButtonInteraction<CacheType>) {
+        const doc = await this._service.findOneByGuild(buttonI.guild.id)
+
+        if (buttonI.customId.startsWith("counting-use-save-yes")) {
+            if (!buttonI.customId.includes(buttonI.user.id)) return buttonI.reply({ content: `${await this.client.users.fetch(buttonI.customId.split("counting-use-save-yes-")[1])} makes their own decisions.`, ephemeral: true })
+
+            doc.users[doc.users.findIndex(u => u.id === buttonI.user.id)].saves--
+            doc.current.userId === buttonI.user.id
+            doc.current.waitingOnId = "";
+            await this._service.saveDoc(doc)
+
+            clearTimeout(this.saveTimeout.get(buttonI.message.id));
+            this.saveTimeout.delete(buttonI.message.id);
+            this.warnings.get(doc.guildId).react('☑️')
+            this.warnings.delete(doc.guildId)
+            buttonI.update({
+                content: `The next number is **${doc.current.numberNow + 1}**. Someone that is not ${buttonI.user.username} should send the next number. ${buttonI.user.username} now has ${doc.users.find(u => u.id === buttonI.user.id).saves} saves.`,
+                components: []
+            })
+        }
+
+        else if (buttonI.customId.startsWith("counting-use-save-no")) {
+            if (!buttonI.customId.includes(buttonI.user.id)) return buttonI.reply({ content: `${await this.client.users.fetch(buttonI.customId.split("counting-use-save-no-")[1])} makes their own decision.`, ephemeral: true })
+
+            doc.current.numberNow = 0;
+            doc.current.userId = '';
+            doc.current.waitingOnId = "";
+            await this._service.saveDoc(doc)
+
+            clearTimeout(this.saveTimeout.get(buttonI.message.id));
+            this.saveTimeout.delete(buttonI.message.id);
+            this.warnings.get(doc.guildId)?.react('❌')
+            this.warnings.delete(doc.guildId)
+            buttonI.update({
+                content: `**${buttonI.user.username}** did not use a save. The next number is **1**. They still have ${doc.users.find(u => u.id === buttonI.user.id).saves} saves.`,
+                components: []
+            })
+
         }
     }
 }

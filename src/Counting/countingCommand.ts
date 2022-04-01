@@ -1,4 +1,9 @@
 import { SlashCommandBuilder } from "@discordjs/builders";
+import { savesLootPool } from "./Counting";
+
+const one = savesLootPool.filter(e => e === 1).length
+const two = savesLootPool.filter(e => e === 2).length
+const three = savesLootPool.filter(e => e === 3).length
 
 export const countingCommand = new SlashCommandBuilder()
     .setName('counting')
@@ -8,6 +13,11 @@ export const countingCommand = new SlashCommandBuilder()
         subcommand
             .setName('stats')
             .setDescription('Get the counting stats for this server'))
+
+    .addSubcommand(subcommand =>
+        subcommand
+            .setName('claim')
+            .setDescription(`Claim your weekly save(s). A ${one} in ${savesLootPool.length} chance for 1 save, ${two} in ${savesLootPool.length} for 2 saves, and ${three} in ${savesLootPool.length} for 3 saves`))
 
     .addSubcommand(subcommand =>
         subcommand

@@ -69,7 +69,7 @@ export class News {
                     .setImage(news.image)
                     .setThumbnail(news.tileImage)
                     .addField("ID", news.id)
-                    .addField("Title", news.title)
+                    .addField("Title", news.title || "None")
                     .addField("Tab Title", news.tabTitle || "None")
                     .addField("Description", news?.body)
                     .addField("Image URLs", `${news.image} ${news.tileImage}`)

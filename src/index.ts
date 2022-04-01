@@ -14,7 +14,7 @@ import { Avatar, avatarCommand } from "./AvatarCommand";
 
 
 // const client = new Client({ restTimeOffset: 30, intents: new Intents(32767) });
-const client = new Client({ restTimeOffset: 75, intents: new Intents(["GUILDS", "GUILD_MESSAGES"]) });
+const client = new Client({ restTimeOffset: 75, intents: new Intents(["GUILDS", "GUILD_MESSAGES", "GUILD_MEMBERS"]) });
 client.login(process.env.NODE_ENV == 'production' ? process.env.BOT_TOKEN : process.env.DEV_BOT_TOKEN);
 const prefix = "c!";
 
@@ -25,9 +25,9 @@ export const TEST_SERVER = "695646961763614740";
 
 try {
   client.on("ready", async () => {
-    client.application.commands.fetch().then(console.log)
+    client.application.commands.fetch().then(console.log);
 
-    client.guilds.cache.get(TEST_SERVER)?.commands.set([]);
+    (await client.guilds.fetch(TEST_SERVER))?.commands.set([countingCommand]);
 
     // Register Slash Commands
     client.application.commands.create(countingCommand)
@@ -47,11 +47,12 @@ try {
     console.log(`${client.user.tag} has logged in at ${new Date().toLocaleString("en-US", { timeZone: "America/New_York" })}. Instance is on **${instance}**.`);
     client.user.setActivity(`${version}, c!creeper-bot-help`);
     new Counting(client);
-    new FortniteStats(client);
-    new News(client);
-    new DonaldTracker(client);
-    new Trello(client);
-    new Avatar(client)
+    // new FortniteStats(client);
+    // new News(client);
+    // new DonaldTracker(client);
+    // new Trello(client);
+    // new Avatar(client)
+
     // music = new Music(client);
     // new Teasers(client);
 

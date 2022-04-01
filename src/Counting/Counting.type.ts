@@ -5,6 +5,7 @@ export interface CountingData {
     current?: {
         numberNow: number,
         userId: string,
+        waitingOnId: string
     }
 
     users?: { id: string; saves?: number; lastVotedAt?: Date }[];
