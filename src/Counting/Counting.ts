@@ -2,8 +2,8 @@ import { ApplicationCommandOptionChoice, AutocompleteInteraction, BaseCommandInt
 import CountingModel from "./Counting.model";
 import { CountingService } from "./CountingService";
 
-export
-    const savesLootPool = [1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 3, 3];
+// export const savesLootPool = [1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 3, 3];
+export const savesLootPool = [0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 1]
 
 export class Counting {
     private message: Message;
@@ -93,6 +93,11 @@ export class Counting {
             console.log("isNewUser=", isNewUser)
             console.log("is now more than the voted time", Date.now() >= canVoteAgainAt)
             const savesChosen = savesLootPool[Math.floor(Math.random() * savesLootPool.length)];
+
+            // const guildSaves = (await this._service.findOneByGuild(this.interaction.guildId)).users.map(u => u.saves)
+            // const netSaves =  guildSaves.reduce((prev, cur) => prev + cur) + savesChosen
+            // if (netSaves > 3) return void this.interaction.reply("This server has reached the cap of 3 saves. Use this command once your server has less than 3 saves.")
+
             user.saves += savesChosen
             user.lastVotedAt = new Date();
 
@@ -101,9 +106,9 @@ export class Counting {
 
 
             let str = `You have claimed your weekly save^. You now have **${user.saves}** save%! (+${savesChosen} save^!)`
-            if (savesChosen > 1) str = str.replaceAll("^", "s")
+            if (savesChosen > 0) str = str.replaceAll("^", "s")
             else str = str.replaceAll("^", "")
-            if (user.saves > 1) str = str.replaceAll("%", "s")
+            if (user.saves > 0) str = str.replaceAll("%", "s")
             else str = str.replaceAll("%", "")
             return void this.interaction.reply(str);
         }
@@ -337,7 +342,7 @@ export class Counting {
                 const badPool = [`What a idiot, **${this.message.author.username}**! You ruined it!`, `**${this.message.author.username}**, What an aerial! You ruined it!`, `**${this.message.author.username}**, I guess we can confirm now, math isn't your strong suite.`, `${this.message.author.username} missed an open net! You ruined it!`, `${this.message.author.username} whiffed! You ruined it!`, `${this.message.author.username} sold the game!`, `${this.message.author.username} threw the game!`];
 
                 const user = doc.users.find(u => u.id === this.message.author.id)
-                if (user?.saves > 0) {
+                if (user?.saves >= 1) {
                     this.message.react('⚠️');
                     this.message.channel.send(`${badPool[Math.floor(badPool.length * Math.random())]} but... There is a chance to fix it!`);
                     this.warnings.set(doc.guildId, this.message)

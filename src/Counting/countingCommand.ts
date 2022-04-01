@@ -1,9 +1,10 @@
 import { SlashCommandBuilder } from "@discordjs/builders";
 import { savesLootPool } from "./Counting";
 
+const pointTwo = savesLootPool.filter(e => e === 0.2).length
 const one = savesLootPool.filter(e => e === 1).length
-const two = savesLootPool.filter(e => e === 2).length
-const three = savesLootPool.filter(e => e === 3).length
+// const two = savesLootPool.filter(e => e === 2).length
+// const three = savesLootPool.filter(e => e === 3).length
 
 export const countingCommand = new SlashCommandBuilder()
     .setName('counting')
@@ -17,7 +18,8 @@ export const countingCommand = new SlashCommandBuilder()
     .addSubcommand(subcommand =>
         subcommand
             .setName('claim')
-            .setDescription(`Claim your weekly save(s). A ${one} in ${savesLootPool.length} chance for 1 save, ${two} in ${savesLootPool.length} for 2 saves, and ${three} in ${savesLootPool.length} for 3 saves`))
+            // .setDescription(`Claim your weekly save(s). A ${one}/${savesLootPool.length} chance for 1 save, ${two}/${savesLootPool.length} for 2 saves, and ${three}/${savesLootPool.length} for 3 saves`))
+            .setDescription(`Claim your weekly save(s). A ${pointTwo}/${savesLootPool.length} (${Math.floor(pointTwo / savesLootPool.length * 100)}%) chance for 0.2 saves and ${one}/${savesLootPool.length} (${Math.floor(one / savesLootPool.length * 100)}%) for 1 save.`))
 
     .addSubcommand(subcommand =>
         subcommand
