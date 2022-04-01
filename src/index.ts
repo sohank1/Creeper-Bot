@@ -27,7 +27,7 @@ try {
   client.on("ready", async () => {
     client.application.commands.fetch().then(console.log);
 
-    (await client.guilds.fetch(TEST_SERVER))?.commands.set([countingCommand]);
+    // (await client.guilds.fetch(TEST_SERVER))?.commands.set([countingCommand]);
 
     // Register Slash Commands
     client.application.commands.create(countingCommand)
@@ -47,11 +47,11 @@ try {
     console.log(`${client.user.tag} has logged in at ${new Date().toLocaleString("en-US", { timeZone: "America/New_York" })}. Instance is on **${instance}**.`);
     client.user.setActivity(`${version}, c!creeper-bot-help`);
     new Counting(client);
-    // new FortniteStats(client);
-    // new News(client);
-    // new DonaldTracker(client);
-    // new Trello(client);
-    // new Avatar(client)
+    new FortniteStats(client);
+    new News(client);
+    new DonaldTracker(client);
+    new Trello(client);
+    new Avatar(client)
 
     // music = new Music(client);
     // new Teasers(client);

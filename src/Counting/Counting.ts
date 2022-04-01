@@ -1,5 +1,4 @@
 import { BaseCommandInteraction, ButtonInteraction, CacheType, Client, Message, MessageActionRow, MessageButton, MessageEmbed, TextChannel, User } from "discord.js";
-import { truncate } from "fs";
 import CountingModel from "./Counting.model";
 import { CountingService } from "./CountingService";
 
