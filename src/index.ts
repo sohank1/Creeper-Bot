@@ -1,3 +1,4 @@
+//@ts-no-check
 import "dotenv/config";
 import './database';
 import axios from "axios";
