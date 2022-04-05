@@ -5,7 +5,6 @@ const pointTwo = savesLootPool.filter(e => e === 0.2).length
 const one = savesLootPool.filter(e => e === 1).length
 // const two = savesLootPool.filter(e => e === 2).length
 // const three = savesLootPool.filter(e => e === 3).length
-console.log(`Claim your weekly save(s). A ${pointTwo}/${savesLootPool.length} (${pointTwo / savesLootPool.length * 100}%) chance for 0.2 saves and ${one}/${savesLootPool.length} (${one / savesLootPool.length * 100}%) for 1 save.`)
 
 export const countingCommand = new SlashCommandBuilder()
     .setName('counting')
