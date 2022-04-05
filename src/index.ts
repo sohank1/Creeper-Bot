@@ -11,7 +11,7 @@ import { SlashCommandBuilder } from "@discordjs/builders";
 import { fortniteCommand, FortniteStats } from "./FortniteStats/";
 import { Trello, trelloCommand } from "./Trello";
 import { Avatar, avatarCommand } from "./AvatarCommand";
-import { DeletedClient } from "./DeletedClient/deletedClient";
+import { DeletedClient } from "./DeletedClient/";
 
 
 // const client = new Client({ restTimeOffset: 30, intents: new Intents(32767) });
