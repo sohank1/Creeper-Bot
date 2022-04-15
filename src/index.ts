@@ -65,7 +65,21 @@ try {
 
 
   client.on("messageCreate", async (message) => {
-if (message.content.toLowerCase().includes("who asked") || message.content.toLowerCase().includes("didn't ask") || message.content.toLowerCase().includes("didn't ask")) message.channel.send("I asked")
+if (message.content.toLowerCase().includes("who asked") || message.content.toLowerCase().includes("didn't ask") || message.content.toLowerCase().includes("didn't ask")) message.channel.send(`After heavy contemplation, I have finally figured out how to answer the popular question, “Who asked?“
+
+The obvious response to “who asked?“ is “nobody.“  That’s right, nobody asked.  In other words, the person who asked is “imaginary.“
+
+In mathematics, an “imaginary“ figure is the square root of -1.  This can also be simplified to the variable, i.
+
+So, “nobody“=an imaginary figure=the square root of -1=i 
+
+So, “nobody“=i 
+
+This can be substituted back into the response to “who asked?“, yielding an answer of “i asked.“
+
+That’s right, the answer to “who asked?“ is i.  
+
+I ASKED.`)
     if (message.content.toLowerCase().startsWith("c!date")) {
 
 
