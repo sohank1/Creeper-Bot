@@ -65,6 +65,7 @@ try {
 
 
   client.on("messageCreate", async (message) => {
+if (message.content.toLowerCase().includes("who asked") || message.content.toLowerCase().includes("didn't ask") || message.content.toLowerCase().includes("didn't ask")) message.channel.send("I asked")
     if (message.content.toLowerCase().startsWith("c!date")) {
 
 
