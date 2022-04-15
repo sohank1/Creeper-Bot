@@ -65,7 +65,7 @@ try {
 
 
   client.on("messageCreate", async (message) => {
-if (message.content.toLowerCase().includes("who asked") || message.content.toLowerCase().includes("didn't ask") || message.content.toLowerCase().includes("didn't ask")) message.channel.send(`After heavy contemplation, I have finally figured out how to answer the popular question, “Who asked?“
+if (!message.author.bot && message.content.toLowerCase().includes("who asked") || message.content.toLowerCase().includes("didn't ask") || message.content.toLowerCase().includes("didn't ask")) message.channel.send(`After heavy contemplation, I have finally figured out how to answer the popular question, “Who asked?“
 
 The obvious response to “who asked?“ is “nobody.“  That’s right, nobody asked.  In other words, the person who asked is “imaginary.“
 
