@@ -157,7 +157,7 @@ export class Counting {
         if (!doc) return this.interaction.reply("You don't have any stats. Use `c!set-counting #channel` or `c!set-counting` in the channel to activate the counting feature.");
 
         let d = "";
-        for (const u of doc.users) if (u.saves > 0) d += `**${(await this.client.users.fetch(u.id))?.username || u.id}**: ${u.saves}\n`
+        for (const u of doc.users) if (u.saves > 0) d += `**${(await this.client.users.fetch(u.id))?.username || u.id}**: ${u.saves.toFixed(1)}\n`
         if (doc.current.waitingOnId) {
             const split = d.split("\n")
             const name = (await this.client.users.fetch(doc.current.waitingOnId))?.username
