@@ -13,6 +13,11 @@ import { Trello, trelloCommand } from "./Trello";
 import { Avatar, avatarCommand } from "./AvatarCommand";
 import { DeletedClient } from "./DeletedClient/";
 
+// stop errors from crashing program
+process.on('uncaughtException', (error) => {
+  console.log(error.stack);
+});
+
 
 // const client = new Client({ restTimeOffset: 30, intents: new Intents(32767) });
 const client = new Client({ restTimeOffset: 75, intents: new Intents(["GUILDS", "GUILD_MESSAGES", "GUILD_MEMBERS",]) });
@@ -65,7 +70,7 @@ try {
 
 
   client.on("messageCreate", async (message) => {
-if (!message.author.bot && message.content.toLowerCase().includes("who asked") || message.content.toLowerCase().includes("didn't ask") || message.content.toLowerCase().includes("didn't ask")) message.channel.send(`After heavy contemplation, I have finally figured out how to answer the popular question, “Who asked?“
+    if (!message.author.bot && message.content.toLowerCase().includes("who asked") || message.content.toLowerCase().includes("didn't ask") || message.content.toLowerCase().includes("didn't ask")) message.channel.send(`After heavy contemplation, I have finally figured out how to answer the popular question, “Who asked?“
 
 The obvious response to “who asked?“ is “nobody.“  That’s right, nobody asked.  In other words, the person who asked is “imaginary.“
 
