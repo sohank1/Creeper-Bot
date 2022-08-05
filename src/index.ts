@@ -24,7 +24,7 @@ const client = new Client({ restTimeOffset: 75, intents: new Intents(["GUILDS", 
 client.login(process.env.NODE_ENV == 'production' ? process.env.BOT_TOKEN : process.env.DEV_BOT_TOKEN);
 const prefix = "c!";
 
-export const version = `v${require("../package.json").version}`;
+export const version = `beta v${require("../package.json").version}`;
 export const TEST_SERVER = "695646961763614740";
 
 // let music: Music;
