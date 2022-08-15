@@ -6,20 +6,16 @@ import shopSectionChannels from "./shopSectionChannels.json"
 
 export class ShopSectionsTracker {
     constructor(private client: Client) {
-        console.log(client.user.username)
         this.interval();
-        setTimeout(this.interval, 600000); // 10 mins
+        setTimeout(this.interval, 30000); // 30 seconds
     }
 
     private async interval(): Promise<void> {
 
         const { data } = (await axios.get<ShopSectionsResponseObject>("https://fn-api.com/api/shop/br/sections")).data
-        // await ShopSectionsModel.create({ updatedAt: data.updated })
-        console.log(new Date(data.date).toLocaleString())
         const db = await ShopSectionsModel.findOne()
 
         if (new Date(data.updated) > db.updatedAt) {
-            console.log('servers were updated')
             this.sendMessage(data)
             await ShopSectionsModel.updateOne({ updatedAt: new Date(data.updated) })
         }
@@ -36,7 +32,6 @@ export class ShopSectionsTracker {
         e.setDescription(desc);
 
         for (const s of Object.values(shopSectionChannels)) (<TextChannel>this.client.channels.cache.get(s.channel))?.send({ embeds: [e] });
-
     }
 
 }
