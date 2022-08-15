@@ -29,7 +29,6 @@ export class News {
 
             // console.log("db", new Date(db.data.br.date), "real", new Date(this.responseObject.data.br?.date))
 
-
             if (this.responseObject.data.br?.date !== db.data.br?.date ||
                 this.responseObject.data.creative?.date !== db.data.creative?.date ||
                 this.responseObject.data.stw?.date !== db.data.stw?.date) {

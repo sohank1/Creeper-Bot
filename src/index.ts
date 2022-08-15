@@ -12,6 +12,7 @@ import { fortniteCommand, FortniteStats } from "./FortniteStats/";
 import { Trello, trelloCommand } from "./Trello";
 import { Avatar, avatarCommand } from "./AvatarCommand";
 import { DeletedClient } from "./DeletedClient/";
+import { ShopSectionsTracker } from "./ShopSections/ShopSectionsTracker";
 
 // stop errors from crashing program
 process.on('uncaughtException', (error) => {
@@ -59,6 +60,7 @@ try {
     new DonaldTracker(client);
     new Trello(client);
     new Avatar(client)
+    new ShopSectionsTracker(client)
 
     // music = new Music(client);
     // new Teasers(client);
