@@ -7,7 +7,7 @@ import shopSectionChannels from "./shopSectionChannels.json"
 export class ShopSectionsTracker {
     constructor(private client: Client) {
         this.interval();
-        setInterval(() => this.interval, 30000); // 30 seconds
+        setInterval(() => this.interval(), 30000); // 30 seconds
     }
 
     private async interval(): Promise<void> {
