@@ -8,7 +8,7 @@ import { News } from "./news/news";
 import { DonaldTracker } from "./DonaldTracker/DonaldTracker";
 import { Counting, countingCommand } from "./Counting/";
 import { SlashCommandBuilder } from "@discordjs/builders";
-import { fortniteCommand, FortniteStats } from "./FortniteStats/";
+import { fortniteCommand, FortniteCosmetics, FortniteStats } from "./Fortnite/";
 import { Trello, trelloCommand } from "./Trello";
 import { Avatar, avatarCommand } from "./AvatarCommand";
 import { DeletedClient } from "./DeletedClient/";
@@ -26,20 +26,20 @@ client.login(process.env.NODE_ENV == 'production' ? process.env.BOT_TOKEN : proc
 const prefix = "c!";
 
 export const version = `v${require("../package.json").version}`;
-export const TEST_SERVER = "695646961763614740";
+export const TEST_SERVER = "640262033329356822";
 
 // let music: Music;
 
 try {
   client.on("ready", async () => {
-    client.application.commands.fetch().then(console.log);
+    // client.application.commands.fetch().then(console.log);
 
-    // (await client.guilds.fetch(TEST_SERVER))?.commands.set([countingCommand]);
+    (await client.guilds.fetch(TEST_SERVER))?.commands.set([fortniteCommand]);
 
     // Register Slash Commands
-    client.application.commands.create(countingCommand)
-    client.application.commands.create(fortniteCommand)
-    client.application.commands.create(avatarCommand)
+    // client.application.commands.create(countingCommand)
+    // client.application.commands.create(fortniteCommand)
+    // client.application.commands.create(avatarCommand)
 
     // client.application.commands.create({
     //   options: [{}]
@@ -49,18 +49,19 @@ try {
     const instance = process.env.NODE_ENV === 'production' ? process.env.NODE_ENV : 'development';
 
     const c = (<TextChannel>client.channels.cache.get('767763290004652037')) || (<TextChannel>client.channels.cache.get("725143127723212830"))
-    console.log(c.name)
+
     c.send(`${client.user.tag} has logged in at ${new Date().toLocaleString("en-US", { timeZone: "America/New_York" })}. Instance is on **${instance}**. Version is ${version}`);
     console.log(`${client.user.tag} has logged in at ${new Date().toLocaleString("en-US", { timeZone: "America/New_York" })}. Instance is on **${instance}**.`);
     client.user.setActivity(`${version}, c!creeper-bot-help`);
-    new DeletedClient(client)
-    new Counting(client);
-    new FortniteStats(client);
-    new News(client);
-    new DonaldTracker(client);
-    new Trello(client);
-    new Avatar(client)
-    new ShopSectionsTracker(client)
+    // new DeletedClient(client)
+    // new Counting(client);
+    // new FortniteStats(client);
+    // new News(client);
+    // new DonaldTracker(client);
+    // new Trello(client);
+    // new Avatar(client)
+    // new ShopSectionsTracker(client)
+    new FortniteCosmetics(client);
 
     // music = new Music(client);
     // new Teasers(client);
