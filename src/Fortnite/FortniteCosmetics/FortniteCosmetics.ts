@@ -1,42 +1,11 @@
 import axios from "axios";
 import Fuse from 'fuse.js'
 import { AutocompleteInteraction, BaseCommandInteraction, CacheType, Client, MessageEmbed } from "discord.js";
-import { Cosmetics, CosmeticsResponse, RarityValue } from "./FortniteCosmetics.type"
+import { Cosmetics, CosmeticsResponse } from "./FortniteCosmetics.type"
+import { rarityEmojisTable } from "./rarityEmojisTable";
 const cosmeticsData = <CosmeticsResponse>require("./cosmetics.json");
 
-const rarityEmoji: Record<RarityValue, string> = {
-    "common": "⚪",
-    "uncommon": "🟢",
-    "rare": "🔵",
-    "epic": "🟣",
-    "legendary": "🟠",
-    "marvel": "🔴",
-    "starwars": "✨",
-    backpack: "",
-    banner: "",
-    contrail: "",
-    dark: "",
-    dc: "",
-    emoji: "",
-    emote: "",
-    frozen: "",
-    gaminglegends: "",
-    glider: "",
-    icon: "",
-    lava: "",
-    loadingscreen: "",
-    music: "",
-    mythic: "",
-    outfit: "",
-    pet: "",
-    petcarrier: "",
-    pickaxe: "",
-    shadow: "",
-    slurp: "",
-    spray: "",
-    toy: "",
-    wrap: ""
-}
+
 
 export class FortniteCosmetics {
     private _data: Cosmetics;
@@ -84,7 +53,7 @@ export class FortniteCosmetics {
             // { name: "type.displayValue", weight: 1.1 },
             // { name: "set.text", weight: 5 },
 
-            .map(r => ({ name: `${rarityEmoji[r.item.rarity.value]} ${r.item.name} (${r.item.type.displayValue})`, value: r.item.id }))
+            .map(r => ({ name: `${rarityEmojisTable[r.item.rarity.value]} ${r.item.name} (${r.item.type.displayValue})`, value: r.item.id }))
             .slice(0, 25);
 
         console.log(results.map(r => [r.name,]))
