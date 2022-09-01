@@ -7,8 +7,8 @@ export type Cosmetics = Cosmetic[];
 
 export interface Cosmetic {
     id: string;
-    name: string;
-    description: string;
+    name: string | null;
+    description: string | null;
     type: Rarity;
     rarity: Rarity;
     series: Series | null;
