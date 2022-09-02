@@ -4,6 +4,7 @@ import DonaldModel, { DonaldData } from './DonaldTracker.model';
 import newsChannels from "./../news/newsChannels.json"
 
 export const browser = Puppeteer.launch({
+    headless: false,
     args: [
         '--no-sandbox',
         '--disable-setuid-sandbox',
@@ -19,17 +20,22 @@ export class DonaldTracker {
     }
 
     private async scrape(): Promise<void> {
-        console.log("launching")
+        console.log("launching browser page")
 
-        const page = await (await browser).newPage();
+        // get already open page from when puppeteer was launched
+        const [page] = await (await browser).pages();
 
         setInterval(async () => {
-            console.log("going..")
+            console.log("going to donald mustard twitter..")
             await page.goto('https://twitter.com/DonaldMustard', { waitUntil: 'networkidle2', timeout: 0 });
+            console.log('went to page', page.url())
 
             const data = await page.evaluate(() => {
                 const location = document.querySelectorAll('span span span');
+                console.log(Array.from(location))
                 const banner = <HTMLImageElement>document.querySelector('.css-9pa8cd');
+                console.log(banner.src)
+
 
                 return {
                     location: Array.from(location).map(l => l.textContent)[1],
@@ -42,7 +48,8 @@ export class DonaldTracker {
             console.log(this.data);
 
             const doc = await DonaldModel.findOne();
-            if (data.banner && data.banner !== doc.banner || data.location !== doc.location) {
+            if (!data.banner || !data.location) return;
+            if (data.banner !== doc.banner || data.location !== doc.location) {
                 // We have new data.
 
                 this.saveData();
@@ -67,6 +74,8 @@ export class DonaldTracker {
             .addField('Location', `~~${doc.location}~~\n${this.data.location}`)
             .addField('Banner', `~~${doc.banner}~~\n${this.data.banner}`)
             .setTimestamp(new Date());
+
+        //  files: [await page.screenshot({ fullPage: true })]
 
         for (const s of Object.values(newsChannels)) (<TextChannel>this.client.channels.cache.get(s.channel))?.send({ embeds: [e] });
     }

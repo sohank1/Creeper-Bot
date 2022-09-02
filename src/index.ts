@@ -6,30 +6,34 @@ import { CategoryChannel, Client, Intents, MessageEmbed, TextChannel } from "dis
 import Teasers from "./teasers";
 // import { Music } from "./music/Music";
 import { News } from "./news/news";
-// import { DonaldTracker } from "./DonaldTracker/DonaldTracker";
+import { DonaldTracker } from "./DonaldTracker/DonaldTracker";
 import { Counting, countingCommand } from "./Counting/";
 import { SlashCommandBuilder } from "@discordjs/builders";
 import { fortniteCommand, FortniteStats } from "./FortniteStats/";
-import { Trello, trelloCommand } from "./Trello";
+// import { Trello, trelloCommand } from "./Trello";
 import { Avatar, avatarCommand } from "./AvatarCommand";
 import { DeletedClient } from "./DeletedClient/";
 import { ShopSectionsTracker } from "./ShopSections/ShopSectionsTracker";
-import { DonaldTracker } from "./DonaldTracker/DonaldTracker";
 
 const app = express();
 const port = process.env.PORT || 3001;
 app.get("/", (req, res) => res.sendStatus(200));
 app.listen(port, () => console.log(`Example app listening on port ${port}!`));
 
-setInterval(() => {
-  try {
-    axios.get('https://creeper-bot.onrender.com/');
-    console.log(process.memoryUsage().heapUsed / 1024 / 1024 + " MB");
-  }
-  catch (e) {
-    console.log(e.message);
-  }
-}, 5000)
+// setInterval(() => {
+//   try {
+//     process.env.NODE_ENV === "production" && axios.get('https://creeper-bot.onrender.com/');
+//     console.log(process.memoryUsage().heapUsed / 1024 / 1024 + " MB");
+//     var os = require('os');
+
+//     console.log(os.cpus());
+//     console.log(os.totalmem() / 1024 / 1024);
+//     console.log(os.freemem() / 1024 / 1024)
+//   }
+//   catch (e) {
+//     console.log(e.message);
+//   }
+// }, 5000)
 
 // stop errors from crashing program
 process.on('uncaughtException', (error) => {
