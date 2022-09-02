@@ -15,6 +15,9 @@ import { Avatar, avatarCommand } from "./AvatarCommand";
 import { DeletedClient } from "./DeletedClient/";
 import { ShopSectionsTracker } from "./ShopSections/ShopSectionsTracker";
 
+export const version = `v${require("../package.json").version}`;
+export const TEST_SERVER = "640262033329356822";
+
 const app = express();
 const port = process.env.PORT || 3001;
 app.get("/", (req, res) => res.sendStatus(200));
