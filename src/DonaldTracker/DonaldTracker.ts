@@ -4,7 +4,7 @@ import DonaldModel, { DonaldData } from './DonaldTracker.model';
 import newsChannels from "./../news/newsChannels.json"
 
 export const browser = Puppeteer.launch({
-    headless: false,
+    headless: true,
     args: [
         '--no-sandbox',
         '--disable-setuid-sandbox',
