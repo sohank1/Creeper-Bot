@@ -1,11 +1,12 @@
 import "dotenv/config";
 import './database';
 import axios from "axios";
+import express from "express";
 import { CategoryChannel, Client, Intents, MessageEmbed, TextChannel } from "discord.js";
 import Teasers from "./teasers";
 // import { Music } from "./music/Music";
 import { News } from "./news/news";
-import { DonaldTracker } from "./DonaldTracker/DonaldTracker";
+// import { DonaldTracker } from "./DonaldTracker/DonaldTracker";
 import { Counting, countingCommand } from "./Counting/";
 import { SlashCommandBuilder } from "@discordjs/builders";
 import { fortniteCommand, FortniteStats } from "./FortniteStats/";
@@ -13,6 +14,15 @@ import { Trello, trelloCommand } from "./Trello";
 import { Avatar, avatarCommand } from "./AvatarCommand";
 import { DeletedClient } from "./DeletedClient/";
 import { ShopSectionsTracker } from "./ShopSections/ShopSectionsTracker";
+
+const app = express();
+const port = process.env.PORT || 3001;
+app.get("/", (req, res) => res.sendStatus(200));
+app.listen(port, () => console.log(`Example app listening on port ${port}!`));
+
+setInterval(() => {
+  axios.get('https://creeper-bot.onrender.com/');
+}, 5000)
 
 // stop errors from crashing program
 process.on('uncaughtException', (error) => {
@@ -57,8 +67,8 @@ try {
     new Counting(client);
     new FortniteStats(client);
     new News(client);
-    // new DonaldTracker(client);
-    new Trello(client);
+    new DonaldTracker(client);
+    // new Trello(client);
     new Avatar(client)
     new ShopSectionsTracker(client)
 
