@@ -22,7 +22,13 @@ app.get("/", (req, res) => res.sendStatus(200));
 app.listen(port, () => console.log(`Example app listening on port ${port}!`));
 
 setInterval(() => {
-  axios.get('https://creeper-bot.onrender.com/');
+  try {
+    axios.get('https://creeper-bot.onrender.com/');
+    console.log(process.memoryUsage().heapUsed / 1024 / 1024 + " MB");
+  }
+  catch (e) {
+    console.log(e.message);
+  }
 }, 5000)
 
 // stop errors from crashing program
@@ -37,13 +43,13 @@ client.login(process.env.NODE_ENV == 'production' ? process.env.BOT_TOKEN : proc
 const prefix = "c!";
 
 export const version = `v${require("../package.json").version}`;
-export const TEST_SERVER = "695646961763614740";
+export const TEST_SERVER = "640262033329356822";
 
 // let music: Music;
 
 try {
   client.on("ready", async () => {
-    client.application.commands.fetch().then(console.log);
+    // client.application.commands.fetch().then(console.log);
 
     // (await client.guilds.fetch(TEST_SERVER))?.commands.set([countingCommand]);
 
