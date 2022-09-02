@@ -14,6 +14,7 @@ import { Trello, trelloCommand } from "./Trello";
 import { Avatar, avatarCommand } from "./AvatarCommand";
 import { DeletedClient } from "./DeletedClient/";
 import { ShopSectionsTracker } from "./ShopSections/ShopSectionsTracker";
+import { DonaldTracker } from "./DonaldTracker/DonaldTracker";
 
 const app = express();
 const port = process.env.PORT || 3001;
