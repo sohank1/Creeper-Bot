@@ -6,9 +6,17 @@ import newsChannels from "./../news/newsChannels.json"
 export const browser = Puppeteer.launch({
     headless: true,
     args: [
-        '--no-sandbox',
+    //    '--no-sandbox',
+       // '--disable-setuid-sandbox',
+      //  '--incognito',
+ '--disable-gpu',
+        '--disable-dev-shm-usage',
         '--disable-setuid-sandbox',
-        '--incognito',
+        '--no-first-run',
+        '--no-sandbox',
+        '--no-zygote',
+        '--single-process'
+
     ],
 });
 
