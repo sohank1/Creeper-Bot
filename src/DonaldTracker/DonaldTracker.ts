@@ -5,6 +5,7 @@ import newsChannels from "./../news/newsChannels.json"
 
 export const browser = Puppeteer.launch({
     headless: true,
+executablePath: process.env.CHROMIUM_PATH,
     args: [
     //    '--no-sandbox',
        // '--disable-setuid-sandbox',
