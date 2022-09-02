@@ -24,11 +24,11 @@ app.listen(port, () => console.log(`Example app listening on port ${port}!`));
    try {
      process.env.NODE_ENV === "production" && axios.get('https://creeper-bot.onrender.com/');
      console.log(process.memoryUsage().heapUsed / 1024 / 1024 + " MB");
-    var os = require('os');
+    // var os = require('os');
 
-     console.log(os.cpus());
-     console.log(os.totalmem() / 1024 / 1024);
-     console.log(os.freemem() / 1024 / 1024)
+   //   console.log(os.cpus());
+  //   console.log(os.totalmem() / 1024 / 1024);
+   //  console.log(os.freemem() / 1024 / 1024)
    }
    catch (e) {
      console.log(e.message);
