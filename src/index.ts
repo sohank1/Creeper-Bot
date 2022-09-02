@@ -57,7 +57,7 @@ try {
     new Counting(client);
     new FortniteStats(client);
     new News(client);
-    new DonaldTracker(client);
+    // new DonaldTracker(client);
     new Trello(client);
     new Avatar(client)
     new ShopSectionsTracker(client)
