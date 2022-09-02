@@ -63,8 +63,7 @@ export class FortniteCosmetics {
     }
 
     public respondWithNewCosmetics(i: AutocompleteInteraction<CacheType>): void | Promise<void> {
-        const priorities =
-        {
+        const priorities = {
             'outfit': 0,
             'backpack': 1,
             'loadingscreen': 2,
@@ -105,7 +104,7 @@ export class FortniteCosmetics {
     }
 
     private formatAutoCompleteResponse(c: Cosmetic): ApplicationCommandOptionChoice {
-        return { name: `${rarityEmojisTable[c.rarity.value] || ""} ${c.name} ${c.type.value}`, value: c.id }
+        return { name: `${rarityEmojisTable[c.rarity.value] || ""} ${c.name} ${rarityEmojisTable[c.type.value] || ""}`, value: c.id }
     }
 
 
@@ -119,20 +118,20 @@ export class FortniteCosmetics {
         const image = new MessageAttachment(cosmetic.images.featured || cosmetic.images.icon || cosmetic.images.smallIcon).setName(`${cosmetic.id}.png`);
 
         const e = new MessageEmbed()
-            .setTitle(cosmetic.name)
+        e.setTitle(cosmetic.name)
         cosmetic.description && e.addField("Description", cosmetic.description)
-            .setImage(`attachment://${cosmetic.id}.png`)
-            .addField("Type", cosmetic.type.displayValue, true)
-            .addField("Rarity", cosmetic.rarity.displayValue, true)
+        e.setImage(`attachment://${cosmetic.id}.png`)
+        e.addField("Type", cosmetic.type.displayValue, true)
+        e.addField("Rarity", cosmetic.rarity.displayValue, true)
         cosmetic.set?.text && e.addField("Set", cosmetic.set.text)
         cosmetic.introduction?.text && e.addField("Introduction", cosmetic.introduction.text)
-            .addField("Created On", new Date(cosmetic.added).toLocaleDateString(), true)
-            .setColor("#2186DB")
+        e.addField("Created On", new Date(cosmetic.added).toLocaleDateString(), true)
+        e.setColor("#2186DB")
 
         if (cosmetic.shopHistory) {
             const lastSeenAt = new Date(cosmetic.shopHistory[cosmetic.shopHistory.length - 1])
-            const differenceInDays = (Date.now() - lastSeenAt.getTime()) / (1000 * 3600 * 24);
-            e.addField("Last Seen", `${Math.round(differenceInDays)} days ago (${lastSeenAt.toLocaleDateString()})`)
+            const differenceInDays = Math.round((Date.now() - lastSeenAt.getTime()) / (1000 * 3600 * 24));
+            e.addField("Last Seen", `${differenceInDays} day${differenceInDays > 1 ? 's' : ''} ago (${lastSeenAt.toLocaleDateString()})`)
         }
 
         i.reply({ embeds: [e], ...(image.attachment && { files: [image] }) });
