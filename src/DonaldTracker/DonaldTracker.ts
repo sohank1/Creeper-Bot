@@ -27,7 +27,7 @@ export class DonaldTracker {
 
         setInterval(async () => {
             console.log("going to donald mustard twitter..")
-            await page.goto('https://twitter.com/DonaldMustard', { waitUntil: 'networkidle2', timeout: 0 });
+            await page.goto('https://twitter.com/DonaldMustard', { waitUntil: 'networkidle2'});
             console.log('went to page', page.url())
 
             const data = await page.evaluate(() => {
