@@ -18,7 +18,9 @@ import { ShopSectionsTracker } from "./ShopSections/ShopSectionsTracker";
 const app = express();
 const port = process.env.PORT || 3001;
 app.get("/", (req, res) => res.sendStatus(200));
-app.listen(port, () => console.log(`Example app listening on port ${port}!`));
+app.listen(port, () => {
+console.log(`Example app listening on port ${port}!`)
+
 
  setInterval(() => {
    try {
@@ -203,5 +205,5 @@ I ASKED.`)
 } catch (err) {
   (<TextChannel>client.channels.cache.get('767763290004652037')).send(`An error has occurred: ${err}`);
 }
-
+});
 
