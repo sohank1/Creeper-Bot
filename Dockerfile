@@ -34,6 +34,20 @@ RUN apk add --no-cache \
       nodejs \
       yarn
 
+ COPY . ./app
+
+ WORKDIR /app
+
+ RUN npm i
+
+ RUN npm run build
+
+ EXPOSE 3000
+
+FROM common-build-stage as production-build-stage
+
+ ENV NODE_ENV production
+ ENV PORT 3000
 
 
 # Tell Puppeteer to skip installing Chrome. We'll be using the installed package.
@@ -52,4 +66,4 @@ RUN addgroup -S pptruser && adduser -S -G pptruser pptruser \
 # Run everything after as non-privileged user.
 USER pptruser
 
-...
+CMD node .
