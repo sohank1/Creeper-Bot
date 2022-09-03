@@ -38,8 +38,10 @@ RUN  apt-get update \
      && chmod +x /usr/sbin/wait-for-it.sh
 
 # Install Puppeteer under /node_modules so it's available system-wide
-ADD package.json package-lock.json /
-RUN npm install
+# ADD package.json package-lock.json /
+COPY . ./app
+WORKDIR /app
+RUN npm i
 RUN npm run build
 
 CMD ["node", "dist/index.js"]
