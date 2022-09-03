@@ -48,7 +48,7 @@ export class DonaldTracker {
                 this.saveData();
                 this.sendMessage(doc);
             }
-        }, 10000)  //300000
+        }, 60000)  //1 min
 
 
     }
