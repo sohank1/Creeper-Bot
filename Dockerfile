@@ -41,7 +41,10 @@ RUN  apt-get update \
 # ADD package.json package-lock.json /
 COPY . ./app
 WORKDIR /app
+
 RUN npm i
 RUN npm run build
+
+ENV NODE_ENV production
 
 CMD ["node", "dist/index.js"]
