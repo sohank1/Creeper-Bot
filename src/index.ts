@@ -19,6 +19,13 @@ process.on('uncaughtException', (error) => {
   console.log(error.stack);
 });
 
+setInterval(() => {
+
+for (const [key,value] of Object.entries(process.memoryUsage())){ 
+
+    console.log(`Memory usage by ${key}, ${value/1000000}MB `) 
+}
+}, 15000)
 
 // const client = new Client({ restTimeOffset: 30, intents: new Intents(32767) });
 const client = new Client({ restTimeOffset: 75, intents: new Intents(["GUILDS", "GUILD_MESSAGES", "GUILD_MEMBERS",]) });
@@ -87,6 +94,16 @@ This can be substituted back into the response to “who asked?“, yielding an 
 That’s right, the answer to “who asked?“ is i.  
 
 I ASKED.`)
+
+if (message.content.toLowerCase() === "t!ping") {
+    message.channel.send("Pinging...").then((m) => {
+      let ping = m.createdTimestamp - message.createdTimestamp;
+      let choices = ["Is this really my ping", "Is it okay? I cant look", "I hope it isnt bad", "He's lagging bro"];
+      let response = choices[Math.floor(Math.random() * choices.length)];
+
+      m.edit(`${response}: Bot Latency: \`${ping}\`, API Latency: \`${Math.round(client.ws.ping)}\``);
+    });
+  }
     if (message.content.toLowerCase().startsWith("c!date")) {
 
 
