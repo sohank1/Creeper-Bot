@@ -20,7 +20,7 @@
 
 # CMD node dist/index.js
 
-FROM node:12.18.0
+FROM node:18.3.0
 
 RUN  apt-get update \
      && apt-get install -y wget gnupg ca-certificates \
@@ -40,5 +40,6 @@ RUN  apt-get update \
 # Install Puppeteer under /node_modules so it's available system-wide
 ADD package.json package-lock.json /
 RUN npm install
+RUN npm build
 
-CMD ["node", "index.js"]
+CMD ["node", "dist/index.js"]
