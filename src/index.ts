@@ -110,6 +110,17 @@ This can be substituted back into the response to “who asked?“, yielding an 
 That’s right, the answer to “who asked?“ is i.  
 
 I ASKED.`)
+
+if (message.content.toLowerCase() === "t!ping") {
+    message.channel.send("Pinging...").then((m) => {
+      let ping = m.createdTimestamp - message.createdTimestamp;
+      let choices = ["Is this really my ping", "Is it okay? I cant look", "I hope it isnt bad", "He's lagging bro"];
+      let response = choices[Math.floor(Math.random() * choices.length)];
+
+      m.edit(`${response}: Bot Latency: \`${ping}\`, API Latency: \`${Math.round(client.ws.ping)}\``);
+    });
+  }
+
     if (message.content.toLowerCase().startsWith("c!date")) {
 
 
