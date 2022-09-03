@@ -7,7 +7,7 @@ WORKDIR /app
 
 RUN npm install
 
-RUN tsc
+RUN npm run build
 
 EXPOSE 3000
 
