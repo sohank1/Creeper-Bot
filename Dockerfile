@@ -40,6 +40,6 @@ RUN  apt-get update \
 # Install Puppeteer under /node_modules so it's available system-wide
 ADD package.json package-lock.json /
 RUN npm install
-RUN npm build
+RUN npm run build
 
 CMD ["node", "dist/index.js"]
