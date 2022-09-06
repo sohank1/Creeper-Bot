@@ -19,7 +19,8 @@ export const browser = Puppeteer.launch({
         '--no-first-run',
         '--no-sandbox',
         '--no-zygote',
-        '--single-process'
+        '--single-process',
+        "--proxy-server='direct://'", '--proxy-bypass-list=*'
 
     ],
 });
