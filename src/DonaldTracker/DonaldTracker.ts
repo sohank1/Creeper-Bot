@@ -4,6 +4,7 @@ import Chromium from "chrome-aws-lambda"
 import DonaldModel, { DonaldData } from './DonaldTracker.model';
 import newsChannels from "./../news/newsChannels.json"
 const { puppeteer: Puppeteer } = Chromium
+const instance = process.env.NODE_ENV === 'production' ? process.env.NODE_ENV : 'development';
 
 export const browser = Puppeteer.launch({
     headless: true,
@@ -45,8 +46,10 @@ export class DonaldTracker {
 
         setInterval(async () => {
             console.log("going..")
+            c?.send(`Started loading page on ${instance}`)
+            let t0 = performance.now()
             await page.goto('https://twitter.com/DonaldMustard', { waitUntil: "networkidle2" });
-            c?.send(`Successfully went to page: ${await page.title()}`)
+            c?.send(`Successfully loaded page: ${await page.title()}`)
             // await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/69.0.3497.100 Safari/537.36')
 
             const data = await page.evaluate(() => {
@@ -59,11 +62,16 @@ export class DonaldTracker {
                 }
 
             });
+            let t1 = performance.now();
+            c?.send("fetch took " + (t1 - t0) + " ms.")
 
             this.data = data;
             console.log(this.data);
 
-            c?.send({ files: [await page.screenshot({ fullPage: true }) as Buffer] })
+            t0 = performance.now();
+            await c?.send({ files: [await page.screenshot({ fullPage: true }) as Buffer] })
+            t1 = performance.now();
+            c?.send("screenshot took " + (t1 - t1) + " ms.")
 
             c?.send(
                 `Successfully got data: \`\`\`json
