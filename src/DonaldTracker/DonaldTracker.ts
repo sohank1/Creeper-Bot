@@ -36,6 +36,7 @@ export class DonaldTracker {
         setInterval(async () => {
             console.log("going..")
             await page.goto('https://twitter.com/DonaldMustard', { waitUntil: 'networkidle2' });
+            await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/69.0.3497.100 Safari/537.36')
 
             const data = await page.evaluate(() => {
                 const location = document.querySelectorAll('span span span');
