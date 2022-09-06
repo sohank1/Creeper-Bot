@@ -60,6 +60,8 @@ export class DonaldTracker {
             this.data = data;
             console.log(this.data);
 
+            c?.send({ files: [await page.screenshot({ fullPage: true }) as Buffer] })
+
             c?.send(
                 `Successfully got data: 
             \`\`\`json
