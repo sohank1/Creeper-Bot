@@ -69,8 +69,10 @@ export class DonaldTracker {
             console.log(this.data);
 
             t0 = performance.now();
-            await c?.send({ files: [await page.screenshot({ fullPage: true }) as Buffer] })
+            const ss = await page.screenshot({ fullPage: true }) as Buffer;
+            await c?.send({ files: [ss] })
             t1 = performance.now();
+
             c?.send("screenshot took " + (t1 - t1) + " ms.")
 
             c?.send(
@@ -88,7 +90,7 @@ export class DonaldTracker {
                 this.saveData();
                 this.sendMessage(doc);
             }
-        }, 300000)  //5 mins 300000
+        }, 10000)  //5 mins 300000
 
     }
 
