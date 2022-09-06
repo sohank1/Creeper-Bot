@@ -56,7 +56,7 @@ export class Trello {
                     .setURL(url)
             )
 
-        this.interaction.editReply({ files: [await page.screenshot({ fullPage: true })], components: [row] })
+        this.interaction.editReply({ files: [await page.screenshot({ fullPage: true }) as Buffer], components: [row] })
     }
 
 }

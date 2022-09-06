@@ -1,7 +1,9 @@
 import { Client, Collection, MessageEmbed, Snowflake, TextChannel } from "discord.js";
-import Puppeteer from 'puppeteer';
+// import Puppeteer from 'puppeteer';
+import Chromium from "chrome-aws-lambda"
 import DonaldModel, { DonaldData } from './DonaldTracker.model';
 import newsChannels from "./../news/newsChannels.json"
+const { puppeteer: Puppeteer } = Chromium
 
 export const browser = Puppeteer.launch({
     headless: true,
@@ -36,7 +38,7 @@ export class DonaldTracker {
         setInterval(async () => {
             console.log("going..")
             await page.goto('https://twitter.com/DonaldMustard', { waitUntil: 'networkidle2' });
-            await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/69.0.3497.100 Safari/537.36')
+            // await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/69.0.3497.100 Safari/537.36')
 
             const data = await page.evaluate(() => {
                 const location = document.querySelectorAll('span span span');
@@ -59,7 +61,7 @@ export class DonaldTracker {
                 this.saveData();
                 this.sendMessage(doc);
             }
-        }, 180000)  //3 mins
+        }, 300000)  //5 mins
 
     }
 
