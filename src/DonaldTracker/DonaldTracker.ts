@@ -4,10 +4,20 @@ import DonaldModel, { DonaldData } from './DonaldTracker.model';
 import newsChannels from "./../news/newsChannels.json"
 
 export const browser = Puppeteer.launch({
+    headless: true,
+    executablePath: process.env.CHROMIUM_PATH,
     args: [
-        '--no-sandbox',
+        //    '--no-sandbox',
+        // '--disable-setuid-sandbox',
+        //  '--incognito',
+        '--disable-gpu',
+        '--disable-dev-shm-usage',
         '--disable-setuid-sandbox',
-        '--incognito',
+        '--no-first-run',
+        '--no-sandbox',
+        '--no-zygote',
+        '--single-process'
+
     ],
 });
 
