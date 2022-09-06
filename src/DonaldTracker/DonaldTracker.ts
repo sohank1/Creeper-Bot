@@ -36,6 +36,9 @@ export class DonaldTracker {
 
 
         const page = await (await browser).newPage();
+        await page.setUserAgent(
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/95.0.4638.69 Safari/537.36"
+        )
         c.send(`opened page: ${page.url()}`)
 
         page.setDefaultNavigationTimeout(0);
