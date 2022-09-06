@@ -63,8 +63,7 @@ export class DonaldTracker {
             c?.send({ files: [await page.screenshot({ fullPage: true }) as Buffer] })
 
             c?.send(
-                `Successfully got data: 
-            \`\`\`json
+                `Successfully got data: \`\`\`json
             ${JSON.stringify(this.data, null, 2)}
             \`\`\`
             `)
