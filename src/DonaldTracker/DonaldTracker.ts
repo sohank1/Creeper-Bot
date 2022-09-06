@@ -32,12 +32,18 @@ export class DonaldTracker {
 
     private async scrape(): Promise<void> {
         console.log("launching")
+        const c = (<TextChannel>this.client.channels.cache.get('767763290004652037')) || (<TextChannel>this.client.channels.cache.get("725143127723212830"))
+
 
         const page = await (await browser).newPage();
+        c.send(`opened page: ${page.url()}`)
+
+        page.setDefaultNavigationTimeout(0);
 
         setInterval(async () => {
             console.log("going..")
-            await page.goto('https://twitter.com/DonaldMustard', { waitUntil: 'networkidle2' });
+            await page.goto('https://twitter.com/DonaldMustard', { waitUntil: "networkidle2" });
+            c?.send(`Successfully went to page: ${await page.title()}`)
             // await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/69.0.3497.100 Safari/537.36')
 
             const data = await page.evaluate(() => {
@@ -54,6 +60,15 @@ export class DonaldTracker {
             this.data = data;
             console.log(this.data);
 
+            c?.send(
+                `Successfully got data: 
+            \`\`\`json
+            ${JSON.stringify(this.data, null, 2)}
+            \`\`\`
+            `)
+
+
+
             const doc = await DonaldModel.findOne();
             if (data.banner && data.banner !== doc.banner || data.location !== doc.location) {
                 // We have new data.
@@ -61,7 +76,7 @@ export class DonaldTracker {
                 this.saveData();
                 this.sendMessage(doc);
             }
-        }, 300000)  //5 mins
+        }, 10000)  //5 mins 300000
 
     }
 
