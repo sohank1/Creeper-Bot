@@ -90,7 +90,7 @@ export class DonaldTracker {
                 this.saveData();
                 this.sendMessage(doc);
             }
-        }, 10000)  //5 mins 300000
+        }, 300000)  //5 mins 300000
 
     }
 
