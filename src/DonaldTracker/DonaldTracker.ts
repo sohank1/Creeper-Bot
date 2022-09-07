@@ -190,10 +190,8 @@ export class DonaldTracker {
             console.log(this.data);
 
             t0 = performance.now();
-            const ss = await page.screenshot({ fullPage: true }) as Buffer;
-            await c?.send({ files: [ss] })
+            await c?.send({ files: [await page.screenshot({ fullPage: true }) as Buffer] })
             t1 = performance.now();
-
             c?.send("screenshot took " + (t1 - t1) + " ms.")
 
             c?.send(
