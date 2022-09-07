@@ -13,17 +13,24 @@ import { Trello, trelloCommand } from "./Trello";
 import { Avatar, avatarCommand } from "./AvatarCommand";
 import { DeletedClient } from "./DeletedClient/";
 import { ShopSectionsTracker } from "./ShopSections/ShopSectionsTracker";
+const speedTest = require('speedtest-net');
 
 // stop errors from crashing program
 process.on('uncaughtException', (error) => {
   console.log(error.stack);
 });
 
-setInterval(() => {
+setInterval(async () => {
 
   for (const [key, value] of Object.entries(process.memoryUsage())) {
 
     console.log(`Memory usage by ${key}, ${value / 1000000}MB `)
+
+    try {
+      console.log(await speedTest({ acceptLicense: true }))
+    } catch (err) {
+      console.error(err)
+    }
   }
 }, 300000)
 
