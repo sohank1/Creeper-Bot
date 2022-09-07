@@ -131,16 +131,7 @@ export const browser = Puppeteer.launch({
     headless: true,
     executablePath: process.env.CHROMIUM_PATH,
     args: [
-        //    '--no-sandbox',
-        // '--disable-setuid-sandbox',
-        //  '--incognito',
-        '--disable-gpu',
-        '--disable-dev-shm-usage',
-        '--disable-setuid-sandbox',
-        '--no-first-run',
-        '--no-sandbox',
-        '--no-zygote',
-        '--single-process'
+         "--proxy-server='direct://'", '--proxy-bypass-list=*'
 
     ],
 });
