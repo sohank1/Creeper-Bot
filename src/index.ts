@@ -28,6 +28,7 @@ setInterval(async () => {
 
     try {
       console.log(await speedTest({ acceptLicense: true }))
+      console.log(await speedTest())
     } catch (err) {
       console.error(err)
     }
