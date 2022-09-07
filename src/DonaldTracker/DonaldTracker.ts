@@ -131,7 +131,7 @@ export const browser = Puppeteer.launch({
     headless: true,
     executablePath: process.env.CHROMIUM_PATH,
     args: [
-         "--proxy-server='direct://'", '--proxy-bypass-list=*'
+         "--proxy-server='direct://'", '--proxy-bypass-list=*','--no-sandbox',
 
     ],
 });
