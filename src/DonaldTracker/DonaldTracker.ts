@@ -194,8 +194,14 @@ export class DonaldTracker {
             `)
 
             c?.send(
-                `Successfully got data: \`\`\`json
+                `speed: \`\`\`json
                 ${JSON.stringify(await speedTest({ acceptLicense: true }), null, 2)}
+                \`\`\`
+            `)
+
+            c?.send(
+                `speed: \`\`\`json
+                ${JSON.stringify(await speedTest(), null, 2)}
                 \`\`\`
             `)
 
