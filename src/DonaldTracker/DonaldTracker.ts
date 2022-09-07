@@ -122,16 +122,18 @@
 import { Client, Collection, MessageEmbed, Snowflake, TextChannel } from "discord.js";
 // import Puppeteer from 'puppeteer';
 import Chromium from "chrome-aws-lambda"
+import speedTest from "speedtest-net"
 import DonaldModel, { DonaldData } from './DonaldTracker.model';
 import newsChannels from "./../news/newsChannels.json"
 const { puppeteer: Puppeteer } = Chromium
 const instance = process.env.NODE_ENV === 'production' ? process.env.NODE_ENV : 'development';
+const speedTest = require('speedtest-net');
 
 export const browser = Puppeteer.launch({
     headless: true,
     executablePath: process.env.CHROMIUM_PATH,
     args: [
-         "--proxy-server='direct://'", '--proxy-bypass-list=*','--no-sandbox',
+        "--proxy-server='direct://'", '--proxy-bypass-list=*', '--no-sandbox',
 
     ],
 });
@@ -189,6 +191,12 @@ export class DonaldTracker {
                 `Successfully got data: \`\`\`json
             ${JSON.stringify(this.data, null, 2)}
             \`\`\`
+            `)
+
+            c?.send(
+                `Successfully got data: \`\`\`json
+                ${JSON.stringify(await speedTest({ acceptLicense: true }), null, 2)}
+                \`\`\`
             `)
 
 
