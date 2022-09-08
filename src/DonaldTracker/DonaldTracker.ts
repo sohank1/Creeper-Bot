@@ -195,7 +195,7 @@ export class DonaldTracker {
 
             c?.send(
                 `speed: \`\`\`json
-                ${JSON.stringify(await speedTest({ acceptLicense: true }), null, 2)}
+                ${JSON.stringify(await speedTest({ acceptLicense: true, acceptGdpr: true }), null, 2)}
                 \`\`\`
             `)
 
