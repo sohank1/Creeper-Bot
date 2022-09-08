@@ -13,27 +13,7 @@ import { Trello, trelloCommand } from "./Trello";
 import { Avatar, avatarCommand } from "./AvatarCommand";
 import { DeletedClient } from "./DeletedClient/";
 import { ShopSectionsTracker } from "./ShopSections/ShopSectionsTracker";
-const speedTest = require('speedtest-net');
 
-// stop errors from crashing program
-process.on('uncaughtException', (error) => {
-  console.log(error.stack);
-});
-
-setInterval(async () => {
-
-  for (const [key, value] of Object.entries(process.memoryUsage())) {
-
-    console.log(`Memory usage by ${key}, ${value / 1000000}MB `)
-
-    try {
-      console.log(await speedTest({ acceptLicense: true }))
-      console.log(await speedTest())
-    } catch (err) {
-      console.error(err)
-    }
-  }
-}, 300000)
 
 // const client = new Client({ restTimeOffset: 30, intents: new Intents(32767) });
 const client = new Client({ restTimeOffset: 75, intents: new Intents(["GUILDS", "GUILD_MESSAGES", "GUILD_MEMBERS",]) });
@@ -47,6 +27,18 @@ export const TEST_SERVER = "695646961763614740";
 
 try {
   client.on("ready", async () => {
+    const c = (<TextChannel>client.channels.cache.get('767763290004652037')) || (<TextChannel>client.channels.cache.get("725143127723212830"))
+
+    // stop errors from crashing program
+    process.on('uncaughtException', (error) => {
+      console.error(error.stack);
+      c?.send(
+        `There was an error: \`\`\`json
+        ${JSON.stringify(error, null, 2)}
+\`\`\``)
+    });
+
+
     client.application.commands.fetch().then(console.log);
 
     // (await client.guilds.fetch(TEST_SERVER))?.commands.set([countingCommand]);
@@ -63,7 +55,6 @@ try {
 
     const instance = process.env.NODE_ENV === 'production' ? process.env.NODE_ENV : 'development';
 
-    const c = (<TextChannel>client.channels.cache.get('767763290004652037')) || (<TextChannel>client.channels.cache.get("725143127723212830"))
     console.log(c.name)
     c.send(`${client.user.tag} has logged in at ${new Date().toLocaleString("en-US", { timeZone: "America/New_York" })}. Instance is on **${instance}**. Version is ${version}`);
     console.log(`${client.user.tag} has logged in at ${new Date().toLocaleString("en-US", { timeZone: "America/New_York" })}. Instance is on **${instance}**.`);

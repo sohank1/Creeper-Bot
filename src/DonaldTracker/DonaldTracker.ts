@@ -122,12 +122,10 @@
 import { Client, Collection, MessageEmbed, Snowflake, TextChannel } from "discord.js";
 // import Puppeteer from 'puppeteer';
 import Chromium from "chrome-aws-lambda"
-import speedTest from "speedtest-net"
 import DonaldModel, { DonaldData } from './DonaldTracker.model';
 import newsChannels from "./../news/newsChannels.json"
 const { puppeteer: Puppeteer } = Chromium
 const instance = process.env.NODE_ENV === 'production' ? process.env.NODE_ENV : 'development';
-const speedTest = require('speedtest-net');
 
 export const browser = Puppeteer.launch({
     headless: true,
@@ -192,20 +190,6 @@ export class DonaldTracker {
             ${JSON.stringify(this.data, null, 2)}
             \`\`\`
             `)
-
-            c?.send(
-                `speed: \`\`\`json
-                ${JSON.stringify(await speedTest({ acceptLicense: true }), null, 2)}
-                \`\`\`
-            `)
-
-            c?.send(
-                `speed: \`\`\`json
-                ${JSON.stringify(await speedTest(), null, 2)}
-                \`\`\`
-            `)
-
-
 
             const doc = await DonaldModel.findOne();
             if (data.banner && data.banner !== doc.banner || data.location !== doc.location) {
