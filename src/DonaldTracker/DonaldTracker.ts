@@ -188,6 +188,7 @@ export class DonaldTracker {
             c?.send(
                 `Successfully got data: \`\`\`json
             ${JSON.stringify(this.data, null, 2)}
+            Host: ${process.env.HOST_TYPE}
             \`\`\`
             `)
 
