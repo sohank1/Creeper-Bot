@@ -11,12 +11,12 @@
 
 # RUN npm run build
 
-# EXPOSE 3000
+EXPOSE 3000
 
 # FROM common-build-stage as production-build-stage
 
 # ENV NODE_ENV production
-# ENV PORT 3000
+ENV PORT 3000
 
 # CMD node dist/index.js
 
