@@ -127,7 +127,7 @@ I ASKED.`)
           let choices = ["Is this really my ping", "Is it okay? I cant look", "I hope it isnt bad", "He's lagging bro"];
           let response = choices[Math.floor(Math.random() * choices.length)];
 
-          m.edit(`${response}: Bot Latency: \`${ping}\`, API Latency: \`${Math.round(client.ws.ping)}\` host: ${process.env.HOST_TYPE} took ${Math.floor(m.createdAt.getTime() - Date.now())}ms ${m.createdAt.toISOString()}, ${new Date().toISOString()}`);
+          m.edit(`${response}: Bot Latency: \`${ping}\`, API Latency: \`${Math.round(client.ws.ping)}\` host: ${process.env.HOST_TYPE} took ${Math.floor(Date.now() - m.createdAt.getTime())}ms ${m.createdAt.toISOString()}, ${new Date().toISOString()}`);
         });
       }
       if (message.content.toLowerCase().startsWith("c!date")) {
