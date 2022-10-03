@@ -178,7 +178,7 @@ export class Counting {
             username = (await this.client.users.fetch(doc.current.userId)).username
         } catch (e) { username = "" }
         const e = new MessageEmbed()
-            .setTitle(`${this.interaction.guild.name}'s stats for Creeper Counting |host: ${process.env.HOST_TYPE}`)
+            .setTitle(`${this.interaction.guild.name}'s stats for Creeper Counting`)
             .setThumbnail(this.interaction.guild.iconURL())
         d && e.addField("Saves", d);
         e
@@ -186,7 +186,7 @@ export class Counting {
             .addField('Current Number', username ? `${doc.current.numberNow} (Sent by ${username})` : doc.current.numberNow.toString(), true)
             .setColor('#2186DB')
             .setTimestamp()
-        this.interaction.reply({ embeds: [e] });
+        this.interaction.reply({ content: `took ${Math.floor(this.interaction.createdAt.getTime() - Date.now())}ms ${this.interaction.createdAt.toISOString()}, ${new Date().toISOString()} host: ${process.env.HOST_TYPE}`, embeds: [e] });
     }
 
     private async hack(i: BaseCommandInteraction<CacheType>): Promise<void> {
