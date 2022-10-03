@@ -11,7 +11,7 @@
 
 # RUN npm run build
 
-EXPOSE 3000
+
 
 # FROM common-build-stage as production-build-stage
 
@@ -45,6 +45,7 @@ WORKDIR /app
 RUN npm i
 RUN npm run build
 
+EXPOSE 3000
 ENV NODE_ENV production
 ENV PORT 3000
 
