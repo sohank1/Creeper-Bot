@@ -178,7 +178,7 @@ export class Counting {
             username = (await this.client.users.fetch(doc.current.userId)).username
         } catch (e) { username = "" }
         const e = new MessageEmbed()
-            .setTitle(`${this.interaction.guild.name}'s stats for Creeper Counting`)
+            .setTitle(`${this.interaction.guild.name}'s stats for Creeper Counting |host: ${process.env.HOST_TYPE}`)
             .setThumbnail(this.interaction.guild.iconURL())
         d && e.addField("Saves", d);
         e
