@@ -65,10 +65,10 @@ export class FortniteCosmetics {
     public respondWithNewCosmetics(i: AutocompleteInteraction<CacheType>): void | Promise<void> {
         const priorities = {
             'outfit': 0,
-            'backpack': 1,
-            'loadingscreen': 2,
-            'emote': 3,
-            'pickaxe': 4,
+            'emote': 1,
+            'backpack': 2,
+            'pickaxe': 3,
+            'loadingscreen': 4,
             'glider': 5,
             'wrap': 6,
             'musicpack': 7,
@@ -138,8 +138,8 @@ export class FortniteCosmetics {
     }
 
     private async fetchCosmetics(): Promise<Cosmetics> {
-        // const { data } = (await axios.get("https://fortnite-api.com/v2/cosmetics/br")).data
-        const data = cosmeticsData.data;
+        const { data } = (await axios.get("https://fortnite-api.com/v2/cosmetics/br")).data
+        // const data = cosmeticsData.data;
 
         // replace string "null" with null
 
