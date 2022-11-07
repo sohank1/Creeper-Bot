@@ -15,7 +15,7 @@ import { DeletedClient } from "./DeletedClient/";
 import { ShopSectionsTracker } from "./ShopSections/ShopSectionsTracker";
 import { createClient } from "redis";
 import express from "express";
-import * as mongoose from "mongoose";
+import mongoose from "mongoose";
 
 export const version = `v${require("../package.json").version}`;
 export const TEST_SERVER = "695646961763614740";
@@ -119,9 +119,9 @@ app.listen(port, () => {
         // c.send('checking if we should clean up')
         // c.send(`are the platforms the same? ${data.platform === process.env.HOST_TYPE}`)
         // if (data.platform !== process.env.HOST_TYPE || new Date(serverStartedAt) >= new Date(data.serverStartedAt)) return
-        c.send('we r cleaning up')
+        await c.send('we r cleaning up')
 
-        c.send(
+        await c.send(
           `A new server has started that is on the same host as this, the date of the new server is more than this server. Shutting down the current one. Here's the new server's data
           \`\`\`json
           ${JSON.stringify(data, null, 2)}
