@@ -1,6 +1,6 @@
 const app = express();
 const port = process.env.PORT || 3001;
-app.get("/", (req, res) => res.sendStatus(200));
+app.get("/", (req, res) => res.status(200).send('message from spawned script'));
 app.listen(port, () => {
     console.log(`Example app listening on port ${port}!`)
 
