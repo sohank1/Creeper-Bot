@@ -136,6 +136,7 @@ app.listen(port, () => {
           `
         )
 
+        await c.send("spawning new script and shutting down current one")
         spawn('node ./server.js', { detached: true })
         process.exit(0)
         // client.destroy();
