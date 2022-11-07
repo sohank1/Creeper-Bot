@@ -20,35 +20,19 @@ import * as mongoose from "mongoose";
 export const version = `v${require("../package.json").version}`;
 export const TEST_SERVER = "695646961763614740";
 
-export const redis = createClient({
-  url: process.env.REDIS_URI,
-});
-
+export const redis = createClient({ url: process.env.REDIS_URI, });
 const subscriber = redis.duplicate();
 
 const key = "creeper_bot_prod_server";
 const serverStartedAt = new Date().toISOString();
 
-(async function () {
-  await redis.connect()
-  await subscriber.connect();
 
-  if (process.env.NODE_ENV !== "production") return
-
-
-  await redis.publish(key, JSON.stringify({ serverStartedAt, platform: process.env.HOST_TYPE }));
-
-
-  // redis.hSet(key, { serverStartedAt, platform: process.env.HOST_TYPE });
-
-
-})()
 
 
 const app = express();
 const port = process.env.PORT || 3001;
 app.get("/", (req, res) => res.sendStatus(200));
-process.env.NODE_ENV === "production" && app.listen(port, () => {
+app.listen(port, () => {
   console.log(`Example app listening on port ${port}!`)
 
 
@@ -82,6 +66,7 @@ process.env.NODE_ENV === "production" && app.listen(port, () => {
 
   try {
     client.on("ready", async () => {
+
       const c = (<TextChannel>client.channels.cache.get('767763290004652037')) || (<TextChannel>client.channels.cache.get("725143127723212830"))
 
       // stop errors from crashing program
@@ -92,6 +77,33 @@ process.env.NODE_ENV === "production" && app.listen(port, () => {
         ${JSON.stringify(error, null, 2)}
 \`\`\``)
       });
+
+
+      (async function () {
+        await redis.connect()
+        await subscriber.connect();
+
+        if (process.env.NODE_ENV !== "production") return
+
+
+        await redis.publish(key, JSON.stringify({
+          serverStartedAt,
+          platform: process.env.HOST_TYPE
+        }));
+        c.send(
+          `New server is here: 
+        \`\`\`json
+        ${JSON.stringify({ serverStartedAt, platform: process.env.HOST_TYPE }, null, 2)}
+        \`\`\`
+          `)
+
+
+        // redis.hSet(key, { serverStartedAt, platform: process.env.HOST_TYPE });
+
+
+      })()
+
+
 
       subscriber.subscribe(key, async (m) => {
         console.log('we got new data')
