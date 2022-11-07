@@ -114,7 +114,7 @@ app.listen(port, () => {
         c.send(`new data, ${m}`)
 
         // if the platform of the new server is not the same as new server OR the current server is newer or the same as the new one, then do not clean up current server 
-        if (data.platform !== process.env.HOST_TYPE || serverStartedAt >= data.serverStartedAt) return
+        if (data.platform !== process.env.HOST_TYPE || new Date(serverStartedAt) >= new Date(data.serverStartedAt)) return
 
         c.send(
           `A new server has started that is on the same host as this, the date of the new server is more than this server. Shutting down the current one. Here's the new server's data
