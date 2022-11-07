@@ -22,6 +22,8 @@ export const TEST_SERVER = "695646961763614740";
 
 export const redis = createClient({ url: process.env.REDIS_URI, });
 const subscriber = redis.duplicate();
+redis.connect()
+subscriber.connect();
 
 const key = "creeper_bot_prod_server";
 const serverStartedAt = new Date().toISOString();
@@ -73,17 +75,18 @@ app.listen(port, () => {
       process.on('uncaughtException', (error) => {
         console.error(error.stack);
         c?.send(
-          `There was an error: \`\`\`json
+          `There was an error: 
+      \`\`\`json
         ${JSON.stringify(error, null, 2)}
-\`\`\``)
+      \`\`\`
+      `)
       });
 
 
       (async function () {
-        await redis.connect()
-        await subscriber.connect();
 
-        if (process.env.NODE_ENV !== "production") return
+
+        // if (process.env.NODE_ENV !== "production") return
 
 
         await redis.publish(key, JSON.stringify({
@@ -108,6 +111,7 @@ app.listen(port, () => {
       subscriber.subscribe(key, async (m) => {
         console.log('we got new data')
         const data = JSON.parse(m)
+        c.send(`new data, ${m}`)
 
         // if the platform of the new server is not the same as new server OR the current server is newer or the same as the new one, then do not clean up current server 
         if (data.platform !== process.env.HOST_TYPE || serverStartedAt >= data.serverStartedAt) return
