@@ -13,15 +13,42 @@ import { Trello, trelloCommand } from "./Trello";
 import { Avatar, avatarCommand } from "./AvatarCommand";
 import { DeletedClient } from "./DeletedClient/";
 import { ShopSectionsTracker } from "./ShopSections/ShopSectionsTracker";
+import { createClient } from "redis";
 import express from "express";
+import * as mongoose from "mongoose";
 
 export const version = `v${require("../package.json").version}`;
 export const TEST_SERVER = "695646961763614740";
 
+export const redis = createClient({
+  url: process.env.REDIS_URI,
+});
+
+const subscriber = redis.duplicate();
+
+const key = "creeper_bot_prod_server";
+const serverStartedAt = new Date().toISOString();
+
+(async function () {
+  await redis.connect()
+  await subscriber.connect();
+
+  if (process.env.NODE_ENV !== "production") return
+
+
+  await redis.publish(key, JSON.stringify({ serverStartedAt, platform: process.env.HOST_TYPE }));
+
+
+  // redis.hSet(key, { serverStartedAt, platform: process.env.HOST_TYPE });
+
+
+})()
+
+
 const app = express();
 const port = process.env.PORT || 3001;
 app.get("/", (req, res) => res.sendStatus(200));
-app.listen(port, () => {
+process.env.NODE_ENV === "production" && app.listen(port, () => {
   console.log(`Example app listening on port ${port}!`)
 
 
@@ -47,6 +74,7 @@ app.listen(port, () => {
   // const client = new Client({ restTimeOffset: 30, intents: new Intents(32767) });
   const client = new Client({ restTimeOffset: 75, intents: new Intents(["GUILDS", "GUILD_MESSAGES", "GUILD_MEMBERS",]) });
   client.login(process.env.NODE_ENV == 'production' ? process.env.BOT_TOKEN : process.env.DEV_BOT_TOKEN);
+
   const prefix = "c!";
 
 
@@ -63,6 +91,30 @@ app.listen(port, () => {
           `There was an error: \`\`\`json
         ${JSON.stringify(error, null, 2)}
 \`\`\``)
+      });
+
+      subscriber.subscribe(key, (m) => {
+        console.log('we got new data')
+        const data = JSON.parse(m)
+
+        if (data.platform !== process.env.HOST_TYPE) return
+
+        c.send(
+          `A new server has started that is on the same host as this, shutting down the current one. Here's the new server's data
+          \`\`\`json
+          ${JSON.stringify(data, null, 2)}
+          \`\`\`
+
+          Here's the current server's data
+          \`\`\`json
+          ${JSON.stringify({ serverStartedAt, platform: process.env.HOST_TYPE }, null, 2)}
+          \`\`\`
+          `
+        )
+
+        client.destroy();
+        mongoose.connection.close()
+
       });
 
 
