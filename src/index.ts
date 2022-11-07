@@ -97,7 +97,8 @@ process.env.NODE_ENV === "production" && app.listen(port, () => {
         console.log('we got new data')
         const data = JSON.parse(m)
 
-        if (data.platform !== process.env.HOST_TYPE || serverStartedAt > data.serverStartedAt) return
+        // if the platform of the new server is not the same as new server OR the current server is newer or the same as the new one, then do not clean up current server 
+        if (data.platform !== process.env.HOST_TYPE || serverStartedAt >= data.serverStartedAt) return
 
         c.send(
           `A new server has started that is on the same host as this, the date of the new server is more than this server. Shutting down the current one. Here's the new server's data
