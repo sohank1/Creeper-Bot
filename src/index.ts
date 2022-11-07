@@ -93,14 +93,14 @@ process.env.NODE_ENV === "production" && app.listen(port, () => {
 \`\`\``)
       });
 
-      subscriber.subscribe(key, (m) => {
+      subscriber.subscribe(key, async (m) => {
         console.log('we got new data')
         const data = JSON.parse(m)
 
-        if (data.platform !== process.env.HOST_TYPE) return
+        if (data.platform !== process.env.HOST_TYPE || serverStartedAt > data.serverStartedAt) return
 
         c.send(
-          `A new server has started that is on the same host as this, shutting down the current one. Here's the new server's data
+          `A new server has started that is on the same host as this, the date of the new server is more than this server. Shutting down the current one. Here's the new server's data
           \`\`\`json
           ${JSON.stringify(data, null, 2)}
           \`\`\`
@@ -113,8 +113,9 @@ process.env.NODE_ENV === "production" && app.listen(port, () => {
         )
 
         client.destroy();
-        mongoose.connection.close()
-
+        await mongoose.connection.close();
+        await redis.quit();
+        await subscriber.quit();
       });
 
 
