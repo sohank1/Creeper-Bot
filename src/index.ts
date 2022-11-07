@@ -116,8 +116,9 @@ app.listen(port, () => {
         c.send(`new data, ${m}`)
 
         // if the platform of the new server is not the same as new server OR the current server is newer or the same as the new one, then do not clean up current server 
-        c.send('checking if we should clean up')
-        if (data.platform !== process.env.HOST_TYPE || new Date(serverStartedAt) >= new Date(data.serverStartedAt)) return
+        // c.send('checking if we should clean up')
+        // c.send(`are the platforms the same? ${data.platform === process.env.HOST_TYPE}`)
+        // if (data.platform !== process.env.HOST_TYPE || new Date(serverStartedAt) >= new Date(data.serverStartedAt)) return
         c.send('we r cleaning up')
 
         c.send(
@@ -164,7 +165,7 @@ app.listen(port, () => {
       new Counting(client);
       new FortniteStats(client);
       new News(client);
-      new DonaldTracker(client);
+      // new DonaldTracker(client);
       new Trello(client);
       new Avatar(client)
       new ShopSectionsTracker(client)
