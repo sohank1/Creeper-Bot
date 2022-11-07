@@ -16,6 +16,7 @@ import { ShopSectionsTracker } from "./ShopSections/ShopSectionsTracker";
 import { createClient } from "redis";
 import express from "express";
 import mongoose from "mongoose";
+import { spawn } from "child_process";
 
 export const version = `v${require("../package.json").version}`;
 export const TEST_SERVER = "695646961763614740";
@@ -134,10 +135,12 @@ app.listen(port, () => {
           `
         )
 
-        client.destroy();
-        await mongoose.connection.close();
-        await redis.quit();
-        await subscriber.quit();
+        spawn('node ./server.js', { detached: true })
+        process.exit(0)
+        // client.destroy();
+        // await mongoose.connection.close();
+        // await redis.quit();
+        // await subscriber.quit();
       });
 
 
