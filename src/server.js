@@ -15,6 +15,7 @@ app.listen(port, () => {
         const countChannel = client.channels.cache.get('1039551756805361744')
         let count = 1;
         setInterval(() => {
+            if (count === 1) countChannel.send("**----------------------------**")
             countChannel.send(`[\`${serverStartedAt}\`] ---- count: ${count}`)
             count++
         }, 10000)
