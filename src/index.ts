@@ -75,7 +75,7 @@ app.listen(port, () => {
       let count = 1;
       process.env.NODE_ENV === "production" && setInterval(() => {
         if (count === 1) countChannel.send("**---------------------------------------------**")
-        countChannel.send(`[\`${serverStartedAt}\`] ---- count: ${count}`)
+        countChannel.send(`[\`${serverStartedAt}\`] ---- count: ${count} ---- ${version}`)
         count++
       }, 10000)
 

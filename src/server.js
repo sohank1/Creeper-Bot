@@ -4,6 +4,7 @@ const client = new Client({ restTimeOffset: 75, intents: new Intents(["GUILDS", 
 client.login(process.env.NODE_ENV == 'production' ? process.env.BOT_TOKEN : process.env.DEV_BOT_TOKEN);
 
 const postScriptSpawnedAt = new Date().toISOString();
+export const version = `v${require("../package.json").version}`;
 
 const app = express();
 const port = process.env.PORT || 3001;
@@ -19,7 +20,7 @@ app.listen(port, () => {
         let count = 1;
         process.env.NODE_ENV === "production" && setInterval(() => {
             if (count === 1) countChannel.send("**---------------------------------------------**")
-            countChannel.send(`[\`${serverStartedAt}\`] ---- count: ${count}`)
+            countChannel.send(`[\`${serverStartedAt}\`] ---- count: ${count} ---- ${version}`)
             count++
         }, 10000)
     })
