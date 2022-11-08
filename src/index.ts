@@ -138,10 +138,17 @@ app.listen(port, () => {
 
         await c.send("spawning new script and shutting down current one")
         const child = spawn('node ./server.js', { detached: true })
-        child.stdout.on("data", (data) => {
+
+        const send = (data) => {
           console.log(data)
           c.send(data.toString())
-        })
+        }
+        child.stdout.on("data", send)
+        child.stderr.on('data', send)
+        child.on('close', send)
+        child.on('exit', send)
+        child.on('error', data)
+
         process.exit(0)
         // client.destroy();
         // await mongoose.connection.close();
