@@ -64,7 +64,6 @@ app.listen(port, () => {
 
   const prefix = "c!";
 
-
   // let music: Music;
 
   try {
@@ -120,7 +119,7 @@ app.listen(port, () => {
         // c.send('checking if we should clean up')
         // c.send(`are the platforms the same? ${data.platform === process.env.HOST_TYPE}`)
         // if (data.platform !== process.env.HOST_TYPE || new Date(serverStartedAt) >= new Date(data.serverStartedAt)) return
-        if (data.platform !== process.env.HOST_TYPE || new Date(serverStartedAt) === new Date(data.serverStartedAt)) return
+        if (data.platform !== process.env.HOST_TYPE || !(new Date(data.serverStartedAt) > new Date(serverStartedAt))) return
         await c.send('we r cleaning up')
 
         await c.send(
