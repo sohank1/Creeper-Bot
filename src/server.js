@@ -17,7 +17,7 @@ app.listen(port, () => {
         setInterval(() => {
             countChannel.send(`[\`${serverStartedAt}\`] ---- count: ${count}`)
             count++
-        }, 1000)
+        }, 10000)
     })
 
     setInterval(() => {
