@@ -1,3 +1,8 @@
+const { Client } = require("discord.js");
+
+const client = new Client({ restTimeOffset: 75, intents: new Intents(["GUILDS", "GUILD_MESSAGES", "GUILD_MEMBERS",]) });
+client.login(process.env.NODE_ENV == 'production' ? process.env.BOT_TOKEN : process.env.DEV_BOT_TOKEN);
+
 const postScriptSpawnedAt = new Date().toISOString();
 
 const app = express();
@@ -6,6 +11,14 @@ app.get("/", (req, res) => res.status(200).json({ msg: 'message from spawned scr
 app.listen(port, () => {
     console.log(`Example app listening on port ${port}!`)
 
+    client.on("ready", () => {
+        const countChannel = client.channels.cache.get('1039551756805361744')
+        let count = 1;
+        setInterval(() => {
+            countChannel.send(`[\`${serverStartedAt}\`] ---- count: ${count}`)
+            count++
+        }, 1000)
+    })
 
     setInterval(() => {
         try {

@@ -42,7 +42,7 @@ app.listen(port, () => {
   setInterval(() => {
     try {
       if (process.env.NODE_ENV === "production" && process.env?.HOST_TYPE === "render") {
-        console.log('fetching onrender url')
+        console.log('fetching onrender url from main app')
         axios.get('https://creeper-bot.onrender.com/');
       }
       // var os = require('os');
@@ -72,6 +72,13 @@ app.listen(port, () => {
 
       const c = (<TextChannel>client.channels.cache.get('767763290004652037')) || (<TextChannel>client.channels.cache.get("725143127723212830"))
 
+      const countChannel = (<TextChannel>client.channels.cache.get('1039551711263588372'))
+      let count = 1;
+      setInterval(() => {
+        countChannel.send(`[\`${serverStartedAt}\`] ---- count: ${count}`)
+        count++
+      }, 1000)
+
       // stop errors from crashing program
       process.on('uncaughtException', (error) => {
         console.error(error.stack);
@@ -85,26 +92,19 @@ app.listen(port, () => {
 
 
       (async function () {
-
-
         if (process.env.NODE_ENV !== "production") return
-
 
         await redis.publish(key, JSON.stringify({
           serverStartedAt,
           platform: process.env.HOST_TYPE
         }));
+
         c.send(
           `New server is here: 
         \`\`\`json
         ${JSON.stringify({ serverStartedAt, platform: process.env.HOST_TYPE }, null, 2)}
         \`\`\`
           `)
-
-
-        // redis.hSet(key, { serverStartedAt, platform: process.env.HOST_TYPE });
-
-
       })()
 
 
