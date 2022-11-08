@@ -73,8 +73,8 @@ app.listen(port, () => {
 
       const countChannel = (<TextChannel>client.channels.cache.get('1039551711263588372'))
       let count = 1;
-      setInterval(() => {
-        if (count === 1) countChannel.send("**----------------------------**")
+      process.env.NODE_ENV === "production" && setInterval(() => {
+        if (count === 1) countChannel.send("**---------------------------------------------**")
         countChannel.send(`[\`${serverStartedAt}\`] ---- count: ${count}`)
         count++
       }, 10000)
