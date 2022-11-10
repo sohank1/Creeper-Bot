@@ -30,8 +30,6 @@ const key = "creeper_bot_prod_server";
 const serverStartedAt = new Date().toISOString();
 
 
-
-
 const app = express();
 const port = process.env.PORT || 3001;
 app.get("/", (_, res) => res.json({ serverStartedAt, version }));
@@ -75,7 +73,7 @@ app.listen(port, () => {
       let count = 1;
       process.env.NODE_ENV === "production" && setInterval(() => {
         if (count === 1) countChannel.send("**---------------------------------------------**")
-        countChannel.send(`[\`${serverStartedAt}\`] ---- count: ${count} ---- ${version}`)
+        countChannel.send(`[\`${serverStartedAt}\`] ---- count: ${count} ---- [\`${version}\`]`)
         count++
       }, 10000)
 
@@ -100,7 +98,7 @@ app.listen(port, () => {
         }));
 
         c.send(
-          `New server is here: 
+          `Created new server: 
         \`\`\`json
         ${JSON.stringify({ serverStartedAt, platform: process.env.HOST_TYPE }, null, 2)}
         \`\`\`
@@ -112,7 +110,7 @@ app.listen(port, () => {
       subscriber.subscribe(key, async (m) => {
         if (process.env.NODE_ENV !== "production") return
 
-        console.log('we got new data')
+        console.log('we got new data from redis subscription')
         const data = JSON.parse(m)
         c.send(`new data, ${m}`)
 
@@ -137,19 +135,7 @@ app.listen(port, () => {
         )
 
         await c.send("spawning new script and shutting down current one")
-        const child = spawn('node ./server.js', { detached: true })
-
-        const send = (data) => {
-          console.log(data)
-          c.send(data.toString())
-        }
-        child.stdout.on("data", send)
-        child.stderr.on('data', send)
-        child.on('close', send)
-        child.on('exit', send)
-        child.on('error', data)
-
-        process.exit(0)
+        process.send("SHUTDOWN_SERVER")
         // client.destroy();
         // await mongoose.connection.close();
         // await redis.quit();
