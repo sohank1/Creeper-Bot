@@ -29,6 +29,8 @@ subscriber.connect();
 const key = "creeper_bot_prod_server";
 const serverStartedAt = new Date().toISOString();
 
+console.log("shutting down server");
+process.send("SHUTDOWN_SERVER")
 
 const app = express();
 const port = process.env.PORT || 3001;
