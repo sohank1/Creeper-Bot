@@ -16,7 +16,6 @@ import { ShopSectionsTracker } from "./ShopSections/ShopSectionsTracker";
 import { createClient } from "redis";
 import express from "express";
 import mongoose from "mongoose";
-import { spawn } from "child_process";
 
 export const version = `v${require("../package.json").version}`;
 export const TEST_SERVER = "695646961763614740";
@@ -28,9 +27,6 @@ subscriber.connect();
 
 const key = "creeper_bot_prod_server";
 const serverStartedAt = new Date().toISOString();
-
-console.log("shutting down server");
-process.send("SHUTDOWN_SERVER")
 
 const app = express();
 const port = process.env.PORT || 3001;
