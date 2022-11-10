@@ -50,7 +50,7 @@ app.listen(port, () => {
     catch (e) {
       console.log(e.message);
     }
-  }, 5000)
+  }, 10000)
 
 
 
