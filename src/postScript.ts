@@ -28,6 +28,7 @@ app.listen(port, () => {
                 if (process.env.NODE_ENV === "production" && process.env?.HOST_TYPE === "render") {
                     console.log(`Fetching the render url from post script. This shouldn't be happening for a long amount of time. This script spawned at: ${postScriptSpawnedAt}`);
                     const { data } = await axios.get('https://creeper-bot.onrender.com/');
+                    console.log(data);
                     if (data.postScriptSpawnedAt) c.send("there is a postScriptSpawnedAt prop " + postScriptSpawnedAt)
 
                 }
@@ -40,7 +41,7 @@ app.listen(port, () => {
             catch (e) {
                 console.log(e.message);
             }
-        }, 120000) // 2 mins
+        }, 10000) // 10 seconds
 
         const countChannel = <TextChannel>client.channels.cache.get('1039551756805361744')
         let count = 1;
