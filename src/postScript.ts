@@ -36,7 +36,11 @@ app.listen(port, () => {
         try {
             if (process.env.NODE_ENV === "production" && process.env?.HOST_TYPE === "render") {
                 console.log(`Fetching the render url from post script. This shouldn't be happening for a long amount of time. This script spawned at: ${postScriptSpawnedAt}`);
-                axios.get('https://creeper-bot.onrender.com/');
+                axios.get('https://creeper-bot.onrender.com/').then(r => {
+if(r.data.postScriptSpawnedAt) c.send("there is a postScriptSpawnedAt prop "+ postScriptSpawnedAt)
+})
+
+})
             }
             // var os = require('os');
 
