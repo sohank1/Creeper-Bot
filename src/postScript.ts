@@ -22,6 +22,26 @@ app.listen(port, () => {
         const c = (<TextChannel>client.channels.cache.get('767763290004652037')) || (<TextChannel>client.channels.cache.get("725143127723212830"));
         c.send("Post script has spawned!!!")
 
+        setInterval(async () => {
+            console.log('this is a test')
+            try {
+                if (process.env.NODE_ENV === "production" && process.env?.HOST_TYPE === "render") {
+                    console.log(`Fetching the render url from post script. This shouldn't be happening for a long amount of time. This script spawned at: ${postScriptSpawnedAt}`);
+                    const { data } = await axios.get('https://creeper-bot.onrender.com/');
+                    if (data.postScriptSpawnedAt) c.send("there is a postScriptSpawnedAt prop " + postScriptSpawnedAt)
+
+                }
+                // var os = require('os');
+
+                //   console.log(os.cpus());
+                //   console.log(os.totalmem() / 1024 / 1024);
+                //  console.log(os.freemem() / 1024 / 1024)
+            }
+            catch (e) {
+                console.log(e.message);
+            }
+        }, 120000) // 2 mins
+
         const countChannel = <TextChannel>client.channels.cache.get('1039551756805361744')
         let count = 1;
         process.env.NODE_ENV === "production" && setInterval(() => {
@@ -31,25 +51,5 @@ app.listen(port, () => {
         }, 10000)
     })
 
-    setInterval(() => {
-        console.log('this is a test')
-        try {
-            if (process.env.NODE_ENV === "production" && process.env?.HOST_TYPE === "render") {
-                console.log(`Fetching the render url from post script. This shouldn't be happening for a long amount of time. This script spawned at: ${postScriptSpawnedAt}`);
-                axios.get('https://creeper-bot.onrender.com/').then(r => {
-if(r.data.postScriptSpawnedAt) c.send("there is a postScriptSpawnedAt prop "+ postScriptSpawnedAt)
-})
 
-})
-            }
-            // var os = require('os');
-
-            //   console.log(os.cpus());
-            //   console.log(os.totalmem() / 1024 / 1024);
-            //  console.log(os.freemem() / 1024 / 1024)
-        }
-        catch (e) {
-            console.log(e.message);
-        }
-    }, 600000) // 10 mins
 });
