@@ -47,5 +47,5 @@ app.listen(port, () => {
         catch (e) {
             console.log(e.message);
         }
-    }, 10000)
+    }, 600000) // 10 mins
 });
