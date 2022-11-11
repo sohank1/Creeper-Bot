@@ -31,6 +31,7 @@ app.listen(port, () => {
                     console.log(data);
                     if (data.serverStartedAt) {
                         c.send("there is a serverStartedAt prop. This means new server is ready" + data.serverStartedAt)
+                        c.send("shutting down the old server that's running the post script...")
                         process.send("SHUTDOWN_SERVER")
                     }
 
