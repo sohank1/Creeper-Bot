@@ -30,12 +30,12 @@ app.listen(port, () => {
                     const { data } = await axios.get('https://creeper-bot.onrender.com/');
                     console.log(data);
                     if (data.serverStartedAt) {
-                        c.send("there is a serverStartedAt prop. This means new server is ready" + data.serverStartedAt)
+                        c.send(`\`${version}\` there is a serverStartedAt prop. This means new server is ready: \`${data.serverStartedAt}\``)
                         c.send("shutting down the old server that's running the post script...")
                         process.send("SHUTDOWN_SERVER")
                     }
 
-                    else c.send("there is not serverStartedAt " + JSON.stringify(data, null, 2))
+                    else console.log(`${version} there is not serverStartedAt: ${JSON.stringify(data, null, 2)}`)
 
                 }
                 // var os = require('os');
