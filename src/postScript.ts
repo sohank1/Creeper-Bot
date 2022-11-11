@@ -29,8 +29,12 @@ app.listen(port, () => {
                     console.log(`Fetching the render url from post script. This shouldn't be happening for a long amount of time. This script spawned at: ${postScriptSpawnedAt}`);
                     const { data } = await axios.get('https://creeper-bot.onrender.com/');
                     console.log(data);
-                    if (data.serverStartedAt) c.send("there is a serverStartedAt prop. This means new server is ready" + data.serverStartedAt)
-else c.send("there is not serverStartedAt "+ JSON.stringify(data, null, 2))
+                    if (data.serverStartedAt) {
+                        c.send("there is a serverStartedAt prop. This means new server is ready" + data.serverStartedAt)
+                        process.send("SHUTDOWN_SERVER")
+                    }
+
+                    else c.send("there is not serverStartedAt " + JSON.stringify(data, null, 2))
 
                 }
                 // var os = require('os');
