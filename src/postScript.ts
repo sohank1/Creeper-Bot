@@ -26,29 +26,27 @@ app.listen(port, () => {
             console.log('this is a test')
             try {
                 if (process.env.NODE_ENV === "production" && process.env?.HOST_TYPE === "render") {
-                    console.log(`Fetching the render url from post script. This shouldn't be happening for a long amount of time. This script spawned at: ${postScriptSpawnedAt}`);
-                    const { data } = await axios.get('https://creeper-bot.onrender.com/');
-                    console.log(data);
-                    if (data.serverStartedAt) {
-                        c.send(`\`${version}\` there is a serverStartedAt prop. This means new server is ready: \`${data.serverStartedAt}\``)
-                        c.send("shutting down the old server that's running the post script...")
-                        console.log("shutting down the old server that's running the post script...")
-                        process.send("SHUTDOWN_SERVER")
-                    }
+                    // console.log(`Fetching the render url from post script. This shouldn't be happening for a long amount of time. This script spawned at: ${postScriptSpawnedAt}`);
+                    // const { data } = await axios.get('https://creeper-bot.onrender.com/');
+                    // console.log(data);
+                    // if (data.serverStartedAt) {
+                    //     c.send(`\`${version}\` there is a serverStartedAt prop. This means new server is ready: \`${data.serverStartedAt}\``)
+                    //     c.send("shutting down the old server that's running the post script...")
+                    //     console.log("shutting down the old server that's running the post script...")
+                    //     process.send("SHUTDOWN_SERVER")
+                    // }
 
-                    else console.log(`${version} there is not serverStartedAt: ${JSON.stringify(data, null, 2)}`)
+                    // else console.log(`${version} there is not serverStartedAt: ${JSON.stringify(data, null, 2)}`)
+
+                    console.log(`Fetching the render url from post script. This shouldn't be happening for a long amount of time. This script spawned at: ${postScriptSpawnedAt}`);
+                    axios.get('https://creeper-bot.onrender.com/')
 
                 }
-                // var os = require('os');
-
-                //   console.log(os.cpus());
-                //   console.log(os.totalmem() / 1024 / 1024);
-                //  console.log(os.freemem() / 1024 / 1024)
             }
             catch (e) {
                 console.log(e.message);
             }
-        }, 15000) // 15 seconds
+        }, 600000) // 15 seconds
 
         const countChannel = <TextChannel>client.channels.cache.get('1039551756805361744')
         let count = 1;

@@ -14,7 +14,7 @@ mainProcess.on("message", (data) => {
 
         newProcess.on("message", (data) => {
             console.log(data);
-            if (data === "SHUTDOWN_SERVER") newProcess.kill();
+            // if (data === "SHUTDOWN_SERVER") newProcess.kill();
             // process.exit()
         })
     }
