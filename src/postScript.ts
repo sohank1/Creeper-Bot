@@ -19,7 +19,7 @@ app.listen(port, () => {
     console.log(`Example app listening on port ${port}!`)
 
     client.on("ready", () => {
-        const c = (<TextChannel>client.channels.cache.get('767763290004652037')) || (<TextChannel>client.channels.cache.get("725143127723212830"));
+        const c = (<TextChannel>client.channels.cache.get('1045085618683781320')) || (<TextChannel>client.channels.cache.get("725143127723212830"));
         c.send("Post script has spawned!!!")
 
         setInterval(async () => {

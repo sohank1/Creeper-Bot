@@ -34,7 +34,7 @@
 
 //     private async scrape(): Promise<void> {
 //         console.log("launching")
-//         const c = (<TextChannel>this.client.channels.cache.get('767763290004652037')) || (<TextChannel>this.client.channels.cache.get("725143127723212830"))
+//         const c = (<TextChannel>this.client.channels.cache.get('1045086199053820004')) || (<TextChannel>this.client.channels.cache.get("725143127723212830"))
 
 
 //         const page = await (await browser).newPage();
@@ -146,7 +146,7 @@ export class DonaldTracker {
 
     private async scrape(): Promise<void> {
         console.log("launching")
-        const c = (<TextChannel>this.client.channels.cache.get('767763290004652037')) || (<TextChannel>this.client.channels.cache.get("725143127723212830"))
+        const c = (<TextChannel>this.client.channels.cache.get('1045086199053820004')) || (<TextChannel>this.client.channels.cache.get("725143127723212830"))
 
 
         // const page = await (await browser).newPage();

@@ -65,9 +65,9 @@ app.listen(port, () => {
   try {
     client.on("ready", async () => {
 
-      const c = (<TextChannel>client.channels.cache.get('767763290004652037')) || (<TextChannel>client.channels.cache.get("725143127723212830"))
+      const c = (<TextChannel>client.channels.cache.get('1045086199053820004')) || (<TextChannel>client.channels.cache.get("725143127723212830"))
 
-      const countChannel = (<TextChannel>client.channels.cache.get('1039551711263588372'))
+      const countChannel = (<TextChannel>client.channels.cache.get('1039551711263588372')) || (<TextChannel>client.channels.cache.get('1045085555878273136'))
       let count = 1;
       process.env.NODE_ENV === "production" && setInterval(() => {
         if (count === 1) countChannel.send("**---------------------------------------------**")
@@ -298,7 +298,7 @@ I ASKED.`)
 
     client.on("ready", () => console.log(`${client.user.tag} has logged in.`));
   } catch (err) {
-    (<TextChannel>client.channels.cache.get('767763290004652037')).send(`An error has occurred: ${err}`);
+    (<TextChannel>client.channels.cache.get('1045086199053820004')).send(`An error has occurred: ${err}`);
   }
 
 })
