@@ -45,14 +45,14 @@ export class ShopSectionsTracker {
         for (const s of Object.values(shopSectionChannels)) {
             const c = (<TextChannel>this.client.channels.cache.get(s.channel));
 
-            c.send({ embeds: [e] }).then(m => {
+            c?.send({ embeds: [e] }).then(m => {
                 if (totalAmountOfSections >= 20) {
                     m.react("🤑");
 
                     const highestSameSections = d.sections.filter((s) => s.quantity === largestSection.quantity);
                     // if there is only 1 section that has the most items
                     if (highestSameSections.length === 1) c.send(`They hungry for ${largestSection.name}`);
-                    else c.send("They hungry!!!")
+                    else c?.send("They hungry!!!")
                 }
             })
         }
