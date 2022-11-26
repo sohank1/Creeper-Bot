@@ -125,6 +125,7 @@ import Chromium from "chrome-aws-lambda"
 import DonaldModel, { DonaldData } from './DonaldTracker.model';
 import newsChannels from "./../news/newsChannels.json"
 import axios from "axios";
+import { TwitterApi } from "twitter-api-v2";
 const { puppeteer: Puppeteer } = Chromium
 const instance = process.env.NODE_ENV === 'production' ? process.env.NODE_ENV : 'development';
 
@@ -137,6 +138,7 @@ const instance = process.env.NODE_ENV === 'production' ? process.env.NODE_ENV : 
 //     ],
 // });
 
+const twitterClient = new TwitterApi(process.env.TWITTER_BEARER_TOKEN);
 export class DonaldTracker {
     // public data: { location: string; banner: string; };
 
@@ -193,22 +195,21 @@ export class DonaldTracker {
             // \`\`\`
             // `)
 
-            c?.send(`Fetching donald mustard's data on ${instance}`)
+            console.log(`Fetching donald mustard's data on ${instance}`)
             let t0 = performance.now()
             try {
-                const { data: d } = await axios.get("https://api.twitter.com/1.1/users/show.json?screen_name=donaldmustard",
-                    { headers: { "Authorization": `${process.env.TWITTER_USER_SHOW_HEADER}`, "User-Agent": "PostmanRuntime/7.29.2" } })
 
-                const data = { banner: d.profile_banner_url, location: d.location }
+                const u = await twitterClient.v1.user({ screen_name: "donaldmustard" })
+                const data = { banner: u.profile_banner_url, location: u.location }
 
-                c.send(
+                console.log(
                     `Successfully fetched data
                 \`\`\`json
                 ${JSON.stringify(data, null, 2)}
                 \`\`\`
                 `)
                 let t1 = performance.now();
-                c?.send("fetch took " + (t1 - t0) + " ms.")
+                console.log("fetch took " + (t1 - t0) + " ms.")
 
 
 
@@ -222,8 +223,9 @@ export class DonaldTracker {
                 }
             } catch (e) {
                 console.error(e)
+                c.send(`Error: ${e}`)
             }
-        }, 15000)  //5 mins 300000
+        }, 5000) //5 seconds //5 mins 300000    
 
     }
 
