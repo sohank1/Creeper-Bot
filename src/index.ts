@@ -195,6 +195,251 @@ This can be substituted back into the response to “who asked?“, yielding an 
 That’s right, the answer to “who asked?“ is i.  
 
 I ASKED.`)
+      // from TTS Bot
+      if (message.channel.id === "578300191501844517") { // #polls👍👎
+        message.react("👍");
+        message.react("👎");
+        message.react("1️⃣");
+        message.react("2️⃣");
+        message.react("3️⃣");
+        message.react("4️⃣");
+        message.react("5️⃣");
+      }
+      if (message.channel.id === "688387179709464696") { // #suggestions📬
+        message.react("👍");
+        message.react("👎");
+      }
+      if (message.channel.id === "672646334431494144") { //#item-shop-feed🛒
+        if (message.author.bot) {
+          message.react("🔥");
+          message.react("💩");
+          message.react("🤷");
+        }
+      }
+
+      // #welcome👋 reactions
+      if (message.author.id === "159985870458322944" && message.channel.id === "570352068829773824" && message.content.startsWith("GG")) {
+        const member = message.mentions.members.first();
+        const levelTest = message.content.split("level ")[1];
+        const level = levelTest.toString().match(/\d+/)[0];
+
+        const commonRole = message.guild.roles.cache.find((role) => role.name === "COMMON");
+        const uncommonRole = message.guild.roles.cache.find((role) => role.name === "UNCOMMON");
+        const rareRole = message.guild.roles.cache.find((role) => role.name === "RARE");
+        const epicRole = message.guild.roles.cache.find((role) => role.name === "EPIC");
+        const legendaryRole = message.guild.roles.cache.find((role) => role.name === "LEGENDARY");
+        const mythicRole = message.guild.roles.cache.find((role) => role.name === "MYTHIC");
+        const tomatoheadRole = message.guild.roles.cache.find((role) => role.name === "TOMATOHEAD");
+
+        if (parseInt(level) >= 1 && parseInt(level) <= 5) {
+          member.roles.add(commonRole);
+          member.roles.remove(uncommonRole);
+          member.roles.remove(rareRole);
+          member.roles.remove(epicRole);
+          member.roles.remove(legendaryRole);
+          member.roles.remove(mythicRole);
+          member.roles.remove(tomatoheadRole);
+        }
+        if (parseInt(level) >= 6 && parseInt(level) <= 10) {
+          member.roles.remove(commonRole);
+          member.roles.add(uncommonRole);
+          member.roles.remove(rareRole);
+          member.roles.remove(epicRole);
+          member.roles.remove(legendaryRole);
+          member.roles.remove(mythicRole);
+          member.roles.remove(tomatoheadRole);
+        }
+        if (parseInt(level) >= 11 && parseInt(level) <= 15) {
+          member.roles.remove(commonRole);
+          member.roles.remove(uncommonRole);
+          member.roles.add(rareRole);
+          member.roles.remove(epicRole);
+          member.roles.remove(legendaryRole);
+          member.roles.remove(mythicRole);
+          member.roles.remove(tomatoheadRole);
+        }
+        if (parseInt(level) >= 16 && parseInt(level) <= 20) {
+          member.roles.remove(commonRole);
+          member.roles.remove(uncommonRole);
+          member.roles.remove(rareRole);
+          member.roles.add(epicRole);
+          member.roles.remove(legendaryRole);
+          member.roles.remove(mythicRole);
+          member.roles.remove(tomatoheadRole);
+        }
+
+        if (parseInt(level) >= 21 && parseInt(level) <= 25) {
+          member.roles.remove(commonRole);
+          member.roles.remove(uncommonRole);
+          member.roles.remove(rareRole);
+          member.roles.remove(epicRole);
+          member.roles.add(legendaryRole);
+          member.roles.remove(mythicRole);
+          member.roles.remove(tomatoheadRole);
+        }
+        if (parseInt(level) >= 26 && parseInt(level) <= 99) {
+          member.roles.remove(commonRole);
+          member.roles.remove(uncommonRole);
+          member.roles.remove(rareRole);
+          member.roles.remove(epicRole);
+          member.roles.remove(legendaryRole);
+          member.roles.add(mythicRole);
+          member.roles.remove(tomatoheadRole);
+        }
+        if (parseInt(level) >= 100) {
+          member.roles.remove(commonRole);
+          member.roles.remove(uncommonRole);
+          member.roles.remove(rareRole);
+          member.roles.remove(epicRole);
+          member.roles.remove(legendaryRole);
+          member.roles.remove(mythicRole);
+          member.roles.add(tomatoheadRole);
+        }
+      }
+
+      if (message.channel.id === "570352068829773824") {
+        if (message.author.bot) {
+          if (message.content.includes("advanced to level")) {
+            const possibleReactions = [
+              ["🇪", "🇵", "ℹ", "🇨"],
+              ["🇵", "🇴", "🇬"],
+              ["🇱", "🇮", "🇹"],
+              ["🇸", "🇺", "🇵", "🇪", "🇷"],
+              ["🇳", "🇮", "🇨", "🇪"],
+            ];
+            const randomIndex = Math.floor(Math.random() * possibleReactions.length);
+            message.react("👍");
+            possibleReactions[randomIndex].forEach((r) => message.react(r));
+          }
+        }
+      }
+
+      // from Corona Bot, pokemon bot catch reactions
+      if (message.author.id === "716390085896962058" && message.embeds[0].fields[1] && message.embeds[0].fields[1].value.split("\n").find(v => v.includes("Total IV"))) {
+        const ivString = message.embeds[0].fields[1].value.split("\n").find(v => v.includes("Total IV"));
+        const iv = parseInt(ivString.split(" ")[2]);
+        console.log(iv, ivString, ivString.split(" ")[2]);
+
+        const pogEmoji = client.emojis.cache.get("756550303922389156");
+        const tomatoHeadEmoji = client.emojis.cache.get("574702212618649631");
+
+        if (iv === 69) {
+          const possible = ["😉", "😜"];
+          const selectedIndex = Math.floor(Math.random() * possible.length);
+          return void message.react(possible[selectedIndex]);
+        }
+
+        if (iv >= 1 && iv <= 29) return void message.react("🤢");
+        if (iv >= 30 && iv <= 49) return void message.react("💩");
+        if (iv >= 50 && iv <= 69) return void message.react("🙂");
+        if (iv >= 70 && iv <= 99) return void message.react(pogEmoji);
+        if (iv === 100) {
+          message.channel.send("POGGERS NO WAY DUDE!");
+          message.react("👍");
+          message.react(pogEmoji);
+          message.react(tomatoHeadEmoji);
+          message.react("😱");
+        }
+      }
+
+      // pokemon bot level up reactions
+      if (message.author.id === "612127667138854916") {
+        const levelString = message.embeds && message.embeds[0].title;
+        const level = parseInt(levelString.split(" ")[levelString.split(" ").length - 1]);
+
+        const pogEmoji = client.emojis.cache.get("756550303922389156");
+        const tomatoHeadEmoji = client.emojis.cache.get("574702212618649631");
+
+        if (level && level === 100) {
+          message.channel.send("Took you long enough! Now lets go destroy a Pidgey on route 1.");
+          message.react("👍");
+          message.react(pogEmoji);
+          message.react(tomatoHeadEmoji);
+          message.react("😱");
+        }
+      }
+
+      // minebot rebirth reactions
+      if (message.author.id === "518759221098053634" && message.content.toLowerCase().includes("you are now rebirth"))
+        message.channel.send("Congrats on the rebirth.");
+
+      // spam reactions
+      if (message.content.toLowerCase().includes("!cap") || message.content.toLowerCase().includes("cap")) {
+        if (message.author.bot || message.guild.id !== "570349873337991203") return
+        const messageArray = message.channel.messages.cache.toJSON();
+        let index = messageArray.length - 2
+        let lastMessage = messageArray[index]
+        if (message.content.toLowerCase().includes("cap"))
+          index = messageArray.length - 1
+        lastMessage.react("🧢");
+        message.channel.send({ content: "🧢 CAP!!!!", tts: true });
+        message.channel.send({ content: "🧢 CAP!!!!", tts: true });
+        message.channel.send({ content: "🧢 CAP!!!!", tts: true });
+        message.channel.send({ content: "🧢 CAP!!!!", tts: true });
+      }
+
+      if (message.content.toLowerCase().includes("!fax") ||
+        message.content.toLowerCase().includes("didn't ask") ||
+        message.content.toLowerCase().includes("didnt ask") ||
+        message.content.toLowerCase().includes("fax")) {
+        if (message.author.bot || message.guild.id !== "570349873337991203") return
+        const messageArray = message.channel.messages.cache.toJSON();
+        let index = messageArray.length - 2
+        if (message.content.toLowerCase().includes("didn't ask") || message.content.toLowerCase().includes("fax"))
+          index = messageArray.length - 1
+
+        let lastMessage = messageArray[index]
+        lastMessage.react("📠");
+        message.channel.send({ content: "📠 YOO THATS FAX BRO", tts: true });
+        message.channel.send({ content: "📠 YOO THATS FAX BRO", tts: true });
+        message.channel.send({ content: "📠 YOO THATS FAX BRO", tts: true });
+        message.channel.send({ content: "📠 YOO THATS FAX BRO", tts: true });
+      }
+
+      if (message.content.toLowerCase().includes("pog") ||
+        message.content.toLowerCase().includes("lets go")) {
+        if (message.author.bot || message.guild.id !== "570349873337991203") return
+        const messageArray = message.channel.messages.cache.toJSON();
+        let index = messageArray.length - 2
+        if (message.content.toLowerCase().includes("pog") || message.content.toLowerCase().includes("pog"))
+          index = messageArray.length - 2
+        const emoji = client.emojis.cache.get("756550303922389156");
+        message.react(emoji);
+        message.channel.send({ content: `${emoji} POG CHAMP`, tts: true });
+        message.channel.send({ content: `${emoji} POG CHAMP`, tts: true });
+        message.channel.send({ content: `${emoji} POG CHAMP`, tts: true });
+        message.channel.send({ content: `${emoji} POG CHAMP`, tts: true });
+      }
+
+      if (message.content.toLowerCase().includes("fish") || message.content.toLowerCase().includes("box") && !message.content.toLowerCase().includes("xbox")) {
+        if (message.author.bot || message.guild.id !== "570349873337991203") return
+        const messageArray = message.channel.messages.cache.toJSON();
+        let index = messageArray.length - 2
+        if (message.content.toLowerCase().includes("pog") || message.content.toLowerCase().includes("pog"))
+          index = messageArray.length - 2
+        const emoji = "📦";
+        message.react(emoji);
+        message.channel.send({ content: `${emoji} HE'S BOXED LIKE A FISH BRO 🎣`, tts: true });
+        message.channel.send({ content: `${emoji} HE'S BOXED LIKE A FISH BRO 🎣`, tts: true });
+        message.channel.send({ content: `${emoji} HE'S BOXED LIKE A FISH BRO 🎣`, tts: true });
+        message.channel.send({ content: `${emoji} HE'S BOXED LIKE A FISH BRO 🎣`, tts: true });
+      }
+
+      if (message.content.toLowerCase().includes("30 damage")) {
+        if (message.author.bot || message.guild.id !== "570349873337991203") return
+        const messageArray = message.channel.messages.cache.toJSON();
+        let index = messageArray.length - 2
+        if (message.content.toLowerCase().includes("pog") || message.content.toLowerCase().includes("pog"))
+          index = messageArray.length - 2
+        const emoji = "🗑️";
+        message.react(emoji);
+        message.channel.send({ content: `${emoji} PUMP TRASH`, tts: true });
+        message.channel.send({ content: `${emoji} PUMP TRASH`, tts: true });
+        message.channel.send({ content: `${emoji} PUMP TRASH`, tts: true });
+        message.channel.send({ content: `${emoji} PUMP TRASH`, tts: true });
+      }
+
+
 
       if (message.content.toLowerCase() === "t!ping") {
         message.channel.send("Pinging...").then((m) => {
