@@ -209,12 +209,10 @@ I ASKED.`)
         message.react("👍");
         message.react("👎");
       }
-      if (message.channel.id === "672646334431494144") { //#item-shop-feed🛒
-        if (message.author.bot) {
+      if (message.channel.id === "672646334431494144" && message.author.id === "436212260587831316") { //#item-shop-feed🛒
           message.react("🔥");
           message.react("💩");
           message.react("🤷");
-        }
       }
 
       // #welcome👋 reactions
