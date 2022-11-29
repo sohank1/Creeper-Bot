@@ -8,7 +8,7 @@ import { News } from "./news/news";
 import { DonaldTracker } from "./DonaldTracker/DonaldTracker";
 import { Counting, countingCommand } from "./Counting/";
 import { SlashCommandBuilder } from "@discordjs/builders";
-import { fortniteCommand, FortniteStats } from "./FortniteStats/";
+import { fortniteCommand, FortniteCosmetics, FortniteStats } from "./Fortnite/";
 import { Trello, trelloCommand } from "./Trello";
 import { Avatar, avatarCommand } from "./AvatarCommand";
 import { DeletedClient } from "./DeletedClient/";
@@ -16,9 +16,10 @@ import { ShopSectionsTracker } from "./ShopSections/ShopSectionsTracker";
 import { createClient } from "redis";
 import express from "express";
 import mongoose from "mongoose";
+import { MissingCosmetics } from "./MissingCosmetics/MissingCosmetics";
 
 export const version = `v${require("../package.json").version}`;
-export const TEST_SERVER = "695646961763614740";
+export const TEST_SERVER = "640262033329356822";
 
 export const redis = createClient({ url: process.env.REDIS_URI, });
 const subscriber = redis.duplicate();
@@ -143,7 +144,7 @@ app.listen(port, () => {
 
       client.application.commands.fetch().then(console.log);
 
-      // (await client.guilds.fetch(TEST_SERVER))?.commands.set([countingCommand]);
+      (await client.guilds.fetch(TEST_SERVER))?.commands.set([fortniteCommand]);
 
       // Register Slash Commands
       client.application.commands.create(countingCommand)
@@ -164,11 +165,13 @@ app.listen(port, () => {
       new DeletedClient(client)
       new Counting(client);
       new FortniteStats(client);
-      new News(client);
-      new DonaldTracker(client);
-      new Trello(client);
+      process.env.NODE_ENV === "production" && new News(client);
+      process.env.NODE_ENV === "production" && new DonaldTracker(client);
+      // new Trello(client);
       new Avatar(client)
       new ShopSectionsTracker(client)
+      new FortniteCosmetics(client)
+      new MissingCosmetics(client)
 
       // music = new Music(client);
       // new Teasers(client);
@@ -210,9 +213,9 @@ I ASKED.`)
         message.react("👎");
       }
       if (message.channel.id === "672646334431494144" && message.author.id === "436212260587831316") { //#item-shop-feed🛒
-          message.react("🔥");
-          message.react("💩");
-          message.react("🤷");
+        message.react("🔥");
+        message.react("💩");
+        message.react("🤷");
       }
 
       // #welcome👋 reactions
@@ -313,7 +316,7 @@ I ASKED.`)
       }
 
       // from Corona Bot, pokemon bot catch reactions
-      if (message.author.id === "716390085896962058" && message.embeds[0].fields[1] && message.embeds[0].fields[1].value.split("\n").find(v => v.includes("Total IV"))) {
+      if (message.author.id === "716390085896962058" && message.embeds[0]?.fields[1] && message.embeds[0]?.fields[1]?.value.split("\n").find(v => v.includes("Total IV"))) {
         const ivString = message.embeds[0].fields[1].value.split("\n").find(v => v.includes("Total IV"));
         const iv = parseInt(ivString.split(" ")[2]);
         console.log(iv, ivString, ivString.split(" ")[2]);

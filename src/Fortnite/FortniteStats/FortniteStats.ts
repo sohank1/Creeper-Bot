@@ -1,6 +1,6 @@
 import axios from "axios";
 import { BaseCommandInteraction, CacheType, Client, MessageEmbed } from "discord.js";
-import { version } from "../index";
+import { version } from "../../index";
 
 
 export class FortniteStats {
