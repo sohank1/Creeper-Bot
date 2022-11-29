@@ -4,7 +4,7 @@ import { ApplicationCommandOptionChoice, AutocompleteInteraction, BaseCommandInt
 import { Cosmetic, Cosmetics, CosmeticsResponse } from "./FortniteCosmetics.type"
 import { rarityEmojisTable } from "./rarityEmojisTable";
 import { scheduleJob } from "node-schedule";
-const cosmeticsData = <CosmeticsResponse>require("./cosmetics.json");
+// const cosmeticsData = <CosmeticsResponse>require("./cosmetics.json");
 
 const LOADING_STRING = "Currently loading all cosmetics... Please wait.";
 
@@ -14,9 +14,9 @@ export class FortniteCosmetics {
     constructor(private client: Client) {
         this.fetchCosmetics().then(d => this._data = d);
 
-        scheduleJob({ second: 0, minute: 10 }, () => {
+        scheduleJob({ minute: 10 }, () => {
             const c = (<TextChannel>client.channels.cache.get('1045086199053820004')) || (<TextChannel>client.channels.cache.get("725143127723212830"))
-            c?.send("fetching cosmetics...")
+            console.log("fetching cosmetics...");
             this.fetchCosmetics().then(d => this._data = d);
 
         })
