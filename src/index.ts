@@ -1,7 +1,7 @@
 import "dotenv/config";
 import './database';
 import axios from "axios";
-import { CategoryChannel, Client, Intents, MessageEmbed, TextChannel } from "discord.js";
+import { CategoryChannel, Client, Intents, MessageEmbed, TextChannel, Util } from "discord.js";
 import Teasers from "./teasers";
 // import { Music } from "./music/Music";
 import { News } from "./news/news";
@@ -545,7 +545,9 @@ I ASKED.`)
 
     client.on("ready", () => console.log(`${client.user.tag} has logged in.`));
   } catch (err) {
-    (<TextChannel>client.channels.cache.get('1045086199053820004')).send(`An error has occurred: ${err}`);
-  }
 
+    const c = (<TextChannel>client.channels.cache.get('1045086199053820004'));
+    for (const part of Util.splitMessage(`An error has occurred: ${err}`)) c?.send(part);
+
+  }
 })
