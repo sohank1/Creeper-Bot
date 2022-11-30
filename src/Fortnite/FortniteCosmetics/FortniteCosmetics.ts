@@ -86,6 +86,7 @@ export class FortniteCosmetics {
             .slice(0, 25);
         
         console.log('respoding with results', results)
+        i.channel.send(`searched for: ${query}`)
         return i.respond(results)
     }
 
