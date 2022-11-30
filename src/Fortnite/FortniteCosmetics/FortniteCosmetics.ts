@@ -84,7 +84,8 @@ export class FortniteCosmetics {
             // .map(r => ({ name: `${rarityEmojisTable[r.item.rarity.value] || ""} ${r.item.name || r.item.id || ""} (${r.item.introduction?.text}) (${r.item.type.displayValue})`, value: r.item.id }))
             .map(r => this.formatAutoCompleteResponse(r.item))
             .slice(0, 25);
-
+        
+        console.log('respoding with results', results)
         return i.respond(results)
     }
 
