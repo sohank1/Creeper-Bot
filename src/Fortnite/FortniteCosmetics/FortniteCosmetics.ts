@@ -91,7 +91,12 @@ export class FortniteCosmetics {
 
         console.log('respoding with results', results)
         i.channel.send(`searched for: ${query}`)
-        return i.respond(results)
+
+        try {
+            return i.respond(results)
+        } catch (e) {
+            console.log("there was an error responding to autocomplete cosmetic search", e)
+        }
     }
 
     public respondWithNewCosmetics(i: AutocompleteInteraction<CacheType>): void | Promise<void> {
