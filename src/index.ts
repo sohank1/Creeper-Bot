@@ -172,7 +172,7 @@ app.listen(port, () => {
       new Avatar(client)
       new ShopSectionsTracker(client)
       new FortniteCosmetics(client)
-      new MissingCosmetics(client)
+      // new MissingCosmetics(client)
 
       // music = new Music(client);
       // new Teasers(client);
