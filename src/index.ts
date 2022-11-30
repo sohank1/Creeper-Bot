@@ -78,13 +78,14 @@ app.listen(port, () => {
 
       // stop errors from crashing program
       process.on('uncaughtException', (error) => {
-        console.error(error.stack);
-        c?.send(
-          `There was an error: 
-      \`\`\`json
-        ${JSON.stringify(error, null, 2)}
-      \`\`\`
-      `)
+        console.error("here is the error stack", error.stack);
+        console.log("uncaughtException happened", error)
+        //   c?.send(
+        //     `There was an error: 
+        // \`\`\`json
+        //   ${JSON.stringify(error, null, 2)}
+        // \`\`\`
+        // `)
       });
 
 
@@ -172,7 +173,7 @@ app.listen(port, () => {
       new Avatar(client)
       new ShopSectionsTracker(client)
       new FortniteCosmetics(client)
-      // new MissingCosmetics(client)
+      new MissingCosmetics(client)
 
       // music = new Music(client);
       // new Teasers(client);
