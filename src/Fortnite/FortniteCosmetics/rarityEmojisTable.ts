@@ -21,7 +21,7 @@ export const rarityEmojisTable: Record<RarityValue, string> = {
     icon: "⭐",
     lava: "🌋",
     loadingscreen: "",
-    music: "",
+    music: "💽",
     mythic: "",
     outfit: "🧍",
     pet: "",
@@ -32,4 +32,12 @@ export const rarityEmojisTable: Record<RarityValue, string> = {
     spray: "",
     toy: "",
     wrap: "🎁"
+}
+
+export const rarityColorTable = {
+    common: "C0C0C0",
+    uncommon: "54CD5B",
+    rare: "4C85F7",
+    epic: "9d4dbb",
+    legendary: "FF7927",
 }
