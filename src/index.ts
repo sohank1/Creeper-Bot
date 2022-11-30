@@ -545,9 +545,9 @@ I ASKED.`)
 
     client.on("ready", () => console.log(`${client.user.tag} has logged in.`));
   } catch (err) {
+    console.log(err);
 
     const c = (<TextChannel>client.channels.cache.get('1045086199053820004'));
     for (const part of Util.splitMessage(`An error has occurred: ${err}`)) c?.send(part);
-
   }
 })

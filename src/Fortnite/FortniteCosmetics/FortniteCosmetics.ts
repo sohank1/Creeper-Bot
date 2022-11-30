@@ -46,9 +46,13 @@ export class FortniteCosmetics {
             console.log(i.type)
 
             if (i.isCommand() && i.options?.getSubcommand(false) !== "cosmetic") return
+
+            console.time("cosmetic-search")
             if (i.isAutocomplete()) this.resolveSearchQuery(i);
 
             if (i.isApplicationCommand()) return this.replyEmbed(i);
+
+            console.timeEnd("cosmetic-search")
         })
     }
 
@@ -84,7 +88,7 @@ export class FortniteCosmetics {
             // .map(r => ({ name: `${rarityEmojisTable[r.item.rarity.value] || ""} ${r.item.name || r.item.id || ""} (${r.item.introduction?.text}) (${r.item.type.displayValue})`, value: r.item.id }))
             .map(r => this.formatAutoCompleteResponse(r.item))
             .slice(0, 25);
-        
+
         console.log('respoding with results', results)
         i.channel.send(`searched for: ${query}`)
         return i.respond(results)
