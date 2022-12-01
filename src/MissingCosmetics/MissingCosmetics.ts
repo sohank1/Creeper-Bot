@@ -11,7 +11,7 @@ export class MissingCosmetics {
             if (message.content.toLowerCase() === "c!missing") this.sendMissingCosmetics(message);
         });
 
-        scheduleJob({ hour: 0, minute: 0, second: 0, tz: "UTC" }, () => this.sendMissingCosmeticsFromTodaysShop());
+        scheduleJob({ hour: 0, minute: 0, second: 30, tz: "UTC" }, () => this.sendMissingCosmeticsFromTodaysShop());
     }
 
     public async sendMissingCosmeticsFromTodaysShop() {
