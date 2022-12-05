@@ -45,18 +45,14 @@ export class FortniteCosmetics {
         this.client.on("interactionCreate", (i) => {
             console.log(i.type)
 
-            if (i.isCommand() && i.options?.getSubcommand(false) !== "cosmetic") return
-
-            console.time("cosmetic-search")
+            if (i.isCommand() && i.options?.getSubcommand(false) !== "cosmetic") return;
             if (i.isAutocomplete()) this.resolveSearchQuery(i);
-
             if (i.isApplicationCommand()) return this.replyEmbed(i);
-
-            console.timeEnd("cosmetic-search")
         })
     }
 
     private async resolveSearchQuery(i: AutocompleteInteraction<CacheType>): Promise<void> {
+        const t0 = performance.now();
 
         if (!this._data) return i.respond([{ name: "Loading...", value: LOADING_STRING }]);
 
@@ -68,32 +64,34 @@ export class FortniteCosmetics {
             keys: [
                 { name: "name", weight: 0.5 },
                 { name: "description", weight: 0.3 },
-                { name: "introduction.text", weight: 0.3 },
-                { name: "rarity.displayValue", weight: 0.3 },
-                { name: "type.displayValue", weight: 0.3 },
+                // { name: "introduction.text", weight: 0.3 },
+                // { name: "rarity.displayValue", weight: 0.3 },
+                // { name: "type.displayValue", weight: 0.3 },
                 { name: "set.text", weight: 0.3 },
                 { name: "id", weight: 0.3 },
             ]
         });
-        const results = fuse.search(query)
+        let results = fuse.search(query)
+        const t1 = performance.now();
 
-            //   { name: "name", weight: 1 },
-            // { name: "description", weight: 1.4 },
-            // { name: "introduction.text", weight: 1.1 },
-            // { name: "rarity.displayValue", weight: 1.5 },
-            // { name: "type.displayValue", weight: 1.1 },
-            // { name: "set.text", weight: 5 },
-            // { name: "id", weight: 0.1 },
+        //   { name: "name", weight: 1 },
+        // { name: "description", weight: 1.4 },
+        // { name: "introduction.text", weight: 1.1 },
+        // { name: "rarity.displayValue", weight: 1.5 },
+        // { name: "type.displayValue", weight: 1.1 },
+        // { name: "set.text", weight: 5 },
+        // { name: "id", weight: 0.1 },
 
-            // .map(r => ({ name: `${rarityEmojisTable[r.item.rarity.value] || ""} ${r.item.name || r.item.id || ""} (${r.item.introduction?.text}) (${r.item.type.displayValue})`, value: r.item.id }))
-            .map(r => this.formatAutoCompleteResponse(r.item))
+        // .map(r => ({ name: `${rarityEmojisTable[r.item.rarity.value] || ""} ${r.item.name || r.item.id || ""} (${r.item.introduction?.text}) (${r.item.type.displayValue})`, value: r.item.id }))
+        const formattedResults = results.map(r => this.formatAutoCompleteResponse(r.item))
             .slice(0, 25);
 
-        console.log('respoding with results', results)
-        i.channel.send(`searched for: ${query}`)
+        const t2 = performance.now();
+
+        i.channel.send(`searched for: "${query}" took ${t1 - t0} ms to search cosmetics. took ${t2 - t1} ms to format results.`)
 
         try {
-            return i.respond(results)
+            return i.respond(formattedResults)
         } catch (e) {
             console.log("there was an error responding to autocomplete cosmetic search", e)
         }
