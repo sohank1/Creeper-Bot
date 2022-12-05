@@ -225,7 +225,7 @@ export class DonaldTracker {
                 console.error(e)
                 c.send(`Error: ${e}`)
             }
-        }, 5000) //5 seconds //5 mins 300000    
+        }, 15000) //15 seconds changed from 5 seconds //5 mins 300000    
 
     }
 
