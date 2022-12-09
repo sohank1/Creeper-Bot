@@ -31,6 +31,7 @@ const LOADING_STRING = "Currently loading all cosmetics... Please wait.";
 
 export class FortniteCosmetics {
     private _data: Cosmetics;
+    private _cachedQueries: Map<string, ApplicationCommandOptionChoice[]> = new Map();
 
     constructor(private client: Client) {
         this.fetchCosmetics().then(d => this._data = d);
@@ -39,6 +40,7 @@ export class FortniteCosmetics {
             // const c = (<TextChannel>client.channels.cache.get('1045086199053820004')) || (<TextChannel>client.channels.cache.get("725143127723212830"))
             console.log("fetching cosmetics...");
             this.fetchCosmetics().then(d => this._data = d);
+            this._cachedQueries.clear();
 
         })
 
@@ -58,6 +60,10 @@ export class FortniteCosmetics {
 
         const query = <string>i.options.getFocused(true).value;
         if (query === "") return this.respondWithNewCosmetics(i);
+        if (this._cachedQueries.has(query.toLowerCase())) {
+            i.respond(this._cachedQueries.get(query.toLowerCase()));
+            return void i.channel.send(`returned for: "${query}" from the cache. there are currently ${this._cachedQueries.size} cached queries`);
+        }
 
         const fuse = new Fuse(this._data, {
             ignoreLocation: true, ignoreFieldNorm: true,
@@ -91,7 +97,8 @@ export class FortniteCosmetics {
         i.channel.send(`searched for: "${query}" took ${t1 - t0} ms to search cosmetics. took ${t2 - t1} ms to format results.`)
 
         try {
-            return i.respond(formattedResults)
+            i.respond(formattedResults);
+            return void this._cachedQueries.set(query.toLowerCase(), formattedResults);
         } catch (e) {
             console.log("there was an error responding to autocomplete cosmetic search", e)
         }
