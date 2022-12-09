@@ -65,28 +65,24 @@ export class FortniteCosmetics {
             return void i.channel.send(`returned for: "${query}" from the cache. there are currently ${this._cachedQueries.size} cached queries`);
         }
 
-        const fuse = new Fuse(this._data, {
-            ignoreLocation: true, ignoreFieldNorm: true,
-            keys: [
-                { name: "name", weight: 0.5 },
-                { name: "description", weight: 0.3 },
-                // { name: "introduction.text", weight: 0.3 },
-                // { name: "rarity.displayValue", weight: 0.3 },
-                // { name: "type.displayValue", weight: 0.3 },
-                { name: "set.text", weight: 0.3 },
-                { name: "id", weight: 0.3 },
-            ]
-        });
+        // const fuse = new Fuse(this._data, {
+        //     ignoreLocation: true, ignoreFieldNorm: true,
+        //     keys: [
+        //         { name: "name", weight: 0.5 },
+        //         { name: "description", weight: 0.3 },
+        //         // { name: "introduction.text", weight: 0.3 },
+        //         // { name: "rarity.displayValue", weight: 0.3 },
+        //         // { name: "type.displayValue", weight: 0.3 },
+        //         { name: "set.text", weight: 0.3 },
+        //         { name: "id", weight: 0.3 },
+        //     ]
+        // });
+
+        const fuse = new Fuse(this._data, { keys: ["name", "description", "set.text", "id"] });
         let results = fuse.search(query)
         const t1 = performance.now();
 
-        //   { name: "name", weight: 1 },
-        // { name: "description", weight: 1.4 },
-        // { name: "introduction.text", weight: 1.1 },
-        // { name: "rarity.displayValue", weight: 1.5 },
-        // { name: "type.displayValue", weight: 1.1 },
-        // { name: "set.text", weight: 5 },
-        // { name: "id", weight: 0.1 },
+
 
         // .map(r => ({ name: `${rarityEmojisTable[r.item.rarity.value] || ""} ${r.item.name || r.item.id || ""} (${r.item.introduction?.text}) (${r.item.type.displayValue})`, value: r.item.id }))
         const formattedResults = results.map(r => this.formatAutoCompleteResponse(r.item))
