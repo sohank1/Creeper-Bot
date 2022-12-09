@@ -78,14 +78,21 @@ export class FortniteCosmetics {
         //     ]
         // });
 
-        const fuse = new Fuse(this._data, { keys: ["name", "description", "set.text", "id"] });
-        let results = fuse.search(query)
+        // const fuse = new Fuse(this._data, { keys: ["name", "description", "set.text", "id"] });
+
+        const results = this._data.filter(
+            (c) =>
+                c.name?.toLowerCase().includes(query.toLowerCase()) || c.description?.toLowerCase().includes(query.toLowerCase()) || c.set?.text?.toLowerCase().includes(query.toLowerCase()) || c.id.toLowerCase().includes(query.toLowerCase()) || c.introduction?.text?.toLowerCase().includes(query.toLowerCase()) || c.rarity?.displayValue?.toLowerCase().includes(query.toLowerCase()) || c.type?.displayValue?.toLowerCase().includes(query.toLowerCase())
+        )
+            .slice(0, 25)
+
+        // let results = fuse.search(query)
         const t1 = performance.now();
 
 
 
         // .map(r => ({ name: `${rarityEmojisTable[r.item.rarity.value] || ""} ${r.item.name || r.item.id || ""} (${r.item.introduction?.text}) (${r.item.type.displayValue})`, value: r.item.id }))
-        const formattedResults = results.map(r => this.formatAutoCompleteResponse(r.item))
+        const formattedResults = results.map(r => this.formatAutoCompleteResponse(r))
             .slice(0, 25);
 
         const t2 = performance.now();
