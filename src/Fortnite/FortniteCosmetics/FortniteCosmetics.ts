@@ -62,7 +62,7 @@ export class FortniteCosmetics {
         if (query === "") return this.respondWithNewCosmetics(i);
         if (this._cachedQueries.has(query.toLowerCase())) {
             i.respond(this._cachedQueries.get(query.toLowerCase()));
-            return void i.channel.send(`returned for: "${query}" from the cache. there are currently ${this._cachedQueries.size} cached queries`);
+            return void i.channel.send(`returned: "${query}" from the cache. there are currently ${this._cachedQueries.size} cached queries`);
         }
 
         // const fuse = new Fuse(this._data, {
