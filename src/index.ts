@@ -31,7 +31,10 @@ const serverStartedAt = new Date().toISOString();
 
 const app = express();
 const port = process.env.PORT || 3001;
-app.get("/", (_, res) => res.json({ serverStartedAt, version }));
+app.get("/", (_, res) => {
+console.log("returning 200 from main bot")
+res.status(200).json({ serverStartedAt, version })
+});
 app.listen(port, () => {
   console.log(`Example app listening on port ${port}!`)
 
