@@ -19,3 +19,11 @@ mainProcess.on("message", (data) => {
         })
     }
 })
+
+process.on("exit", () => {
+    console.log("ON EXIT EVENT FIRED")
+})
+
+process.on("SIGTERM ", () => {
+    console.log("ON SIGTERM EVENT FIRED")
+})
