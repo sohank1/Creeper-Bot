@@ -14,7 +14,7 @@ const version = `v${require("../package.json").version}`;
 
 const app = express();
 const port = process.env.PORT || 3001;
-app.get("/", (req, res) => res.status(200).json({ msg: 'message from spawned script', postScriptSpawnedAt }));
+app.get("/", (req, res) => res.status(200).json({ msg: 'message from spawned script. old version of the app', postScriptSpawnedAt }));
 app.listen(port, () => {
     console.log(`Example app listening on port ${port}!`)
 

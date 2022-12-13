@@ -27,13 +27,14 @@ redis.connect()
 subscriber.connect();
 
 const key = "creeper_bot_prod_server";
+const shutdownEvent = "creeper_bot_prod_server_shutdown";
 const serverStartedAt = new Date().toISOString();
 
 const app = express();
 const port = process.env.PORT || 3001;
 app.get("/", (_, res) => {
-console.log("returning 200 from main bot")
-res.status(200).json({ serverStartedAt, version })
+  console.log("returning 200 from main bot")
+  res.status(200).json({ serverStartedAt, version })
 });
 app.listen(port, () => {
   console.log(`Example app listening on port ${port}!`)
@@ -73,10 +74,29 @@ app.listen(port, () => {
 
       const countChannel = (<TextChannel>client.channels.cache.get('1039551711263588372')) || (<TextChannel>client.channels.cache.get('1045085555878273136'))
       let count = 1;
-      process.env.NODE_ENV === "production" && setInterval(() => {
+      process.env.NODE_ENV === "production" && setInterval(async () => {
         if (count === 1) countChannel.send("**---------------------------------------------**")
         countChannel.send(`[\`${serverStartedAt}\`] ---- count: ${count} ---- [\`${version}\`]`)
-        count++
+        count++;
+
+        // const serverInfo = JSON.parse(await redis.get(key));
+        // const lastPing = new Date()
+        // serverInfo.instances.find((i) => i.serverStartedAt === serverStartedAt).lastPing = lastPing.toISOString();
+        // await redis.set(key, JSON.stringify(serverInfo));
+
+        // // find servers that have not pinged in 20 seconds and delete
+        // const serversToDelete = serverInfo.instances.filter((i) => i.platform === process.env.HOST_TYPE && new Date().getTime() - 20000 > new Date(i.lastPing).getTime())
+        // for (const s of serversToDelete) {
+        //   c?.send("removing old server from array as it has gone inactive: " + s.serverStartedAt)
+        //   // remove the server from the array
+        //   serverInfo.instances.splice(serverInfo.instances.indexOf(s.serverStartedAt), 1);
+        //   await redis.set(key, JSON.stringify(serverInfo));
+        //   // await redis.publish(shutdownEvent, s.serverStartedAt);
+        // }
+
+        // // find all the oldest servers but no the newest one
+        // const serversToShutdown = serverInfo.instances.filter((i) => i.platform === process.env.HOST_TYPE).sort((a, b) => new Date(a.serverStartedAt).getTime() - new Date(b.serverStartedAt).getTime()).slice(0, -1)
+
       }, 10000)
 
       // stop errors from crashing program
@@ -93,21 +113,29 @@ app.listen(port, () => {
 
 
       (async function () {
-        if (process.env.NODE_ENV !== "production") return
+        if (process.env.NODE_ENV !== "production") return;
+        const sessionInfo = { serverStartedAt, platform: process.env.HOST_TYPE }
 
-        await redis.publish(key, JSON.stringify({
-          serverStartedAt,
-          platform: process.env.HOST_TYPE
-        }));
+        // let sessionInfo = JSON.parse(await redis.get(key));
+        // if (!sessionInfo) {
+        //   sessionInfo = { instances: [{ serverStartedAt, platform: process.env.HOST_TYPE }] };
+        //   await redis.set(key, JSON.stringify(sessionInfo));
+        // }
+
+        // else {
+        //   sessionInfo.instances.push({ serverStartedAt, platform: process.env.HOST_TYPE });
+        //   await redis.set(key, JSON.stringify(sessionInfo))
+        // }
+
+        await redis.publish(key, JSON.stringify(sessionInfo));
 
         c.send(
           `Created new server: 
         \`\`\`json
-        ${JSON.stringify({ serverStartedAt, platform: process.env.HOST_TYPE }, null, 2)}
+        ${JSON.stringify(sessionInfo, null, 2)}
         \`\`\`
           `)
       })()
-
 
 
       subscriber.subscribe(key, async (m) => {
@@ -117,28 +145,29 @@ app.listen(port, () => {
         const data = JSON.parse(m)
         c.send(`new data, ${m}`)
 
-        // if the platform of the new server is not the same as new server OR the current server is newer or the same as the new one, then do not clean up current server 
-        // c.send('checking if we should clean up')
-        // c.send(`are the platforms the same? ${data.platform === process.env.HOST_TYPE}`)
-        // if (data.platform !== process.env.HOST_TYPE || new Date(serverStartedAt) >= new Date(data.serverStartedAt)) return
-        if (data.platform !== process.env.HOST_TYPE || !(new Date(data.serverStartedAt) > new Date(serverStartedAt))) return
-        await c.send('we r cleaning up')
 
-        await c.send(
-          `A new server has started that is on the same host as this, the date of the new server is more than this server. Shutting down the current one. Here's the new server's data
+        // if the platform of the new server is not the same as new server OR the current server is newer or the same as the new one, then do not clean up current server 
+        // if (data.platform !== process.env.HOST_TYPE || !(new Date(data.serverStartedAt) > new Date(serverStartedAt))) return
+
+        if (data.platform === process.env.HOST_TYPE && new Date(data.serverStartedAt) > new Date(serverStartedAt)) {
+          await c.send('we r cleaning up')
+
+          await c.send(
+            `A new server has started that is on the same host as this, the date of the new server is more than this server. Shutting down the current one. Here's the new server's data
           \`\`\`json
           ${JSON.stringify(data, null, 2)}
           \`\`\`
-
+          >
           Here's the current server's data
           \`\`\`json
           ${JSON.stringify({ serverStartedAt, platform: process.env.HOST_TYPE }, null, 2)}
           \`\`\`
           `
-        )
+          )
 
-        await c.send("spawning new script and shutting down current one")
-        process.send("SHUTDOWN_SERVER")
+          await c.send(`shutting down: \`${serverStartedAt}\` and spawning post script`)
+          process.send("SHUTDOWN_SERVER")
+        }
         // client.destroy();
         // await mongoose.connection.close();
         // await redis.quit();
