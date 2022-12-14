@@ -41,12 +41,12 @@ import { InstanceManager } from "./InstanceManager";
     mainProcess.on("message", onMainProcessMessage);
     mainProcess.on("spawn", onMainProcessMessage);
 
-    function onMainProcessMessage(data) {
+    function onMainProcessMessage() {
         console.log("setting status to online")
         instanceManager.setStatus("online");
     }
 
-    function onPostScriptMessage(data) {
+    function onPostScriptMessage() {
         console.log("setting status to offline")
         instanceManager.setStatus("offline");
     }
