@@ -41,6 +41,7 @@ import { InstanceManager } from "./InstanceManager";
 
     function onMainProcessMessage(data) {
         console.log(data);
+        console.log("setting status to online")
         instanceManager.setStatus("online");
     }
 
