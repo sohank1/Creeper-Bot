@@ -34,7 +34,7 @@ import { InstanceManager } from "./InstanceManager";
             postScript.on("spawn", onPostScriptMessage);
         }
     });
-    instanceManager.addInstance();
+    await instanceManager.addInstance();
 
 
     let mainProcess = fork("dist/index.js");
