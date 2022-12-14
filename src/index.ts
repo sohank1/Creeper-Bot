@@ -22,12 +22,12 @@ import { MissingCosmetics } from "./MissingCosmetics/MissingCosmetics";
 export const version = `v${require("../package.json").version}`;
 export const TEST_SERVER = "640262033329356822";
 
-// export const redis = createClient({ url: process.env.REDIS_URI, });
+export const redis = createClient({ url: process.env.REDIS_URI, });
 // const subscriber = redis.duplicate();
 // redis.connect()
 // subscriber.connect();
 
-// const key = "creeper_bot_prod_server";
+const key = "creeper_bot_prod_server";
 // const shutdownEvent = "creeper_bot_prod_server_shutdown";
 const serverStartedAt = new Date().toISOString();
 
@@ -99,6 +99,23 @@ app.listen(port, () => {
         // const serversToShutdown = serverInfo.instances.filter((i) => i.platform === process.env.HOST_TYPE).sort((a, b) => new Date(a.serverStartedAt).getTime() - new Date(b.serverStartedAt).getTime()).slice(0, -1)
 
       }, 10000)
+
+      let tempS: string;
+      process.env.NODE_ENV === "production" && setInterval(async () => {
+        const s = await redis.get(key);
+        const parsed = JSON.parse(s);
+        console.log(parsed);
+
+        if (!tempS || tempS === s) return;
+        tempS = s;
+        c?.send(
+          `redis data changed: 
+        \`\`\`json
+          ${JSON.stringify(parsed, null, 2)}
+        \`\`\`
+        `)
+
+      }, 5000)
 
       // stop errors from crashing program
       process.on('uncaughtException', (error) => {
