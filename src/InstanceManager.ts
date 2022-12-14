@@ -66,6 +66,7 @@ export class InstanceManager {
         if (!prodServers) prodServers = { instances: [this._instance] }
         else prodServers.instances.push(this._instance);
 
+        console.log("saving prod servers", prodServers);
         await this._redis.set(this._redisKey, JSON.stringify(prodServers));
         this.checkForNewServersInterval();
         this.pingInterval();
