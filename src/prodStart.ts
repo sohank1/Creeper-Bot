@@ -46,7 +46,7 @@ import { InstanceManager } from "./InstanceManager";
 
     function onPostScriptMessage(data) {
         console.log(data);
-        instanceManager.setStatus("online");
+        instanceManager.setStatus("offline");
     }
 
 
