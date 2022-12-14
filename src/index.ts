@@ -24,7 +24,7 @@ export const TEST_SERVER = "640262033329356822";
 
 export const redis = createClient({ url: process.env.REDIS_URI, });
 // const subscriber = redis.duplicate();
-// redis.connect()
+redis.connect()
 // subscriber.connect();
 
 const key = "creeper_bot_prod_server";
