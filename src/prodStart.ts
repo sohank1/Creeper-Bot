@@ -22,7 +22,6 @@ import { InstanceManager } from "./InstanceManager";
             mainProcess = fork("dist/index.js");
             mainProcess.on("message", onMainProcessMessage);
             mainProcess.on("spawn", onMainProcessMessage);
-
         },
         onShutdown: () => {
             if (!mainProcess) return;
@@ -39,7 +38,8 @@ import { InstanceManager } from "./InstanceManager";
 
 
     let mainProcess = fork("dist/index.js");
-    mainProcess.on("message", onMainProcessMessage)
+    mainProcess.on("message", onMainProcessMessage);
+    mainProcess.on("spawn", onMainProcessMessage);
 
     function onMainProcessMessage(data) {
         console.log(data);
