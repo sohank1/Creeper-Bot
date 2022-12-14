@@ -34,7 +34,6 @@ const serverStartedAt = new Date().toISOString();
 const app = express();
 const port = process.env.PORT || 3001;
 app.get("/", (_, res) => {
-  console.log("returning 200 from main bot")
   res.status(200).json({ serverStartedAt, version })
 });
 app.listen(port, () => {
@@ -107,8 +106,9 @@ app.listen(port, () => {
         const parsed = JSON.parse(s);
         console.log("parsed json", parsed);
 
-        if (!tempS || tempS === s) return;
+        if (tempS === s) return;
         tempS = s;
+
         c?.send(
           `redis data changed: 
         \`\`\`json

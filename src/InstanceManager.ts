@@ -114,8 +114,6 @@ export class InstanceManager {
 
     private cleanUpDeadServersInterval() {
         setInterval(async () => {
-            console.log("cleaning up dead servers");
-
             const prodServers: ProdServers = JSON.parse(await this._redis.get(this._redisKey));
             const deadServers = prodServers.instances.filter((i) => new Date().getTime() - 20000 > new Date(i.lastPing).getTime() && i.platform === process.env.HOST_TYPE);
             for (const s of deadServers) {
@@ -127,8 +125,6 @@ export class InstanceManager {
 
 
     private async _updateServerInRedis(id: string, newInstanceData: ProdServerInstance) {
-        console.log("updating server in redis");
-
         const prodServers: ProdServers = JSON.parse(await this._redis.get(this._redisKey));
         const i = prodServers.instances.findIndex(instance => instance.id === id);
         prodServers.instances[i] = newInstanceData;

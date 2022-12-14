@@ -20,7 +20,8 @@ import { InstanceManager } from "./InstanceManager";
             postScript = null;
 
             mainProcess = fork("dist/index.js");
-            mainProcess.on("message", onMainProcessMessage)
+            mainProcess.on("message", onMainProcessMessage);
+            mainProcess.on("spawn", onMainProcessMessage);
 
         },
         onShutdown: () => {
@@ -30,7 +31,8 @@ import { InstanceManager } from "./InstanceManager";
             mainProcess = null;
 
             postScript = fork("dist/postScript.js");
-            postScript.on("message", onPostScriptMessage)
+            postScript.on("message", onPostScriptMessage);
+            postScript.on("spawn", onPostScriptMessage);
         }
     });
     instanceManager.addInstance();

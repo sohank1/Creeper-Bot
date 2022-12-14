@@ -11,15 +11,10 @@ export class ShopSectionsTracker {
     }
 
     private async interval(): Promise<void> {
-        console.log("ShopSectionsTracker: Inside interval");
-
         const { data } = (await axios.get<ShopSectionsResponseObject>("https://fn-api.com/api/shop/br/sections")).data
         const doc = await ShopSectionsModel.findOne()
-        console.log("ShopSectionsTracker: Awaited doc fetch");
-
 
         if (new Date(data.updated) > doc.updatedAt) {
-            console.log("ShopSectionsTracker: There is new data. The date that the data was updated is greater than the date that we have in the db.");
             this.sendMessage(data)
             await ShopSectionsModel.updateOne({ updatedAt: new Date(data.updated) })
         }
