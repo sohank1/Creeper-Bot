@@ -24,7 +24,7 @@ export const TEST_SERVER = "640262033329356822";
 
 export const redis = createClient({ url: process.env.REDIS_URI, });
 // const subscriber = redis.duplicate();
-redis.connect()
+// redis.connect()
 // subscriber.connect();
 
 const key = "creeper_bot_prod_server";
@@ -100,11 +100,12 @@ app.listen(port, () => {
 
       }, 10000)
 
+      await redis.connect()
       let tempS: string;
       process.env.NODE_ENV === "production" && setInterval(async () => {
         const s = await redis.get(key);
         const parsed = JSON.parse(s);
-        console.log(parsed);
+        console.log("parsed json", parsed);
 
         if (!tempS || tempS === s) return;
         tempS = s;
