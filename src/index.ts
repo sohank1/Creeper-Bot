@@ -99,23 +99,11 @@ app.listen(port, () => {
 
       }, 10000)
 
-      await redis.connect()
-      let tempS: string;
+      await redis.connect();
       process.env.NODE_ENV === "production" && setInterval(async () => {
         const s = await redis.get(key);
         const parsed = JSON.parse(s);
         console.log("parsed json", parsed);
-
-        if (tempS === s) return;
-        tempS = s;
-
-        c?.send(
-          `redis data changed: 
-        \`\`\`json
-          ${JSON.stringify(parsed, null, 2)}
-        \`\`\`
-        `)
-
       }, 5000)
 
       // stop errors from crashing program

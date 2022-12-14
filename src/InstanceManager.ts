@@ -133,6 +133,8 @@ export class InstanceManager {
     private async _updateServerInRedis(id: string, newInstanceData: ProdServerInstance) {
         const prodServers: ProdServers = JSON.parse(await this._redis.get(this._redisKey));
         const i = prodServers.instances.findIndex(instance => instance.id === id);
+
+        if (i === -1) return;
         prodServers.instances[i] = newInstanceData;
 
         await this._redis.set(this._redisKey, JSON.stringify(prodServers))
