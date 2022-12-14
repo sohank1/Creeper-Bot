@@ -85,7 +85,7 @@ export class InstanceManager {
 
             const prodServers: ProdServers = JSON.parse(await this._redis.get(this._redisKey));
             const newestServer = prodServers.instances.find(i => new Date(i.createdAt) > new Date(this._instance.createdAt) && i.platform === this._instance.platform);
-            if (newestServer.status !== "online") this._redis.publish(this._keepKey, newestServer.id);
+            if (newestServer?.status !== "online") this._redis.publish(this._keepKey, newestServer.id);
 
             const olderServers = prodServers.instances.filter(i => i.id !== newestServer.id && i.platform === this._instance.platform);
             for (const s of olderServers) this._redis.publish(this._shutdownKey, s.id);
