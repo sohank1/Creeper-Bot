@@ -145,6 +145,7 @@ export class InstanceManager {
         if (i === -1) return;
 
         prodServers.instances[i] = newInstanceData;
+        console.log("updating prod servers in redis", prodServers);
         await this._redis.set(this._redisKey, JSON.stringify(prodServers))
     }
 
