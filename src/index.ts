@@ -17,17 +17,18 @@ import { createClient } from "redis";
 import express from "express";
 import mongoose from "mongoose";
 import { MissingCosmetics } from "./MissingCosmetics/MissingCosmetics";
+// import { ProcessCodes } from "./InstanceManager";
 
 export const version = `v${require("../package.json").version}`;
 export const TEST_SERVER = "640262033329356822";
 
-export const redis = createClient({ url: process.env.REDIS_URI, });
-const subscriber = redis.duplicate();
-redis.connect()
-subscriber.connect();
+// export const redis = createClient({ url: process.env.REDIS_URI, });
+// const subscriber = redis.duplicate();
+// redis.connect()
+// subscriber.connect();
 
-const key = "creeper_bot_prod_server";
-const shutdownEvent = "creeper_bot_prod_server_shutdown";
+// const key = "creeper_bot_prod_server";
+// const shutdownEvent = "creeper_bot_prod_server_shutdown";
 const serverStartedAt = new Date().toISOString();
 
 const app = express();
@@ -112,67 +113,67 @@ app.listen(port, () => {
       });
 
 
-      (async function () {
-        if (process.env.NODE_ENV !== "production") return;
-        const sessionInfo = { serverStartedAt, platform: process.env.HOST_TYPE }
+      // (async function () {
+      //   if (process.env.NODE_ENV !== "production") return;
+      //   const sessionInfo = { serverStartedAt, platform: process.env.HOST_TYPE }
 
-        // let sessionInfo = JSON.parse(await redis.get(key));
-        // if (!sessionInfo) {
-        //   sessionInfo = { instances: [{ serverStartedAt, platform: process.env.HOST_TYPE }] };
-        //   await redis.set(key, JSON.stringify(sessionInfo));
-        // }
+      //   // let sessionInfo = JSON.parse(await redis.get(key));
+      //   // if (!sessionInfo) {
+      //   //   sessionInfo = { instances: [{ serverStartedAt, platform: process.env.HOST_TYPE }] };
+      //   //   await redis.set(key, JSON.stringify(sessionInfo));
+      //   // }
 
-        // else {
-        //   sessionInfo.instances.push({ serverStartedAt, platform: process.env.HOST_TYPE });
-        //   await redis.set(key, JSON.stringify(sessionInfo))
-        // }
+      //   // else {
+      //   //   sessionInfo.instances.push({ serverStartedAt, platform: process.env.HOST_TYPE });
+      //   //   await redis.set(key, JSON.stringify(sessionInfo))
+      //   // }
 
-        await redis.publish(key, JSON.stringify(sessionInfo));
+      //   await redis.publish(key, JSON.stringify(sessionInfo));
 
-        c.send(
-          `Created new server: 
-        \`\`\`json
-        ${JSON.stringify(sessionInfo, null, 2)}
-        \`\`\`
-          `)
-      })()
-
-
-      subscriber.subscribe(key, async (m) => {
-        if (process.env.NODE_ENV !== "production") return
-
-        console.log('we got new data from redis subscription')
-        const data = JSON.parse(m)
-        c.send(`new data, ${m}`)
+      //   c.send(
+      //     `Created new server: 
+      //   \`\`\`json
+      //   ${JSON.stringify(sessionInfo, null, 2)}
+      //   \`\`\`
+      //     `)
+      // })()
 
 
-        // if the platform of the new server is not the same as new server OR the current server is newer or the same as the new one, then do not clean up current server 
-        // if (data.platform !== process.env.HOST_TYPE || !(new Date(data.serverStartedAt) > new Date(serverStartedAt))) return
+      // subscriber.subscribe(key, async (m) => {
+      //   if (process.env.NODE_ENV !== "production") return
 
-        if (data.platform === process.env.HOST_TYPE && new Date(data.serverStartedAt) > new Date(serverStartedAt)) {
-          await c.send('we r cleaning up')
+      //   console.log('we got new data from redis subscription')
+      //   const data = JSON.parse(m)
+      //   c.send(`new data, ${m}`)
 
-          await c.send(
-            `A new server has started that is on the same host as this, the date of the new server is more than this server. Shutting down the current one. Here's the new server's data
-          \`\`\`json
-          ${JSON.stringify(data, null, 2)}
-          \`\`\`
-          >
-          Here's the current server's data
-          \`\`\`json
-          ${JSON.stringify({ serverStartedAt, platform: process.env.HOST_TYPE }, null, 2)}
-          \`\`\`
-          `
-          )
 
-          await c.send(`shutting down: \`${serverStartedAt}\` and spawning post script`)
-          process.send("SHUTDOWN_SERVER")
-        }
-        // client.destroy();
-        // await mongoose.connection.close();
-        // await redis.quit();
-        // await subscriber.quit();
-      });
+      //   // if the platform of the new server is not the same as new server OR the current server is newer or the same as the new one, then do not clean up current server 
+      //   // if (data.platform !== process.env.HOST_TYPE || !(new Date(data.serverStartedAt) > new Date(serverStartedAt))) return
+
+      //   if (data.platform === process.env.HOST_TYPE && new Date(data.serverStartedAt) > new Date(serverStartedAt)) {
+      //     await c.send('we r cleaning up')
+
+      //     await c.send(
+      //       `A new server has started that is on the same host as this, the date of the new server is more than this server. Shutting down the current one. Here's the new server's data
+      //     \`\`\`json
+      //     ${JSON.stringify(data, null, 2)}
+      //     \`\`\`
+      //     >
+      //     Here's the current server's data
+      //     \`\`\`json
+      //     ${JSON.stringify({ serverStartedAt, platform: process.env.HOST_TYPE }, null, 2)}
+      //     \`\`\`
+      //     `
+      //     )
+
+      //     await c.send(`shutting down: \`${serverStartedAt}\` and spawning post script`)
+      //     process.send(ProcessCodes.Shutdown)
+      //   }
+      //   // client.destroy();
+      //   // await mongoose.connection.close();
+      //   // await redis.quit();
+      //   // await subscriber.quit();
+      // });
 
 
       client.application.commands.fetch().then(console.log);

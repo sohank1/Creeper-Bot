@@ -1,29 +1,67 @@
-import { fork } from "child_process";
+import { ChildProcess, fork } from "child_process";
+import { createClient } from "redis";
+import { InstanceManager } from "./InstanceManager";
 
-if (process.env.NODE_ENV !== "production") throw new Error("Only start the app in production");
+(async () => {
+    if (process.env.NODE_ENV !== "production") throw new Error("Only start the app in production");
+    const redis = createClient({ url: process.env.REDIS_URI });
 
-const mainProcess = fork("dist/index.js");
+    const subscriber = redis.duplicate();
+    await redis.connect()
+    await subscriber.connect();
+    const key = "creeper_bot_prod_server";
 
-mainProcess.on("message", (data) => {
-    console.log(data)
+    let postScript: ChildProcess;
+    const instanceManager = new InstanceManager(redis, subscriber, process.env.HOST_TYPE, key, {
+        onKeep: () => {
+            if (!postScript) return;
+            console.log("Killing postScript");
+            postScript.kill();
+            postScript = null;
 
-    if (data === "SHUTDOWN_SERVER") {
-        mainProcess.kill();
+            mainProcess = fork("dist/index.js");
+            mainProcess.on("message", onMainProcessMessage)
 
-        const newProcess = fork("dist/postScript.js");
+        },
+        onShutdown: () => {
+            if (!mainProcess) return;
+            console.log("Killing mainProcess");
+            mainProcess.kill();
+            mainProcess = null;
 
-        newProcess.on("message", (data) => {
-            console.log(data);
-            // if (data === "SHUTDOWN_SERVER") newProcess.kill();
-            // process.exit()
-        })
+            postScript = fork("dist/postScript.js");
+            postScript.on("message", onPostScriptMessage)
+        }
+    });
+    instanceManager.addInstance();
+
+
+    let mainProcess = fork("dist/index.js");
+    mainProcess.on("message", onMainProcessMessage)
+
+    function onMainProcessMessage(data) {
+        console.log(data);
+        instanceManager.setStatus("online");
     }
-})
 
-process.on("exit", () => {
-    console.log("ON EXIT EVENT FIRED")
-})
+    function onPostScriptMessage(data) {
+        console.log(data);
+        instanceManager.setStatus("online");
+    }
 
-process.on("SIGTERM ", () => {
-    console.log("ON SIGTERM EVENT FIRED")
-})
+
+
+    process.on("exit", () => {
+        console.log("ON EXIT EVENT FIRED")
+    })
+
+    process.on("SIGTERM ", () => {
+        console.log("ON SIGTERM EVENT FIRED")
+    })
+
+    process.on('uncaughtException', (error) => {
+        console.error("here is the error stack", error.stack);
+        console.log("uncaughtException happened", error);
+    });
+
+})();
