@@ -86,7 +86,7 @@ export class InstanceManager {
             const prodServers: ProdServers = JSON.parse(await this._redis.get(this._redisKey));
             const newestServer = prodServers.instances.find(i => new Date(i.createdAt) >= new Date(this._instance.createdAt) && i.platform === this._instance.platform);
             if (newestServer?.status !== "online") {
-                console.log(`newest server status is online. publishing keep message key: ${this._keepKey} id: ${newestServer?.id} `)
+                console.log(`newest server status is online. publishing keep message key: ${this._keepKey} server: ${newestServer} `)
                 newestServer.id && this._redis.publish(this._keepKey, newestServer.id);
             }
 
