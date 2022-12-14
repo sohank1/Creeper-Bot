@@ -21,6 +21,11 @@ interface ProdServerInstance {
      * The last time the server pinged, in string form
      */
     lastPing: string;
+
+    /**
+     * The version of the application that the server is running
+     */
+    version: string;
 }
 
 export interface ProdServers {
@@ -43,12 +48,14 @@ export class InstanceManager {
         platform: null,
         createdAt: null,
         lastPing: null,
+        version: null
     }
     private _keepKey: string;
     private _shutdownKey: string;
 
-    constructor(private _redis: RedisClient, private _subscriber: RedisClient, platform: string, private _redisKey: string, private events: { onKeep: () => void; onShutdown: () => void }) {
+    constructor(private _redis: RedisClient, private _subscriber: RedisClient, platform: string, version: string, private _redisKey: string, private events: { onKeep: () => void; onShutdown: () => void }) {
         this._instance.platform = platform;
+        this._instance.version = version;
         this._keepKey = `${_redisKey}-keep`;
         this._shutdownKey = `${_redisKey}-shutdown`;
 

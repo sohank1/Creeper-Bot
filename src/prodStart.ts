@@ -2,6 +2,8 @@ import { ChildProcess, fork } from "child_process";
 import { createClient } from "redis";
 import { InstanceManager } from "./InstanceManager";
 
+export const version = `v${require("../package.json").version}`;
+
 (async () => {
     if (process.env.NODE_ENV !== "production") throw new Error("Only start the app in production");
     const redis = createClient({ url: process.env.REDIS_URI });
@@ -12,7 +14,7 @@ import { InstanceManager } from "./InstanceManager";
     const key = "creeper_bot_prod_server";
 
     let postScript: ChildProcess;
-    const instanceManager = new InstanceManager(redis, subscriber, process.env.HOST_TYPE, key, {
+    const instanceManager = new InstanceManager(redis, subscriber, process.env.HOST_TYPE, version, key, {
         onKeep: () => {
             if (!postScript) return;
             console.log("Killing postScript");
