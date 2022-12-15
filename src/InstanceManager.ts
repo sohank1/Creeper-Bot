@@ -75,6 +75,8 @@ export class InstanceManager {
 
         console.log("saving prod servers", prodServers);
         await this._redis.set(this._redisKey, JSON.stringify(prodServers));
+        console.log("after saving the prod servers here is the data fetched again", JSON.parse(await this._redis.get(this._redisKey)));
+
         this.pingInterval();
         this.checkForNewServersInterval();
         this.cleanUpDeadServersInterval();
