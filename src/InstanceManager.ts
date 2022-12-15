@@ -75,8 +75,8 @@ export class InstanceManager {
 
         console.log("saving prod servers", prodServers);
         await this._redis.set(this._redisKey, JSON.stringify(prodServers));
-        this.checkForNewServersInterval();
         this.pingInterval();
+        this.checkForNewServersInterval();
         this.cleanUpDeadServersInterval();
     }
 
@@ -131,6 +131,8 @@ export class InstanceManager {
             const deadServers = prodServers.instances.filter((i) => new Date().getTime() - 20000 > new Date(i.lastPing).getTime() && i.platform === process.env.HOST_TYPE);
             for (const s of deadServers) {
                 prodServers.instances.splice(prodServers.instances.findIndex(i => i.createdAt === s.id, 1));
+
+                console.log(`removing dead server ${s.id} from prod servers`, prodServers);
                 await this._redis.set(this._redisKey, JSON.stringify(prodServers));
             }
         }, 30000)
@@ -139,13 +141,14 @@ export class InstanceManager {
 
     private async _updateServerInRedis(id: string, newInstanceData: ProdServerInstance) {
         const prodServers: ProdServers = JSON.parse(await this._redis.get(this._redisKey));
+        console.log("fetched prod servers in _updateServerInRedis()", prodServers);
         if (!prodServers) return;
 
         const i = prodServers.instances.findIndex(instance => instance.id === id);
+        console.log(`index of instance with id ${id} is ${i} in the prod servers array`)
         if (i === -1) return;
 
         prodServers.instances[i] = newInstanceData;
-        console.log("updating prod servers in redis", prodServers);
         await this._redis.set(this._redisKey, JSON.stringify(prodServers))
     }
 
