@@ -68,6 +68,7 @@ export class InstanceManager {
     public async addInstance() {
         console.log("adding instance")
         this._instance.createdAt = new Date().toISOString();
+        this._instance.lastPing = new Date().toISOString();
 
         let prodServers: ProdServers = JSON.parse(await this._redis.get(this._redisKey));
         if (!prodServers) prodServers = { instances: [this._instance] }
