@@ -79,10 +79,9 @@ export class FortniteCosmetics {
         // });
 
         // const fuse = new Fuse(this._data, { keys: ["name", "description", "set.text", "id"] });
-
+        let count = 0;
         const results = this._data.filter(
-            (c) =>
-                c.name?.toLowerCase().includes(query.toLowerCase()) || c.description?.toLowerCase().includes(query.toLowerCase()) || c.set?.text?.toLowerCase().includes(query.toLowerCase()) || c.id.toLowerCase().includes(query.toLowerCase()) || c.introduction?.text?.toLowerCase().includes(query.toLowerCase()) || c.rarity?.displayValue?.toLowerCase().includes(query.toLowerCase()) || c.type?.displayValue?.toLowerCase().includes(query.toLowerCase())
+            (c) => count++ <= 25 && c.name?.toLowerCase().includes(query.toLowerCase()) || c.description?.toLowerCase().includes(query.toLowerCase()) || c.set?.text?.toLowerCase().includes(query.toLowerCase()) || c.id.toLowerCase().includes(query.toLowerCase()) || c.introduction?.text?.toLowerCase().includes(query.toLowerCase()) || c.rarity?.displayValue?.toLowerCase().includes(query.toLowerCase()) || c.type?.displayValue?.toLowerCase().includes(query.toLowerCase())
         )
             .slice(0, 25)
 
@@ -93,11 +92,11 @@ export class FortniteCosmetics {
 
         // .map(r => ({ name: `${rarityEmojisTable[r.item.rarity.value] || ""} ${r.item.name || r.item.id || ""} (${r.item.introduction?.text}) (${r.item.type.displayValue})`, value: r.item.id }))
         const formattedResults = results.map(r => this.formatAutoCompleteResponse(r))
-            .slice(0, 25);
+        // .slice(0, 25);
 
         const t2 = performance.now();
 
-        i.channel.send(`searched for: "${query}" took ${t1 - t0} ms to search cosmetics. took ${t2 - t1} ms to format results.`)
+        i.channel.send(`searched for: "${query}" took ${t1 - t0} ms to search cosmetics. took ${t2 - t1} ms to format ${results.length} results.`)
 
         try {
             i.respond(formattedResults);
@@ -111,8 +110,10 @@ export class FortniteCosmetics {
         // const newItems = [...this._data].sort((a, b) => {
         //     return (new Date(a.added) > new Date(b.added) ? -1 : 1) || (a.type.value === "outfit" && b.type.value !== "outfit" ? -1 : 1)
         // })
+        let count = 0;
         const newItems = [...this._data].sort((a, b) => {
             // let s = 0;
+            if (count++ > 25) return;
             if (new Date(a.added) > new Date(b.added)) return -1
             if (new Date(a.added) < new Date(b.added)) return 1
             // if (a.type.value === "outfit" && b.type.value !== "outfit") return -1
@@ -124,7 +125,7 @@ export class FortniteCosmetics {
             // return s
         })
             .map(c => this.formatAutoCompleteResponse(c))
-            .slice(0, 25)
+        // .slice(0, 25)
         // console.log(newItems)
         return i.respond(newItems)
     }
