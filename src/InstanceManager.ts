@@ -140,8 +140,10 @@ export class InstanceManager {
             const prodServers: ProdServers = JSON.parse(await this._redis.get(this._redisKey));
             const deadServers = prodServers.instances.filter((i) => new Date().getTime() - 20000 > new Date(i.lastPing).getTime() && i.platform === process.env.HOST_TYPE);
             for (const s of deadServers) {
-                prodServers.instances.splice(prodServers.instances.findIndex(i => i.createdAt === s.id, 1));
+                const index = prodServers.instances.findIndex(i => i.id === s.id, 1);
+                if (index === -1) return;
 
+                prodServers.instances.splice(index);
                 console.log(`removing dead server ${s.id} from prod servers`, prodServers);
                 await this._redis.set(this._redisKey, JSON.stringify(prodServers));
             }
