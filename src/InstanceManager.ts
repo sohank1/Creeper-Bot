@@ -88,12 +88,12 @@ export class InstanceManager {
 
         this._instance.status = s;
         this._updateServerInRedis(this._instance.id, this._instance);
-        console.log("successfully set status", JSON.parse(await this._redis.get(this._redisKey)));
+        // console.log("successfully set status", JSON.parse(await this._redis.get(this._redisKey)));
     }
 
     private checkForNewServersInterval() {
         setInterval(async () => {
-            console.log("checking for new servers", JSON.parse(await this._redis.get(this._redisKey)));
+            // console.log("checking for new servers", JSON.parse(await this._redis.get(this._redisKey)));
 
             const prodServers: ProdServers = JSON.parse(await this._redis.get(this._redisKey));
             const newestServer = prodServers.instances.find(i => new Date(i.createdAt) >= new Date(this._instance.createdAt) && i.platform === this._instance.platform);
@@ -128,7 +128,7 @@ export class InstanceManager {
 
     private pingInterval() {
         setInterval(async () => {
-            console.log("pinging");
+            // console.log("pinging");
 
             this._instance.lastPing = new Date().toISOString();
             await this._updateServerInRedis(this._instance.id, this._instance);
@@ -158,7 +158,7 @@ export class InstanceManager {
 
     private async _updateServerInRedis(id: string, newInstanceData: ProdServerInstance) {
         const prodServers: ProdServers = JSON.parse(await this._redis.get(this._redisKey));
-        console.log("fetched prod servers in _updateServerInRedis()", prodServers);
+        // console.log("fetched prod servers in _updateServerInRedis()", prodServers);
         if (!prodServers) return;
 
         const i = prodServers.instances.findIndex(instance => instance.id === id);
@@ -167,7 +167,7 @@ export class InstanceManager {
 
         prodServers.instances[i] = newInstanceData;
         await this._redis.set(this._redisKey, JSON.stringify(prodServers));
-        console.log("updated prod servers in _updateServerInRedis()", prodServers);
+        // console.log("updated prod servers in _updateServerInRedis()", prodServers);
         console.log("after updating prod servers in _updateServerInRedis() here is the data fetched again", JSON.parse(await this._redis.get(this._redisKey)));
 
     }

@@ -47,12 +47,12 @@ export const version = `v${require("../package.json").version}`;
     mainProcess.on("spawn", onMainProcessMessage);
 
     function onMainProcessMessage() {
-        console.log("setting status to online")
+        // console.log("setting status to online")
         instanceManager.setStatus("online");
     }
 
     function onPostScriptMessage() {
-        console.log("setting status to offline")
+        // console.log("setting status to offline")
         instanceManager.setStatus("offline");
     }
 
