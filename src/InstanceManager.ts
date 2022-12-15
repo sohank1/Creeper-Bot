@@ -42,7 +42,7 @@ type RedisClient = typeof createClient extends () => infer ResultType
     : never;
 
 export class InstanceManager {
-    private _instance: ProdServerInstance = {
+    public _instance: ProdServerInstance = {
         id: v4(),
         status: null,
         platform: null,

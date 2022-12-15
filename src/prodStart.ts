@@ -13,7 +13,9 @@ export const version = `v${require("../package.json").version}`;
     await subscriber.connect();
     const key = "creeper_bot_prod_server";
 
+    let mainProcess: ChildProcess;
     let postScript: ChildProcess;
+
     const instanceManager = new InstanceManager(redis, subscriber, process.env.HOST_TYPE, version, key, {
         onKeep: () => {
             if (!postScript) return;
@@ -26,6 +28,7 @@ export const version = `v${require("../package.json").version}`;
             mainProcess.on("spawn", onMainProcessMessage);
         },
         onShutdown: () => {
+            console.log(`THE MAIN PROCESS IS BEING KILLED!! ${instanceManager._instance} (${mainProcess.pid})`)
             if (!mainProcess) return;
             console.log("Killing mainProcess");
             mainProcess.kill();
@@ -39,7 +42,7 @@ export const version = `v${require("../package.json").version}`;
     await instanceManager.addInstance();
 
 
-    let mainProcess = fork("dist/index.js");
+    mainProcess = fork("dist/index.js");
     mainProcess.on("message", onMainProcessMessage);
     mainProcess.on("spawn", onMainProcessMessage);
 
