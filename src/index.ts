@@ -99,12 +99,12 @@ app.listen(port, () => {
 
       }, 10000)
 
-      await redis.connect();
-      process.env.NODE_ENV === "production" && setInterval(async () => {
-        const s = await redis.get(key);
-        const parsed = JSON.parse(s);
-        console.log("parsed json", parsed);
-      }, 5000)
+      // await redis.connect();
+      // process.env.NODE_ENV === "production" && setInterval(async () => {
+      //   const s = await redis.get(key);
+      //   const parsed = JSON.parse(s);
+      //   console.log("parsed json", parsed);
+      // }, 5000)
 
       // stop errors from crashing program
       process.on('uncaughtException', (error) => {
