@@ -91,7 +91,7 @@ export class InstanceManager {
 
     private checkForNewServersInterval() {
         setInterval(async () => {
-            console.log("checking for new servers")
+            console.log("checking for new servers", JSON.parse(await this._redis.get(this._redisKey)));
 
             const prodServers: ProdServers = JSON.parse(await this._redis.get(this._redisKey));
             const newestServer = prodServers.instances.find(i => new Date(i.createdAt) >= new Date(this._instance.createdAt) && i.platform === this._instance.platform);
@@ -124,6 +124,8 @@ export class InstanceManager {
 
             this._instance.lastPing = new Date().toISOString();
             await this._updateServerInRedis(this._instance.id, this._instance);
+
+            console.log("successfully pinged", JSON.parse(await this._redis.get(this._redisKey)));
         }, 10000)
     }
 
