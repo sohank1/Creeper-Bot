@@ -117,11 +117,13 @@ export class InstanceManager {
     }
 
     private _handleKeepServer(newestServerId: string) {
-        if (newestServerId === this._instance.id && this._instance.status === "online") this.events.onKeep();
+        console.log(`got a keep ${newestServerId}`)
+        if (newestServerId === this._instance.id && this._instance.status === "offline") this.events.onKeep(); // only keep if the server is offline and in post script mode
     }
 
     private _handleShutdownServer(newestServerId: string) {
-        if (newestServerId === this._instance.id && this._instance.status === "offline") this.events.onShutdown();
+        console.log(`got a message to shutdown ${newestServerId}`)
+        if (newestServerId === this._instance.id && this._instance.status === "online") this.events.onShutdown(); // only shutdown if the server is already online
     }
 
     private pingInterval() {
