@@ -108,7 +108,11 @@ export class InstanceManager {
             }
 
             const olderServers = prodServers.instances.filter(i => i.id !== newestServer.id && i.platform === this._instance.platform);
-            for (const s of olderServers) s?.id && this._redis.publish(this._shutdownKey, s.id);
+            console.log("older servers", olderServers);
+            for (const s of olderServers) if (s?.id) {
+                console.log(`shutting down old server: ${s}`)
+                this._redis.publish(this._shutdownKey, s.id);
+            }
         }, 7000)
     }
 
