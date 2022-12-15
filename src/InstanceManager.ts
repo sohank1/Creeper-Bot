@@ -103,7 +103,7 @@ export class InstanceManager {
 
 
             if (newestServer?.status !== "online") {
-                console.log(`newest server status is online. publishing keep message key: ${this._keepKey} server: ${newestServer} `)
+                console.log(`newest server status is not online. publishing keep message key: ${this._keepKey} server: ${newestServer} `)
                 newestServer.id && this._redis.publish(this._keepKey, newestServer.id);
             }
 

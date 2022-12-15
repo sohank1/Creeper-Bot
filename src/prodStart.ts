@@ -24,7 +24,7 @@ export const version = `v${require("../package.json").version}`;
             postScript = null;
 
             mainProcess = fork("dist/index.js");
-            mainProcess.on("message", onMainProcessMessage);
+            // mainProcess.on("message", onMainProcessMessage);
             mainProcess.on("spawn", onMainProcessMessage);
         },
         onShutdown: () => {
@@ -35,7 +35,7 @@ export const version = `v${require("../package.json").version}`;
             mainProcess = null;
 
             postScript = fork("dist/postScript.js");
-            postScript.on("message", onPostScriptMessage);
+            // postScript.on("message", onPostScriptMessage);
             postScript.on("spawn", onPostScriptMessage);
         }
     });
