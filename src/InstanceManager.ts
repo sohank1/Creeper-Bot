@@ -87,6 +87,7 @@ export class InstanceManager {
 
         this._instance.status = s;
         this._updateServerInRedis(this._instance.id, this._instance);
+        console.log("successfully set status", JSON.parse(await this._redis.get(this._redisKey)));
     }
 
     private checkForNewServersInterval() {
@@ -155,6 +156,7 @@ export class InstanceManager {
         prodServers.instances[i] = newInstanceData;
         await this._redis.set(this._redisKey, JSON.stringify(prodServers));
         console.log("updated prod servers in _updateServerInRedis()", prodServers);
+        console.log("after updating prod servers in _updateServerInRedis() here is the data fetched again", JSON.parse(await this._redis.get(this._redisKey)));
 
     }
 
