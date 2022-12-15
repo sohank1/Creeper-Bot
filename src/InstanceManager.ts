@@ -147,7 +147,7 @@ export class InstanceManager {
                 if (index === -1) return;
 
                 console.log(`before removing dead server ${s.id} from prod servers`, prodServers);
-                prodServers.instances.splice(index);
+                prodServers.instances.splice(index, 1);
                 console.log(`after removing dead server ${s.id} from prod servers`, prodServers);
 
                 await this._redis.set(this._redisKey, JSON.stringify(prodServers));
