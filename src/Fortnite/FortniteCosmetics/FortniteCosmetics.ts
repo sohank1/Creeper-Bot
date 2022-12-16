@@ -79,9 +79,11 @@ export class FortniteCosmetics {
         // });
 
         // const fuse = new Fuse(this._data, { keys: ["name", "description", "set.text", "id"] });
-        let count = 0;
+        // let count = 0;
         const results = this._data.filter(
-            (c) => count++ <= 25 && c.name?.toLowerCase().includes(query.toLowerCase()) || c.description?.toLowerCase().includes(query.toLowerCase()) || c.set?.text?.toLowerCase().includes(query.toLowerCase()) || c.id.toLowerCase().includes(query.toLowerCase()) || c.introduction?.text?.toLowerCase().includes(query.toLowerCase()) || c.rarity?.displayValue?.toLowerCase().includes(query.toLowerCase()) || c.type?.displayValue?.toLowerCase().includes(query.toLowerCase())
+            (c) =>
+                // count++ <= 25 &&
+                c.name?.toLowerCase().includes(query.toLowerCase()) || c.description?.toLowerCase().includes(query.toLowerCase()) || c.set?.text?.toLowerCase().includes(query.toLowerCase()) || c.id.toLowerCase().includes(query.toLowerCase()) || c.introduction?.text?.toLowerCase().includes(query.toLowerCase()) || c.rarity?.displayValue?.toLowerCase().includes(query.toLowerCase()) || c.type?.displayValue?.toLowerCase().includes(query.toLowerCase())
         )
             .slice(0, 25)
 
@@ -107,25 +109,17 @@ export class FortniteCosmetics {
     }
 
     public respondWithNewCosmetics(i: AutocompleteInteraction<CacheType>): void | Promise<void> {
-        // const newItems = [...this._data].sort((a, b) => {
-        //     return (new Date(a.added) > new Date(b.added) ? -1 : 1) || (a.type.value === "outfit" && b.type.value !== "outfit" ? -1 : 1)
-        // })
-        let count = 0;
+        // let count = 0;
         const newItems = [...this._data].sort((a, b) => {
-            // let s = 0;
-            if (count++ > 25) return;
+
+            // if (count++ > 25) return;
             if (new Date(a.added) > new Date(b.added)) return -1
             if (new Date(a.added) < new Date(b.added)) return 1
-            // if (a.type.value === "outfit" && b.type.value !== "outfit") return -1
-            // if (a.type.value === "backpack" && b.type.value !== "backpack") return -2
-            return sortingPriorities[a.type.value] - sortingPriorities[b.type.value];
 
-            // if (!priorities[a.type.value] || !priorities[b.type.value]) console.log(a.type.value, b.type.value)
-            // console.log(s)
-            // return s
+            return sortingPriorities[a.type.value] - sortingPriorities[b.type.value];
         })
             .map(c => this.formatAutoCompleteResponse(c))
-        // .slice(0, 25)
+            .slice(0, 25)
         // console.log(newItems)
         return i.respond(newItems)
     }
