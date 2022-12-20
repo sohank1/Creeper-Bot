@@ -24,8 +24,10 @@ export const version = `v${require("../package.json").version}`;
             postScript = null;
 
             mainProcess = fork("dist/index.js");
+            instanceManager.setStatus("online");
+
             // mainProcess.on("message", onMainProcessMessage);
-            mainProcess.on("spawn", onMainProcessMessage);
+            // mainProcess.on("spawn", onMainProcessMessage);
         },
         onShutdown: () => {
             console.log(`THE MAIN PROCESS IS BEING KILLED!! ${instanceManager._instance} (${mainProcess.pid})`)
@@ -35,26 +37,28 @@ export const version = `v${require("../package.json").version}`;
             mainProcess = null;
 
             postScript = fork("dist/postScript.js");
+            instanceManager.setStatus("offline");
+
             // postScript.on("message", onPostScriptMessage);
-            postScript.on("spawn", onPostScriptMessage);
+            // postScript.on("spawn", onPostScriptMessage);
         }
     });
     await instanceManager.addInstance();
 
 
     mainProcess = fork("dist/index.js");
-    mainProcess.on("message", onMainProcessMessage);
-    mainProcess.on("spawn", onMainProcessMessage);
+    // mainProcess.on("message", onMainProcessMessage);
+    // mainProcess.on("spawn", onMainProcessMessage);
 
-    function onMainProcessMessage() {
-        // console.log("setting status to online")
-        instanceManager.setStatus("online");
-    }
+    // function onMainProcessMessage() {
+    //     // console.log("setting status to online")
+    //     instanceManager.setStatus("online");
+    // }
 
-    function onPostScriptMessage() {
-        // console.log("setting status to offline")
-        instanceManager.setStatus("offline");
-    }
+    // function onPostScriptMessage() {
+    //     // console.log("setting status to offline")
+    //     instanceManager.setStatus("offline");
+    // }
 
 
 
