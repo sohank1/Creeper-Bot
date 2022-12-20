@@ -109,14 +109,21 @@ export class FortniteCosmetics {
     }
 
     public respondWithNewCosmetics(i: AutocompleteInteraction<CacheType>): void | Promise<void> {
-        // let count = 0;
         const newItems = [...this._data].sort((a, b) => {
+            // if (new Date(a.added) > new Date(b.added)) return -1
+            // if (new Date(a.added) < new Date(b.added)) return 1
 
-            // if (count++ > 25) return;
+            // return sortingPriorities[a.type.value] - sortingPriorities[b.type.value];
+
+            let s = 0;
             if (new Date(a.added) > new Date(b.added)) return -1
             if (new Date(a.added) < new Date(b.added)) return 1
-
+            // if (a.type.value === "outfit" && b.type.value !== "outfit") return -1
+            // if (a.type.value === "backpack" && b.type.value !== "backpack") return -2
             return sortingPriorities[a.type.value] - sortingPriorities[b.type.value];
+            if (!sortingPriorities[a.type.value] || !sortingPriorities[b.type.value]) console.log(a.type.value, b.type.value)
+            console.log(s)
+            return s
         })
             .map(c => this.formatAutoCompleteResponse(c))
             .slice(0, 25)
