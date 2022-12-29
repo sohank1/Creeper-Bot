@@ -43,7 +43,7 @@ export class FortniteStats {
                 .addField("Win Rate", String(r.data.data.stats.all.overall.winRate + "%") || "No data")
                 .addField("Kills", String(r.data.data.stats.all.overall.kills) || "No data")
                 .addField("Matches", String(r.data.data.stats.all.overall.matches) || "No data")
-                .addField("Days Played", String((r.data.data.stats.all.overall.minutesPlayed / 60 / 24)) || "No data")
+                .addField("Days Played", String((r.data.data.stats.all.overall.minutesPlayed / 1440)) || "No data")
                 .addField("Last Update", new Date(r.data.data.stats.all.overall.lastModified).toLocaleString("en-US", { timeZone: "America/New_York" }) || "No data")
                 .setColor("#2186DB")
                 .setTimestamp();
