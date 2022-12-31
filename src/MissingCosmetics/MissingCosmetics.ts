@@ -25,20 +25,23 @@ export class MissingCosmetics {
         })
 
         let d = "";
+        let itemsMissing = 0;
         for (const i of allItems) {
             if (i.shopHistory) {
                 const date = new Date(i.shopHistory[i.shopHistory.length - 2]);
 
                 const differenceInDays = (Date.now() - date.getTime()) / (1000 * 3600 * 24);
-                if (differenceInDays >= 300)
+                if (differenceInDays >= 300) {
                     d += `[${i.name} (${i.type.displayValue})](https://fnbr.co/${i.type.value.toLowerCase().replaceAll(" ", "-")}/${i.name.toLowerCase().replaceAll(" & ", "-").replaceAll(" ", "-")}): ${Math.round(differenceInDays)} days ago (${date.toLocaleDateString("en-US", { timeZone: "America/New_York" })})\n`
+                    itemsMissing++
+                }
             }
         }
 
         if (!d) return;
 
         const e = new MessageEmbed()
-            .setTitle(`Returning Cosmetics for ${new Date(shop.date).toLocaleDateString("en-US", { timeZone: "America/New_York" })}`)
+            .setTitle(`Returning Cosmetics for ${new Date(shop.date).toLocaleDateString("en-US", { timeZone: "America/New_York" })} (${itemsMissing}/${allItems.length})`)
             .setDescription(d)
             .setColor("#2186DB")
 

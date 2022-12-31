@@ -25,7 +25,6 @@ export class ShopSectionsTracker {
         const largestSection = d.sections.reduce((prev, current) => prev.quantity > current.quantity ? prev : current);
 
         const e = new MessageEmbed()
-            .setTitle("Shop Sections were updated!")
             .setColor("#2186DB")
             .setFooter({ text: `Updated at ${new Date(d.updated).toLocaleString("en-US", { timeZone: "America/New_York" })}` });
 
@@ -35,7 +34,7 @@ export class ShopSectionsTracker {
             totalAmountOfSections += s.quantity;
         }
 
-        e.setDescription(desc);
+        e.setDescription(desc).setTitle(`Shop Sections were updated! (x${totalAmountOfSections})`);
 
         for (const s of Object.values(shopSectionChannels)) {
             const c = (<TextChannel>this.client.channels.cache.get(s.channel));
