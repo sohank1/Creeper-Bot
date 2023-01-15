@@ -105,7 +105,7 @@ export class Counting {
             await this._service.saveDoc(doc)
 
 
-            let str = `You have claimed your weekly save^. You now have **${user.saves}** save%! (+${savesChosen} save^!)`
+            let str = `You have claimed your weekly save^. You now have **${user.saves.toFixed(1)}** save%! (+${savesChosen} save^!)`
             if (savesChosen > 0) str = str.replaceAll("^", "s")
             else str = str.replaceAll("^", "")
             if (user.saves > 0) str = str.replaceAll("%", "s")
