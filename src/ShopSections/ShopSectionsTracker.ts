@@ -1,7 +1,7 @@
 import axios from "axios";
 import { Client, MessageEmbed, TextChannel } from "discord.js";
 import ShopSectionsModel from "./ShopSections.model";
-import { ShopSectionsData, ShopSectionsResponseObject } from "./ShopSections.type";
+import { AllShopSectionsResponseObject, EpicModesResponseObject, FormatedSections, SectionStoreEnds } from "./ShopSections.type";
 import shopSectionChannels from "./shopSectionChannels.json"
 
 export class ShopSectionsTracker {
@@ -11,25 +11,63 @@ export class ShopSectionsTracker {
     }
 
     private async interval(): Promise<void> {
-        const { data } = (await axios.get<ShopSectionsResponseObject>("https://fn-api.com/api/shop/br/sections")).data
-        const doc = await ShopSectionsModel.findOne()
+        const shopSections = (await axios.get<EpicModesResponseObject>("https://api.nitestats.com/v1/epic/modes")).data.channels["client-events"].states[0].state.sectionStoreEnds;
+        const doc = await ShopSectionsModel.findOne();
 
-        if (new Date(data.updated) > doc.updatedAt) {
-            this.sendMessage(data)
-            await ShopSectionsModel.updateOne({ updatedAt: new Date(data.updated) })
+        if (JSON.stringify(shopSections) !== JSON.stringify(doc.sections)) {
+            this.sendMessage(await this.formatSections(shopSections))
+            await ShopSectionsModel.updateOne({ sections: shopSections })
         }
+
     }
 
-    private sendMessage(d: ShopSectionsData): void {
+    private async formatSections(sections: SectionStoreEnds): Promise<FormatedSections> {
+        const allShopSections = (await axios.get<AllShopSectionsResponseObject>("https://fortnitecontent-website-prod07.ol.epicgames.com/content/api/pages/fortnite-game/shop-sections")).data.sectionList.sections;
+        const formatedData: FormatedSections = [];
+
+        console.log(allShopSections.length)
+
+        // for (const s in sections) {
+        //     const sectionWithMetadata = allShopSections.find((section) => section.sectionId === s);
+        //     if (!sectionWithMetadata.sectionDisplayName) sectionWithMetadata.sectionDisplayName = "Featured";
+
+        //     const alreadyFormatedSection = formatedData.find((s) => s.name === sectionWithMetadata.sectionDisplayName);
+
+        //     alreadyFormatedSection
+        //         ? alreadyFormatedSection.quantity++
+        //         : formatedData.push({ name: sectionWithMetadata.sectionDisplayName, quantity: 1 });
+        // }
+
+        const sectionIds = Object.keys(sections);
+        for (const metaDataSection of allShopSections) {
+            const s = sectionIds.find((id => id === metaDataSection.sectionId));
+            if (!s) continue; // if the section from epic game's metadata api is not in the stop then go to the next section from epic game's metadata api
+
+            if (!metaDataSection.sectionDisplayName) metaDataSection.sectionDisplayName = "Featured";
+
+            const alreadyFormatedSection = formatedData.find((s) => s.name === metaDataSection.sectionDisplayName);
+
+            alreadyFormatedSection
+                ? alreadyFormatedSection.quantity++
+                : formatedData.push({ name: metaDataSection.sectionDisplayName, quantity: 1 });
+
+        }
+
+
+        return formatedData;
+    }
+
+
+    private sendMessage(sections: FormatedSections): void {
         let totalAmountOfSections = 0;
-        const largestSection = d.sections.reduce((prev, current) => prev.quantity > current.quantity ? prev : current);
+        const largestSection = sections.reduce((prev, current) => prev.quantity > current.quantity ? prev : current);
 
         const e = new MessageEmbed()
             .setColor("#2186DB")
-            .setFooter({ text: `Updated at ${new Date(d.updated).toLocaleString("en-US", { timeZone: "America/New_York" })}` });
+            .setFooter({ text: `Updated at ${new Date().toLocaleString("en-US", { timeZone: "America/New_York" })}` });
 
         let desc = "";
-        for (const s of d.sections) {
+        for (const s of sections) {
             desc += `${s.name} (x${s.quantity})\n`;
             totalAmountOfSections += s.quantity;
         }
@@ -43,7 +81,7 @@ export class ShopSectionsTracker {
                 if (totalAmountOfSections >= 20) {
                     m.react("🤑");
 
-                    const highestSameSections = d.sections.filter((s) => s.quantity === largestSection.quantity);
+                    const highestSameSections = sections.filter((s) => s.quantity === largestSection.quantity);
                     // if there is only 1 section that has the most items
                     if (highestSameSections.length === 1) c.send(`They hungry for ${largestSection.name}`);
                     else c?.send("They hungry!!!")
