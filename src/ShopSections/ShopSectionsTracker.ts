@@ -11,7 +11,6 @@ export class ShopSectionsTracker {
     }
 
     private async interval(): Promise<void> {
-        await ShopSectionsModel.updateOne({ sections: null })
         const shopSections = (await axios.get<EpicModesResponseObject>("https://api.nitestats.com/v1/epic/modes-smart")).data.channels["client-events"].states[1].state.sectionStoreEnds;
         const doc = await ShopSectionsModel.findOne();
         console.log("shopSections", shopSections)
