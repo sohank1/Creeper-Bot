@@ -11,10 +11,11 @@ export class ShopSectionsTracker {
     }
 
     private async interval(): Promise<void> {
-        const shopSections = (await axios.get<EpicModesResponseObject>("https://api.nitestats.com/v1/epic/modes-smart")).data.channels["client-events"].states[0].state.sectionStoreEnds;
+        await ShopSectionsModel.updateOne({ sections: null })
+        const shopSections = (await axios.get<EpicModesResponseObject>("https://api.nitestats.com/v1/epic/modes-smart")).data.channels["client-events"].states[1].state.sectionStoreEnds;
         const doc = await ShopSectionsModel.findOne();
-console.log("shopSections", shopSections)
-console.log("doc.sections", doc.sections)
+        console.log("shopSections", shopSections)
+        console.log("doc.sections", doc.sections)
         if (JSON.stringify(shopSections) !== JSON.stringify(doc.sections)) {
             this.sendMessage(await this.formatSections(shopSections))
             await ShopSectionsModel.updateOne({ sections: shopSections })
@@ -26,7 +27,7 @@ console.log("doc.sections", doc.sections)
         const allShopSections = (await axios.get<AllShopSectionsResponseObject>("https://fortnitecontent-website-prod07.ol.epicgames.com/content/api/pages/fortnite-game/shop-sections")).data.sectionList.sections;
         const formatedData: FormatedSections = [];
 
-        console.log(allShopSections.length)
+        console.log(`section's that don't have a display name ${allShopSections.filter(s => !s.sectionDisplayName).map(s => s.sectionId)}`)
 
         // for (const s in sections) {
         //     const sectionWithMetadata = allShopSections.find((section) => section.sectionId === s);
@@ -44,7 +45,8 @@ console.log("doc.sections", doc.sections)
             const s = sectionIds.find((id => id === metaDataSection.sectionId));
             if (!s) continue; // if the section from epic game's metadata api is not in the stop then go to the next section from epic game's metadata api
 
-            if (!metaDataSection.sectionDisplayName) metaDataSection.sectionDisplayName = "Featured";
+            if (metaDataSection.sectionId.includes("Special")) metaDataSection.sectionDisplayName = "More Offers";
+            if (!metaDataSection.sectionDisplayName) metaDataSection.sectionDisplayName = metaDataSection.sectionId.slice(0, metaDataSection.sectionId.length - 1);
 
             const alreadyFormatedSection = formatedData.find((s) => s.name === metaDataSection.sectionDisplayName);
 
