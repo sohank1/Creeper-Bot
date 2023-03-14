@@ -401,7 +401,7 @@ export class Counting {
             if (!buttonI.customId.includes(buttonI.user.id)) return buttonI.reply({ content: `${await this.client.users.fetch(buttonI.customId.split("counting-use-save-yes-")[1])} makes their own decisions.`, ephemeral: true })
 
             doc.users[doc.users.findIndex(u => u.id === buttonI.user.id)].saves--
-            doc.current.userId === buttonI.user.id
+            doc.current.userId = buttonI.user.id;
             doc.current.waitingOnId = "";
             await this._service.saveDoc(doc)
 
@@ -410,7 +410,7 @@ export class Counting {
             this.warnings.get(doc.guildId).react('☑️')
             this.warnings.delete(doc.guildId)
             buttonI.update({
-                content: `The next number is **${doc.current.numberNow + 1}**. Someone that is not ${buttonI.user.username} should send the next number. ${buttonI.user.username} now has ${doc.users.find(u => u.id === buttonI.user.id).saves} saves.`,
+                content: `The next number is **${doc.current.numberNow + 1}**. Someone that is *not* ${buttonI.user.username} should send the next number. ${buttonI.user.username} now has ${doc.users.find(u => u.id === buttonI.user.id).saves} saves.`,
                 components: []
             })
         }
