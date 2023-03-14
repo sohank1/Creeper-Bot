@@ -207,7 +207,7 @@ app.listen(port, () => {
       new Counting(client);
       new FortniteStats(client);
       process.env.NODE_ENV === "production" && new News(client);
-      process.env.NODE_ENV === "production" && new DonaldTracker(client);
+     // process.env.NODE_ENV === "production" && new DonaldTracker(client);
       // new Trello(client);
       new Avatar(client)
       new ShopSectionsTracker(client)
