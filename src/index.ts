@@ -184,7 +184,7 @@ app.listen(port, () => {
 
       client.application.commands.fetch().then(console.log);
 
-      (await client.guilds.fetch(TEST_SERVER))?.commands.set([fortniteCommand]);
+    //  (await client.guilds.fetch(TEST_SERVER))?.commands.set([fortniteCommand]);
 
       // Register Slash Commands
       client.application.commands.set([countingCommand, fortniteCommand, avatarCommand])
