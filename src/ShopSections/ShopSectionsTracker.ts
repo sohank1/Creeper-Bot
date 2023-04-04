@@ -15,8 +15,7 @@ export class ShopSectionsTracker {
         const states = data.channels["client-events"].states;
         const shopSections = states[states.length - 1].state.sectionStoreEnds;
         const doc = await ShopSectionsModel.findOne();
-        console.log("shopSections", shopSections)
-        console.log("doc.sections", doc.sections)
+
         if (JSON.stringify(shopSections) !== JSON.stringify(doc.sections)) {
             this.sendMessage(await this.formatSections(shopSections))
             await ShopSectionsModel.updateOne({ sections: shopSections })

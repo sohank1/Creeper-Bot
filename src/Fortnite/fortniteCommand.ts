@@ -1,5 +1,12 @@
 import { SlashCommandBuilder } from "@discordjs/builders";
 
+
+export const platformChoices = [
+    { name: "<:epicgames:1092603394373472356> Epic Games", value: "epic" },
+    { name: "<:xbox:1092603259614662656> Xbox", value: "xbl" },
+    { name: "<:playstation:1092603290635751484> PlayStation", value: "psn" }
+]
+
 export const fortniteCommand = new SlashCommandBuilder()
     .setName('fortnite')
     .setDescription('Fortnite commands')
@@ -8,7 +15,11 @@ export const fortniteCommand = new SlashCommandBuilder()
         subcommand
             .setName('stats')
             .setDescription('Get Fortnite Stats for a player')
-            .addStringOption(o => o.setName('epic').setDescription('The Epic Games username of the player').setRequired(true)))
+            .addStringOption(o => o.setName('username').setDescription("The username of the player's platform").setRequired(true))
+            .addStringOption(o => o.setName("platform").setDescription("The platform that the username is. (Default: Epic Games")
+                .setChoices(platformChoices.map(e => <[name: string, value: string]>[e.name.split(">")[1], e.value])))
+
+    )
 
 
     .addSubcommand(subcommand =>
