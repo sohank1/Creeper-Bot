@@ -5,6 +5,7 @@ export interface CountingData {
     current?: {
         numberNow: number,
         userId: string,
+        lastMessageId: string,
         waitingOnId: string
     }
 

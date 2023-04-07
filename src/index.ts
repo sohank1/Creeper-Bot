@@ -184,7 +184,7 @@ app.listen(port, () => {
 
       client.application.commands.fetch().then(console.log);
 
-    //  (await client.guilds.fetch(TEST_SERVER))?.commands.set([fortniteCommand]);
+      //  (await client.guilds.fetch(TEST_SERVER))?.commands.set([fortniteCommand]);
 
       // Register Slash Commands
       client.application.commands.set([countingCommand, fortniteCommand, avatarCommand])
@@ -219,6 +219,9 @@ app.listen(port, () => {
 
 
       // client.guilds.cache.get("570349873337991203").commands.set([])
+
+      client.channels.fetch("725143134044160091").then(console.log).catch(console.log)
+
     });
 
 

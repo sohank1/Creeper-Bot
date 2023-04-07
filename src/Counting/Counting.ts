@@ -1,5 +1,5 @@
-import { ApplicationCommandOptionChoice, AutocompleteInteraction, BaseCommandInteraction, ButtonInteraction, CacheType, Client, Message, MessageActionRow, MessageButton, MessageEmbed, TextChannel, User } from "discord.js";
-import CountingModel from "./Counting.model";
+import { ApplicationCommandOptionChoice, AutocompleteInteraction, BaseCommandInteraction, ButtonInteraction, CacheType, Client, Message, MessageActionRow, MessageButton, MessageEmbed, PartialMessage, TextChannel, User } from "discord.js";
+import CountingModel, { CountingDoc } from "./Counting.model";
 import { CountingService } from "./CountingService";
 
 // export const savesLootPool = [1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 3, 3];
@@ -16,13 +16,21 @@ export class Counting {
     private _service = new CountingService();
 
     constructor(private client: Client) {
-        // reset all waiting decisions for servers
-        CountingModel.find().then((docs) => {
+
+
+        console.log("ready")
+        CountingModel.find().then(async (docs) => {
             for (const d of docs) {
+                // reset all waiting decisions for servers
                 d.current.waitingOnId = "";
-                this._service.saveDoc(d)
+                this._service.saveDoc(d);
+
+                // fetch last message so message delete events will fire
+                this.fetchDeletedMessages(d)
             }
         })
+
+
 
         client.on('messageCreate', async (message) => {
             if (message.author.bot) return;
@@ -46,7 +54,10 @@ export class Counting {
             if (i.commandName === "counting" && i.options.getSubcommand() === "claim") return void this.claimSaves(i);
 
         })
+
+        this.client.on("messageDelete", (m) => this.onMessageDelete(m))
     }
+
 
     private async claimSaves(i: BaseCommandInteraction<CacheType>): Promise<Message> {
 
@@ -199,9 +210,11 @@ export class Counting {
 
         doc.current.numberNow = newNumber;
         doc.current.userId = i.user.id;
+
+        await i.reply(`The current number was set to **${doc.current.numberNow}**. The next number is **${doc.current.numberNow + 1}**`);
+        doc.current.lastMessageId = (await i.fetchReply()).id;
         await this._service.saveDoc(doc);
 
-        i.reply(`The current number was set to **${doc.current.numberNow}**. The next number is **${doc.current.numberNow + 1}**`)
     }
 
 
@@ -308,6 +321,7 @@ export class Counting {
                 doc.current.numberNow = doc.current.numberNow + 1;
                 doc.current.userId = msg.author.id;
                 doc.current.waitingOnId = "";
+                doc.current.lastMessageId = this.message.id;
 
                 console.log("reacting")
                 this.message.react('☑️');
@@ -372,6 +386,8 @@ export class Counting {
                         doc.current.numberNow = 0;
                         doc.current.userId = '';
                         doc.current.waitingOnId = "";
+                        doc.current.lastMessageId = "";
+
                         await this._service.saveDoc(doc)
                         await m.edit({ content: `**${msg.author.username}** took too long to decide if they should use a save. The next number is **1**`, components: [] })
                         msg.react('❌');
@@ -381,6 +397,8 @@ export class Counting {
                 else {
                     doc.current.numberNow = 0;
                     doc.current.userId = '';
+                    doc.current.lastMessageId = "";
+
                     this.message.react('❌');
                     this.message.channel.send(`${badPool[Math.floor(badPool.length * Math.random())]} The next number is 1.`);
                     // }
@@ -392,6 +410,34 @@ export class Counting {
             // await doc.save();
             console.timeEnd("save")
         }
+    }
+
+    private async onMessageDelete(message: Message<boolean> | PartialMessage): Promise<void> {
+        const doc = await this._service.findOneByGuild(message.guild.id);
+        if (!doc) return;
+        if (message.id !== doc.current.lastMessageId) return;
+
+        const name = (await this.client.users.fetch(doc.current.userId))?.username;
+        const m = await message.channel.send(`${name}: ${doc.current.numberNow} (message was deleted)`);
+        m.react('☑️');
+        doc.current.lastMessageId = m.id;
+        await this._service.saveDoc(doc);
+    }
+
+    private async fetchDeletedMessages(d: CountingDoc): Promise<void> {
+        try {
+            const c = <TextChannel>await this.client.channels.fetch(d.channelId);
+            if (!c) return;
+
+            c.messages.fetch(d.current.lastMessageId).catch(async () => {
+                const name = (await this.client.users.fetch(d.current.userId))?.username;
+                const m = await c.send(`${name}: ${d.current.numberNow} (message deleted while I was offline)`);
+                m.react('☑️');
+                d.current.lastMessageId = m.id;
+                await this._service.saveDoc(d);
+            })
+
+        } catch (e) { }
     }
 
     private async handleSaveButton(buttonI: ButtonInteraction<CacheType>) {
@@ -421,6 +467,8 @@ export class Counting {
             doc.current.numberNow = 0;
             doc.current.userId = '';
             doc.current.waitingOnId = "";
+            doc.current.lastMessageId = "";
+
             await this._service.saveDoc(doc)
 
             clearTimeout(this.saveTimeout.get(buttonI.message.id));
@@ -434,4 +482,6 @@ export class Counting {
 
         }
     }
+
+
 }

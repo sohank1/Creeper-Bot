@@ -8,6 +8,7 @@ const countingSchema = new mongoose.Schema({
     channelId: { type: String, required: true },
     current: {
         userId: { type: String, required: false },
+        lastMessageId: { type: String, required: false },
         numberNow: { type: Number, required: false, default: 0 },
         waitingOnId: { type: String, required: false, default: "" }
     },
