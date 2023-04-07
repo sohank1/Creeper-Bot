@@ -16,7 +16,7 @@ export const fortniteCommand = new SlashCommandBuilder()
             .setName('stats')
             .setDescription('Get Fortnite Stats for a player')
             .addStringOption(o => o.setName('username').setDescription("The username of the player's platform").setRequired(true))
-            .addStringOption(o => o.setName("platform").setDescription("The platform that the username is. (Default: Epic Games")
+            .addStringOption(o => o.setName("platform").setDescription("The platform that the username is. (Default: Epic Games)")
                 .setChoices(platformChoices.map(e => <[name: string, value: string]>[e.name.split(">")[1], e.value])))
 
     )
