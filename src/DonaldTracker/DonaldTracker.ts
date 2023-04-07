@@ -196,7 +196,7 @@ export class DonaldTracker {
             // `)
 
             console.log(`Fetching donald mustard's data on ${instance}`)
-            let t0 = performance.now()
+            const t0 = performance.now()
             try {
 
                 const u = await twitterClient.v1.user({ screen_name: "donaldmustard" })
@@ -208,7 +208,7 @@ export class DonaldTracker {
                 ${JSON.stringify(data, null, 2)}
                 \`\`\`
                 `)
-                let t1 = performance.now();
+                const t1 = performance.now();
                 console.log("fetch took " + (t1 - t0) + " ms.")
 
 

@@ -115,7 +115,7 @@ export class FortniteCosmetics {
 
             // return sortingPriorities[a.type.value] - sortingPriorities[b.type.value];
 
-            let s = 0;
+            const s = 0;
             if (new Date(a.added) > new Date(b.added)) return -1
             if (new Date(a.added) < new Date(b.added)) return 1
             // if (a.type.value === "outfit" && b.type.value !== "outfit") return -1
@@ -154,7 +154,7 @@ export class FortniteCosmetics {
         cosmetic.set?.text && e.addField("Set", cosmetic.set.text)
         cosmetic.introduction?.text && e.addField("Introduction", cosmetic.introduction.text);
 
-        let features = [];
+        const features = [];
         cosmetic.gameplayTags?.join().includes("Emote.Traversal") && features.push("Traversal")
         cosmetic.gameplayTags?.join().includes("BuiltIn") && features.push("Built In")
         cosmetic.gameplayTags?.join().includes("Cosmetics.UserFacingFlags.Synced") && features.push("Synced")

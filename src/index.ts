@@ -413,7 +413,7 @@ I ASKED.`)
         if (message.author.bot || message.guild.id !== "570349873337991203") return
         const messageArray = message.channel.messages.cache.toJSON();
         let index = messageArray.length - 2
-        let lastMessage = messageArray[index]
+        const lastMessage = messageArray[index]
         if (message.content.toLowerCase().includes("cap"))
           index = messageArray.length - 1
         lastMessage.react("🧢");
@@ -433,7 +433,7 @@ I ASKED.`)
         if (message.content.toLowerCase().includes("didn't ask") || message.content.toLowerCase().includes("fax"))
           index = messageArray.length - 1
 
-        let lastMessage = messageArray[index]
+        const lastMessage = messageArray[index]
         lastMessage.react("📠");
         message.channel.send({ content: "📠 YOO THATS FAX BRO", tts: true });
         message.channel.send({ content: "📠 YOO THATS FAX BRO", tts: true });
@@ -488,9 +488,9 @@ I ASKED.`)
 
       if (message.content.toLowerCase() === "t!ping") {
         message.channel.send("Pinging...").then((m) => {
-          let ping = m.createdTimestamp - message.createdTimestamp;
-          let choices = ["Is this really my ping", "Is it okay? I cant look", "I hope it isnt bad", "He's lagging bro"];
-          let response = choices[Math.floor(Math.random() * choices.length)];
+          const ping = m.createdTimestamp - message.createdTimestamp;
+          const choices = ["Is this really my ping", "Is it okay? I cant look", "I hope it isnt bad", "He's lagging bro"];
+          const response = choices[Math.floor(Math.random() * choices.length)];
 
           m.edit(`${response}: Bot Latency: \`${ping}\`, API Latency: \`${Math.round(client.ws.ping)}\` host: ${process.env.HOST_TYPE} took ${Math.floor(Date.now() - m.createdAt.getTime())}ms ${m.createdAt.toISOString()}, ${new Date().toISOString()} serverStartedAt: ${serverStartedAt}`);
         });
@@ -513,7 +513,7 @@ I ASKED.`)
       }
 
 
-      let args = message.content.substring(prefix.length).split(" ");
+      const args = message.content.substring(prefix.length).split(" ");
 
 
       switch (args[0]) {
