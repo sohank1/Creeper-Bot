@@ -98,7 +98,7 @@ export class FortniteCosmetics {
 
         const t2 = performance.now();
 
-        i.channel.send(`searched for: "${query}" took ${t1 - t0} ms to search cosmetics. took ${t2 - t1} ms to format ${results.length} results.`)
+        // i.channel.send(`searched for: "${query}" took ${t1 - t0} ms to search cosmetics. took ${t2 - t1} ms to format ${results.length} results.`)
 
         try {
             i.respond(formattedResults);

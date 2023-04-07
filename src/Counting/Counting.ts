@@ -197,7 +197,7 @@ export class Counting {
             .addField('Current Number', username ? `${doc.current.numberNow} (Sent by ${username})` : doc.current.numberNow.toString(), true)
             .setColor('#2186DB')
             .setTimestamp()
-        this.interaction.reply({ content: `took ${Math.floor(Date.now() - this.interaction.createdAt.getTime())}ms ${this.interaction.createdAt.toISOString()}, ${new Date().toISOString()} host: ${process.env.HOST_TYPE}`, embeds: [e] });
+        this.interaction.reply({ embeds: [e] });
     }
 
     private async hack(i: BaseCommandInteraction<CacheType>): Promise<void> {
