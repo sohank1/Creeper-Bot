@@ -44,7 +44,7 @@ export class News {
                 // console.log("Already up to date.")
             }
 
-        }, 3000)
+        }, 10000)
     }
 
     private async send(db: NewsResponseObject): Promise<void> {
