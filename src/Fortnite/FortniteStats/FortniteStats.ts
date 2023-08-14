@@ -148,7 +148,7 @@ export class FortniteStats {
                 .get(`http://api.scraperapi.com/?api_key=${process.env.SCRAPER_API_KEY}&render=true&url=https://fortnitetracker.com/profile/all/${name.replace(" ", "%20")}/competitive`);
             // const data = await fs.readFile(`${__dirname}/index.html`)
             const $ = cheerio.load(data)
-            let modes: EmbedField[] = []
+            const modes: EmbedField[] = []
 
             $(".profile-ranks__container").each(function (i, el) {
                 modes.push({
