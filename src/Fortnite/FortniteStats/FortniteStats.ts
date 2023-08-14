@@ -4,13 +4,13 @@ import { version } from "../../index";
 import { platformChoices } from "../fortniteCommand";
 import * as cheerio from 'cheerio';
 
-const loadingStr = "Loading more... <a:loading2:1140691951704879204>";
+const loadingStr = "Loading more... <a:loading:1140700893898084382>";
 
 export class FortniteStats {
     private interaction: BaseCommandInteraction<CacheType>;
 
     constructor(private client: Client) {
-        // this.client.guilds.cache.get('640262033329356822').emojis.cache.forEach(emoji => console.log(emoji.animated ? '<a:' + emoji.name + ':' + emoji.id + '>' : '<:' + emoji.name + ':' + emoji.id + '>'));
+        this.client.guilds.cache.get('795712339240419329').emojis.cache.forEach(emoji => console.log(emoji.animated ? '<a:' + emoji.name + ':' + emoji.id + '>' : '<:' + emoji.name + ':' + emoji.id + '>'));
 
         this.client.on("interactionCreate", (i) => {
             if (!i.isCommand()) return
