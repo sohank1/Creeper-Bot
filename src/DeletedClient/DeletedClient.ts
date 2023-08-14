@@ -8,7 +8,6 @@ export class DeletedClient {
 
     private handle() {
         this.client.on("messageDelete", async (message: Message) => {
-            console.log(message.content)
             let logs = await message.guild.fetchAuditLogs({ type: 72 });
             let entry = logs.entries.first();
             // if (message.deleted) {
@@ -31,7 +30,6 @@ export class DeletedClient {
             }
         });
         this.client.on("messageUpdate", (oldMessage: Message, newMessage: Message) => {
-            console.log(oldMessage.content, newMessage.content)
             const editlogschannel = <TextChannel>this.client.channels.cache.get("698712954362658857");
             if (oldMessage.content === newMessage.content) {
                 return;
@@ -53,7 +51,6 @@ export class DeletedClient {
                     .setColor("#FFC433")
                     .setTimestamp()
                 // .setFooter("Creeper Bot" + version);
-                console.log(editEmbed)
                 editlogschannel.send({ embeds: [editEmbed] });
             }
         });

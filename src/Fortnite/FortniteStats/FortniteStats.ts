@@ -1,16 +1,18 @@
 import axios from "axios";
-import { BaseCommandInteraction, CacheType, Client, MessageActionRow, MessageEmbed, MessageSelectMenu, SelectMenuInteraction } from "discord.js";
-import e from "express";
+import { BaseCommandInteraction, CacheType, Client, EmbedField, MessageActionRow, MessageEmbed, MessageSelectMenu, SelectMenuInteraction } from "discord.js";
 import { version } from "../../index";
 import { platformChoices } from "../fortniteCommand";
+import * as cheerio from 'cheerio';
 
+const loadingStr = "Loading more... <a:loading2:1140691951704879204>";
 
 export class FortniteStats {
     private interaction: BaseCommandInteraction<CacheType>;
 
     constructor(private client: Client) {
-        this.client.on("interactionCreate", (i) => {
+        // this.client.guilds.cache.get('640262033329356822').emojis.cache.forEach(emoji => console.log(emoji.animated ? '<a:' + emoji.name + ':' + emoji.id + '>' : '<:' + emoji.name + ':' + emoji.id + '>'));
 
+        this.client.on("interactionCreate", (i) => {
             if (!i.isCommand()) return
             if (i.commandName !== "fortnite") return
             if (!i.options.get('username')) return
@@ -32,8 +34,9 @@ export class FortniteStats {
         const platform = <string>this.interaction.options.get('platform')?.value || "epic"
 
         try {
-            const e = await this.getEmbed(username, platform, this.interaction.user.id)
-            this.interaction.reply({ embeds: [e] });
+            const embed = await this.getEmbed(username, platform, this.interaction.user.id)
+            await this.interaction.reply({ embeds: [embed.e], content: loadingStr });
+            this.updateWithRanks(this.interaction, embed.e, embed.name)
         } catch (e) {
             console.log(e.response.status)
 
@@ -67,11 +70,11 @@ export class FortniteStats {
         i.component.options = i.component.options.map((e) => ({ ...e, default: false }))
         i.component.placeholder = "";
         console.log(i.component)
-        // const components = [new MessageActionRow().addComponents(new MessageSelectMenu(i.component))]
-        //
 
         try {
-            i.update({ embeds: [await this.getEmbed(username, platform, i.user.id)], components: [], content: " " })
+            const embed = await this.getEmbed(username, platform, i.user.id);
+            i.update({ embeds: [embed.e], components: [], content: loadingStr });
+            this.updateWithRanks(i, embed.e, embed.name);
         }
 
         catch (e) {
@@ -80,7 +83,8 @@ export class FortniteStats {
 
     }
 
-    private async getEmbed(username: string, platform: string, userId: string): Promise<MessageEmbed> {
+    private async getEmbed(username: string, platform: string, userId: string) {
+
         const r = await axios.get(`https://fortnite-api.com/v2/stats/br/v2?image=all&accountType=${platform}&name=${username}`, {
             headers: {
                 'content-type': "application/json",
@@ -106,7 +110,60 @@ export class FortniteStats {
             .setColor("#2186DB")
             .setTimestamp();
 
-        return e;
+
+        // try {
+
+        //     const { data } = await axios
+        //         .get(`http://api.scraperapi.com/?api_key=${process.env.SCRAPER_API_KEY}&render=true&url=https://fortnitetracker.com/profile/all/${r.data.data.account.name.replace(" ", "%20")}/competitive`);
+        //     // const data = await fs.readFile(`${__dirname}/index.html`)
+        //     const $ = cheerio.load(data)
+        //     let modes: EmbedField[] = []
+
+        //     $(".profile-ranks__container").each(function (i, el) {
+        //         modes.push({
+        //             name: `Ranked - ${$(this).children(".profile-ranks__title").eq(0).text()}`,
+        //             value: `${$(this).find(".profile-rank__value").eq(0).text()} - ${$(this).find(".profile-rank__progress-value").eq(0).text() || $(this).find(".profile-rank__rank--top").eq(0).text()}`,
+        //             inline: false,
+        //         })
+        //     })
+
+        //     console.log(e.fields)
+        //     e.fields.splice(e.fields.findIndex(f => f.name.includes("Wins")), 0, ...modes)
+        //     console.log(e.fields)
+
+        // }
+
+        // catch (err) {
+        //     return e;
+        // }
+
+
+        return { e, name: r.data.data.account.name }
+    }
+
+    private async updateWithRanks(i: BaseCommandInteraction<CacheType> | SelectMenuInteraction<CacheType>, e: MessageEmbed, name: string) {
+        try {
+
+            const { data } = await axios
+                .get(`http://api.scraperapi.com/?api_key=${process.env.SCRAPER_API_KEY}&render=true&url=https://fortnitetracker.com/profile/all/${name.replace(" ", "%20")}/competitive`);
+            // const data = await fs.readFile(`${__dirname}/index.html`)
+            const $ = cheerio.load(data)
+            let modes: EmbedField[] = []
+
+            $(".profile-ranks__container").each(function (i, el) {
+                modes.push({
+                    name: `Ranked - ${$(this).children(".profile-ranks__title").eq(0).text()}`,
+                    value: `${$(this).find(".profile-rank__value").eq(0).text()} - ${$(this).find(".profile-rank__progress-value").eq(0).text() || $(this).find(".profile-rank__rank--top").eq(0).text()}`,
+                    inline: false,
+                })
+            })
+
+            e.fields.splice(e.fields.findIndex(f => f.name.includes("Wins")), 0, ...modes)
+            console.log("modes", modes)
+        }
+
+        catch (err) { }
+        return i.editReply({ embeds: [e], content: " " })
     }
 
 }

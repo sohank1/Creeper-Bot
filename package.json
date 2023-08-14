@@ -1,6 +1,6 @@
 {
   "name": "creeper-bot",
-  "version": "3.0.0-beta.53",
+  "version": "3.0.0-beta.54",
   "engines": {
     "node": "18.x"
   },
@@ -22,6 +22,7 @@
     "@types/puppeteer": "^5.4.5",
     "@types/uuid": "^9.0.0",
     "axios": "^0.26.0",
+    "cheerio": "^1.0.0-rc.12",
     "chrome-aws-lambda": "^10.1.0",
     "discord.js": "^13.6.0",
     "dotenv": "^16.0.0",
