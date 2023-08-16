@@ -2,7 +2,7 @@
 name: Bug report
 about: Report a bug to help improve Creeper Bot
 title: "'...' not working"
-labels: bug
+labels: Bug 🪲
 assignees: CreeperPlanet26
 
 ---
