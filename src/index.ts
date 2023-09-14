@@ -55,7 +55,7 @@ app.listen(port, () => {
     catch (e) {
       console.log(e.message);
     }
-  }, 600000) // 10 mins
+  }, 30000) // 10 mins = 600000, 30 secs = 30000
 
 
 
