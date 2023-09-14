@@ -162,7 +162,7 @@ export class FortniteStats {
             console.log("modes", modes)
         }
 
-        catch (err) { }
+        catch (err) { console.log("Failed to fetch rank", err) }
         return i.editReply({ embeds: [e], content: " " })
     }
 
