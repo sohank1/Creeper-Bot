@@ -17,6 +17,8 @@ import { createClient } from "redis";
 import express from "express";
 import mongoose from "mongoose";
 import { MissingCosmetics } from "./MissingCosmetics/MissingCosmetics";
+import { replyFetcherCommand } from "./ReplyFetcher/replyFetcherCommand";
+import { ReplyFetcher } from "./ReplyFetcher/ReplyFetcher";
 // import { ProcessCodes } from "./InstanceManager";
 
 export const version = `v${require("../package.json").version}`;
@@ -184,13 +186,14 @@ app.listen(port, () => {
 
       client.application.commands.fetch().then(console.log);
 
-      //  (await client.guilds.fetch(TEST_SERVER))?.commands.set([fortniteCommand]);
+      // (await client.guilds.fetch(TEST_SERVER))?.commands.set([replyFetcherCommand]);
 
       // Register Slash Commands
-      client.application.commands.set([countingCommand, fortniteCommand, avatarCommand])
+      client.application.commands.set([countingCommand, fortniteCommand, avatarCommand, replyFetcherCommand])
       client.application.commands.create(countingCommand)
       client.application.commands.create(fortniteCommand)
       client.application.commands.create(avatarCommand)
+      client.application.commands.create(replyFetcherCommand)
 
       // client.application.commands.create({
       //   options: [{}]
@@ -213,6 +216,7 @@ app.listen(port, () => {
       new ShopSectionsTracker(client)
       new FortniteCosmetics(client)
       new MissingCosmetics(client)
+      new ReplyFetcher(client)
 
       // music = new Music(client);
       // new Teasers(client);

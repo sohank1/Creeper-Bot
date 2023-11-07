@@ -47,9 +47,8 @@ export class FortniteCosmetics {
         this.client.on("interactionCreate", (i) => {
             console.log(i.type)
 
-            if (i.isCommand() && i.options?.getSubcommand(false) !== "cosmetic") return;
             if (i.isAutocomplete()) this.resolveSearchQuery(i);
-            if (i.isApplicationCommand()) return this.replyEmbed(i);
+            if (i.isCommand() && i.options?.getSubcommand(false) === "cosmetic") return this.replyEmbed(i);
         })
     }
 
