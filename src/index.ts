@@ -63,7 +63,7 @@ app.listen(port, () => {
   // const client = new Client({ restTimeOffset: 30, intents: new Intents(32767) });
   const client = new Client({ restTimeOffset: 75, intents: new Intents(["GUILDS", "GUILD_MESSAGES", "GUILD_MEMBERS",]) });
   console.log("about to log in")
-  client.login(process.env.NODE_ENV == 'production' ? process.env.BOT_TOKEN : process.env.DEV_BOT_TOKEN);
+  client.login(process.env.NODE_ENV == 'production' ? process.env.BOT_TOKEN : process.env.DEV_BOT_TOKEN).then(console.log).catch(console.log)
 
   const prefix = "c!";
 
