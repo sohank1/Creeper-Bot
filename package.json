@@ -1,6 +1,6 @@
 {
   "name": "creeper-bot",
-  "version": "3.0.0-INTERNAL",
+  "version": "3.0.3-INTERNAL",
   "engines": {
     "node": "18.x"
   },
@@ -8,7 +8,7 @@
   "main": "dist/index.js",
   "scripts": {
     "dev": "nodemon --exec ts-node src/index.ts",
-    "prod": "tsc && node dist/prodStart.js",
+    "prod": "node dist/index.js",
     "build": "tsc"
   },
   "author": "Creeper",
