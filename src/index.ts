@@ -40,11 +40,11 @@ app.listen(port, () => {
   console.log(`Example app listening on port ${port}!`)
 
 
-  setInterval(() => {
+  setInterval(async () => {
     try {
       if (process.env.NODE_ENV === "production" && process.env?.HOST_TYPE === "render") {
         console.log('fetching onrender url from main app')
-        axios.get('https://creeper-bot.onrender.com/');
+        await axios.get('https://creeper-bot.onrender.com/')
         console.log("tag", client?.user?.tag);
       }
       // var os = require('os');
@@ -56,7 +56,7 @@ app.listen(port, () => {
     catch (e) {
       console.log(e.message);
     }
-  }, 30000) // 10 mins = 600000, 30 secs = 30000
+  }, 15000) // 10 mins = 600000, 30 secs = 30000
 
 
 
