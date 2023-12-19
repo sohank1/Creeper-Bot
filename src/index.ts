@@ -45,7 +45,7 @@ app.listen(port, () => {
       if (process.env.NODE_ENV === "production" && process.env?.HOST_TYPE === "render") {
         console.log('fetching onrender url from main app')
         axios.get('https://creeper-bot.onrender.com/');
-        console.log(client?.user.tag);
+        console.log("tag", client?.user?.tag);
       }
       // var os = require('os');
 
@@ -62,6 +62,7 @@ app.listen(port, () => {
 
   // const client = new Client({ restTimeOffset: 30, intents: new Intents(32767) });
   const client = new Client({ restTimeOffset: 75, intents: new Intents(["GUILDS", "GUILD_MESSAGES", "GUILD_MEMBERS",]) });
+  console.log("about to log in")
   client.login(process.env.NODE_ENV == 'production' ? process.env.BOT_TOKEN : process.env.DEV_BOT_TOKEN);
 
   const prefix = "c!";
