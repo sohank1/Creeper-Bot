@@ -45,6 +45,7 @@ app.listen(port, () => {
       if (process.env.NODE_ENV === "production" && process.env?.HOST_TYPE === "render") {
         console.log('fetching onrender url from main app')
         axios.get('https://creeper-bot.onrender.com/');
+        console.log(client?.user.tag);
       }
       // var os = require('os');
 
