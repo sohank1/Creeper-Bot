@@ -184,7 +184,7 @@ export class FortniteCosmetics {
     }
 
     private async fetchCosmetics(): Promise<Cosmetics> {
-        const { data } = (await axios.get("https://fortnite-api.com/v2/cosmetics/br")).data
+        const { data } = (await axios.get("https://fortnite-api.com/v2/cosmetics/br?responseFlags=7")).data
         // const data = cosmeticsData.data;
 
         // replace string "null" with null
