@@ -51,9 +51,9 @@ export class MissingCosmetics {
     }
 
     public async sendMissingCosmetics(message: Message) {
-        const r = await axios.get("https://fortnite-api.com/v2/cosmetics/br");
+        const r = await axios.get("https://fortnite-api.com/v2/cosmetics/br?responseFlags=7");
 
-        const missing = [];
+        let missing = [];
         r.data.data.forEach((c, i) => {
             if (c.shopHistory) {
                 const date = new Date(c.shopHistory[c.shopHistory.length - 1]);
@@ -64,7 +64,10 @@ export class MissingCosmetics {
         });
 
         console.log(`missing: ${missing}. There are ${missing.length} missing cosmetics (haven't been seen in 300 days or more)`);
-
+         missing = missing.sort((a, b) => {
+            if (new Date(a.shopHistory[a.shopHistory.length - 1]) > new Date(b.shopHistory[b.shopHistory.length - 1])) return 1
+            if (new Date(a.shopHistory[a.shopHistory.length - 1]) < new Date(b.shopHistory[b.shopHistory.length - 1])) return -1
+        })
         missing.forEach((e, i) =>
             message.channel.send(
                 `${i}/${missing.length} Missing ${e.name} ${e.images.icon} Last Seen: ${new Date(e.shopHistory[e.shopHistory.length - 1]).toLocaleString("en-US", { timeZone: "America/New_York" })} There are ${missing.length} missing cosmetics (haven't been seen in 300 days or more)`,
