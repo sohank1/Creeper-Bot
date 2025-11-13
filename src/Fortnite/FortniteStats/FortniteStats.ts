@@ -153,7 +153,7 @@ export class FortniteStats {
             $(".profile-ranks__container").each(function (i, el) {
                 modes.push({
                     name: `Ranked - ${$(this).children(".profile-ranks__title").eq(0).text()}`,
-                    value: `${$(this).find(".profile-rank__value").eq(0).text()} - ${$(this).find(".profile-rank__progress-value").eq(0).text() || $(this).find(".profile-rank__rank--top").eq(0).text()}`,
+                    value: `${$(this).find(".profile-rank__name").eq(0).text()} - ${$(this).find(".profile-rank-progress").eq(0).text() || $(this).find(".profile-rank__rank--top").eq(0).text()}`,
                     inline: false,
                 })
             })
