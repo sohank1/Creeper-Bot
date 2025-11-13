@@ -205,7 +205,7 @@ app.listen(port, () => {
       c.send(`${client.user.tag} has logged in at ${new Date().toLocaleString("en-US", { timeZone: "America/New_York" })}. Instance is on **${instance}**. Version is ${version}`);
       console.log(`${client.user.tag} has logged in at ${new Date().toLocaleString("en-US", { timeZone: "America/New_York" })}. Instance is on **${instance}**.`);
       client.user.setActivity(`${version}, c!creeper-bot-help`);
-      new DeletedClient(client)
+      try { new DeletedClient(client) } catch (e) { console.log("deleted client failed", e) };
       new Counting(client);
       new FortniteStats(client);
       process.env.NODE_ENV === "production" && new News(client);
