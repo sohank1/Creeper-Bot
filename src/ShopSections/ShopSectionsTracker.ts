@@ -26,7 +26,7 @@ export class ShopSectionsTracker {
     private async formatSections(sections: SectionStoreEnds): Promise<FormatedSections> {
         const allShopSections = (await axios.get<AllShopSectionsResponseObject>("https://fortnitecontent-website-prod07.ol.epicgames.com/content/api/pages/fortnite-game/shop-sections")).data.sectionList.sections;
         const formatedData: FormatedSections = [];
-
+        console.log(allShopSections)
         console.log(`section's that don't have a display name ${allShopSections.filter(s => !s.sectionDisplayName).map(s => s.sectionId)}`)
 
         // for (const s in sections) {
@@ -56,7 +56,7 @@ export class ShopSectionsTracker {
 
         }
 
-
+        console.log("formated", formatedData)
         return formatedData;
     }
 

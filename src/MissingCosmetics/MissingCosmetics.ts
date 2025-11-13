@@ -15,7 +15,7 @@ export class MissingCosmetics {
     }
 
     public async sendMissingCosmeticsFromTodaysShop() {
-        const { data: { data: shop } } = await axios.get<CombinedItemShopResponseObject>("https://fortnite-api.com/v2/shop/br/combined");
+        const { data: { data: shop } } = await axios.get<CombinedItemShopResponseObject>("https://fortnite-api.com/v2/shop/br/combined?responseFlags=7");
         const allSections = <Entry[]>[...shop.daily.entries, ...shop.featured.entries, ...(shop.votes ? shop.votes : []), ...(shop.voteWinners ? shop.voteWinners : []),];
         let allItems = allSections.map((s) => s.items).flat()
 
@@ -64,7 +64,7 @@ export class MissingCosmetics {
         });
 
         console.log(`missing: ${missing}. There are ${missing.length} missing cosmetics (haven't been seen in 300 days or more)`);
-         missing = missing.sort((a, b) => {
+        missing = missing.sort((a, b) => {
             if (new Date(a.shopHistory[a.shopHistory.length - 1]) > new Date(b.shopHistory[b.shopHistory.length - 1])) return 1
             if (new Date(a.shopHistory[a.shopHistory.length - 1]) < new Date(b.shopHistory[b.shopHistory.length - 1])) return -1
         })
