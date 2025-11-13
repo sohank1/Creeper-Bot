@@ -22,6 +22,7 @@ export class Avatar {
 
     private async sendAvatar(): Promise<void> {
         await this.interaction.deferReply();
+        console.log("the avatar reply was defered")
 
         const user = await this.interaction.options.getUser('user').fetch()
         const size = <AllowedImageSize><unknown>+this.interaction.options.get("size")?.value || 4096

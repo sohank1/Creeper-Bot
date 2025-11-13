@@ -222,7 +222,7 @@ app.listen(port, () => {
 
       // client.guilds.cache.get("570349873337991203").commands.set([])
 
-      client.channels.fetch("725143134044160091").then(console.log).catch(console.log)
+      // client.channels.fetch("725143134044160091").then(console.log).catch(console.log)
 
     });
 
