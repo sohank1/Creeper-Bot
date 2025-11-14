@@ -99,7 +99,7 @@ app.listen(port, () => {
         // // find all the oldest servers but no the newest one
         // const serversToShutdown = serverInfo.instances.filter((i) => i.platform === process.env.HOST_TYPE).sort((a, b) => new Date(a.serverStartedAt).getTime() - new Date(b.serverStartedAt).getTime()).slice(0, -1)
 
-      }, 10000)
+      }, 600000) // 10 mins
 
       // await redis.connect();
       // process.env.NODE_ENV === "production" && setInterval(async () => {
