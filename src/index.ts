@@ -78,7 +78,8 @@ app.listen(port, () => {
       let count = 1;
       process.env.NODE_ENV === "production" && setInterval(async () => {
         if (count === 1) countChannel.send("**---------------------------------------------**")
-        countChannel.send(`[\`${serverStartedAt}\`] ---- count: ${count} ---- [\`${version}\`]`)
+        countChannel.send(`[\`${serverStartedAt}\`] ---- count: ${count} ---- [\`${version}\`]`);
+        console.log(`[\`${serverStartedAt}\`] ---- count: ${count} ---- [\`${version}\`]`);
         count++;
 
         // const serverInfo = JSON.parse(await redis.get(key));
