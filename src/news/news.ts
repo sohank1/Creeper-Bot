@@ -80,8 +80,14 @@ export class News {
 
 
     private async fetch(): Promise<NewsResponseObject> {
-        const responseObject = (await (axios.get("https://fortnite-api.com/v2/news"))).data;
-        return this.responseObject = responseObject;
+        try {
+            const responseObject = (await (axios.get("https://fortnite-api.com/v2/news"))).data;
+            return this.responseObject = responseObject;
+        } catch (err: any) {
+            console.error("Error fetching news:", err?.message ?? err);
+            // Keep previous responseObject if available
+            return this.responseObject;
+        }
     }
 
     private async save(): Promise<void> {

@@ -184,13 +184,20 @@ export class FortniteCosmetics {
     }
 
     private async fetchCosmetics(): Promise<Cosmetics> {
-        const { data } = (await axios.get("https://fortnite-api.com/v2/cosmetics/br?responseFlags=7")).data
-        // const data = cosmeticsData.data;
+        let data;
+        try {
+            const resp = await axios.get("https://fortnite-api.com/v2/cosmetics/br?responseFlags=7");
+            data = resp.data?.data;
+        } catch (err: any) {
+            if (err?.response?.status === 410) {
+                console.warn("Fortnite cosmetics endpoint deprecated (410). Returning empty cosmetics list.");
+                return [] as Cosmetics;
+            }
+            console.error("Error fetching cosmetics:", err?.message ?? err);
+            return [] as Cosmetics;
+        }
 
-        // replace string "null" with null
-
-
-        return this.formatCosmetics(data);
+        return this.formatCosmetics(data || []);
     }
 
     private formatCosmetics(cosmetics: Cosmetics): Cosmetics {

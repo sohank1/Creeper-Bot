@@ -15,8 +15,20 @@ export class MissingCosmetics {
     }
 
     public async sendMissingCosmeticsFromTodaysShop() {
-        const { data: { data: shop } } = await axios.get<CombinedItemShopResponseObject>("https://fortnite-api.com/v2/shop/br/combined?responseFlags=7");
-        const allSections = <Entry[]>[...shop.daily.entries, ...shop.featured.entries, ...(shop.votes ? shop.votes : []), ...(shop.voteWinners ? shop.voteWinners : []),];
+        let shop: CombinedItemShopResponseObject["data"] | undefined;
+        try {
+            const resp = await axios.get<CombinedItemShopResponseObject>("https://fortnite-api.com/v2/shop/br/combined?responseFlags=7");
+            shop = resp.data.data;
+        } catch (err: any) {
+            if (err?.response?.status === 410) {
+                console.warn("Fortnite API shop endpoint deprecated (410). Skipping missing cosmetics run.");
+                return;
+            }
+            console.error("Error fetching shop for missing cosmetics:", err?.message ?? err);
+            return;
+        }
+
+        const allSections = <Entry[]>[...(shop.daily?.entries || []), ...(shop.featured?.entries || []), ...(shop.votes ? shop.votes : []), ...(shop.voteWinners ? shop.voteWinners : [])];
         let allItems = allSections.map((s) => s.items).flat()
 
         allItems = [...allItems].sort((a, b) => {
@@ -51,11 +63,20 @@ export class MissingCosmetics {
     }
 
     public async sendMissingCosmetics(message: Message) {
-        const r = await axios.get("https://fortnite-api.com/v2/cosmetics/br?responseFlags=7");
+        let r;
+        try {
+            r = await axios.get("https://fortnite-api.com/v2/cosmetics/br?responseFlags=7");
+        } catch (err: any) {
+            if (err?.response?.status === 410) {
+                return message.channel.send("Error: Cosmetics endpoint deprecated (410). Please update the API usage.");
+            }
+            console.error("Error fetching cosmetics:", err?.message ?? err);
+            return message.channel.send("Error fetching cosmetics. Check logs.");
+        }
 
         let missing = [];
-        r.data.data.forEach((c, i) => {
-            if (c.shopHistory) {
+        (r.data?.data || []).forEach((c: any) => {
+            if (c.shopHistory && c.shopHistory.length) {
                 const date = new Date(c.shopHistory[c.shopHistory.length - 1]);
 
                 const differenceInDays = (Date.now() - date.getTime()) / (1000 * 3600 * 24);

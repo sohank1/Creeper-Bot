@@ -121,6 +121,10 @@ app.listen(port, () => {
         // `)
       });
 
+      process.on('unhandledRejection', (reason, promise) => {
+        console.error('unhandledRejection at:', promise, 'reason:', reason);
+      });
+
 
       // (async function () {
       //   if (process.env.NODE_ENV !== "production") return;
