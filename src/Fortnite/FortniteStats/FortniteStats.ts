@@ -880,7 +880,7 @@ export class FortniteStats {
         // --- 1. Register OPEN SANS Font ---
         try {
             registerFont(
-                path.join("assets/open-sans/OpenSans-Bold.ttf"),
+                path.join("assets/open-sans/OpenSans-ExtraBold.ttf"),
                 { family: "OpenSans" }
             );
 
@@ -930,15 +930,15 @@ export class FortniteStats {
         ctx.textBaseline = "bottom";
 
         // Level Label (Open Sans)
-        ctx.fillStyle = labelColor; ctx.font = "Bold 20px 'OpenSans'";
+        ctx.fillStyle = labelColor; ctx.font = "800 20px 'OpenSans'";
         ctx.fillText("LEVEL", contentX, 55);
 
         // Level Value (Open Sans)
-        ctx.fillStyle = valueColor; ctx.font = "Bold 45px 'OpenSans'";
+        ctx.fillStyle = valueColor; ctx.font = "800  45px 'OpenSans'";
         ctx.fillText(`${Math.floor(currentLevel)}`, contentX + 70, 58);
 
         // Goal (Open Sans)
-        ctx.textAlign = "right"; ctx.fillStyle = labelColor; ctx.font = "bold 20px 'OpenSans'";
+        ctx.textAlign = "right"; ctx.fillStyle = labelColor; ctx.font = "800  20px 'OpenSans'";
         ctx.fillText(`GOAL ${goal}`, width - rightPadding, 55);
 
         // --- 5. Progress Bar ---
