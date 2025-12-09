@@ -751,6 +751,15 @@ export class FortniteStats {
 
             // 3. Clean Embed (Image Only)
             e.setImage(`attachment://progress.png`)
+            e.addField("Battle Pass Level", `${r.data.data.battlePass.level}.${r.data.data.battlePass.progress}` || "No data")
+                .setImage(`attachment://progress.png`)
+                .addField("Wins", String(r.data.data.stats.all.overall.wins) || "No data", true)
+                .addField("KD", String(r.data.data.stats.all.overall.kd) || "No data", true)
+                .addField("Win Rate", String(r.data.data.stats.all.overall.winRate + "%") || "No data", true)
+                .addField("Matches", String(r.data.data.stats.all.overall.matches) || "No data", true)
+                .addField("Kills", String(r.data.data.stats.all.overall.kills) || "No data", true)
+                .addField("Days Played", String((r.data.data.stats.all.overall.minutesPlayed / 1440).toFixed(1)) || "No data", true)
+                .addField("Last Update", new Date(r.data.data.stats.all.overall.lastModified).toLocaleString("en-US", { timeZone: "America/New_York" }) || "No data")
                 .setColor("#2186DB")
                 .setTimestamp();
 
@@ -800,6 +809,15 @@ export class FortniteStats {
             const e = new MessageEmbed({ footer: { text: version } })
                 .setTitle(`Fortnite stats for ${r.data.data.account.name}`)
                 .setImage(`attachment://progress.png`)
+                .addField("Battle Pass Level", `${r.data.data.battlePass.level}.${r.data.data.battlePass.progress}` || "No data")
+                .setImage(`attachment://progress.png`)
+                .addField("Wins", String(r.data.data.stats.all.overall.wins) || "No data", true)
+                .addField("KD", String(r.data.data.stats.all.overall.kd) || "No data", true)
+                .addField("Win Rate", String(r.data.data.stats.all.overall.winRate + "%") || "No data", true)
+                .addField("Matches", String(r.data.data.stats.all.overall.matches) || "No data", true)
+                .addField("Kills", String(r.data.data.stats.all.overall.kills) || "No data", true)
+                .addField("Days Played", String((r.data.data.stats.all.overall.minutesPlayed / 1440).toFixed(1)) || "No data", true)
+                .addField("Last Update", new Date(r.data.data.stats.all.overall.lastModified).toLocaleString("en-US", { timeZone: "America/New_York" }) || "No data")
                 .setColor("#2186DB")
                 .setTimestamp();
 
