@@ -554,6 +554,7 @@ export class FortniteStats {
             return (goal - currentLevel) / weeksLeft;
         })
 
+        console.log({ perDay, perWeek, daysLeft, weeksLeft });
         return { perDay, perWeek, daysLeft, weeksLeft };
     }
 
@@ -683,11 +684,11 @@ export class FortniteStats {
         // Use index 0 (150) or 1 (200) depending on current goal
         const targetIndex = goal === 150 ? 0 : 1;
 
-        const val = stats.perDay[targetIndex]?.toFixed(1) || "0";
+        const val = stats.perDay[targetIndex]?.toFixed(2) || "0";
         const difficultyColor = parseFloat(val) > 2.5 ? "#ED4245" : (parseFloat(val) > 1.5 ? "#FEE75C" : "#43B581");
 
-        drawStat(`Levels/Day`, val, 260, difficultyColor);
-        drawStat(`Levels/Week`, stats.perWeek[targetIndex]?.toFixed(1) || "0", 410);
+        drawStat(`Levels/Day REQ`, val, 260, difficultyColor);
+        drawStat(`Levels/Week`, stats.perWeek[targetIndex]?.toFixed(2) || "0", 410);
 
         const buffer = canvas.toBuffer("image/png");
         return new MessageAttachment(buffer, "progress.png");
