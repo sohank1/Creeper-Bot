@@ -1,6 +1,6 @@
 {
   "name": "creeper-bot",
-  "version": "3.0.10-INTERNAL",
+  "version": "3.1.BETA",
   "engines": {
     "node": "18.x"
   },
@@ -9,7 +9,8 @@
   "scripts": {
     "dev": "nodemon --exec ts-node src/index.ts",
     "prod": "node dist/index.js",
-    "build": "tsc"
+    "build": "tsc",
+    "test": "nodemon --exec ts-node src/scripts/test.ts"
   },
   "author": "Creeper",
   "license": "ISC",
@@ -22,6 +23,7 @@
     "@types/puppeteer": "^5.4.5",
     "@types/uuid": "^9.0.0",
     "axios": "^0.26.0",
+    "canvas": "^3.2.0",
     "cheerio": "^1.0.0-rc.12",
     "chrome-aws-lambda": "^10.1.0",
     "discord.js": "^13.6.0",
