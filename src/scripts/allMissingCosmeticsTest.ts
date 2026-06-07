@@ -1,4 +1,5 @@
 import axios from "axios";
+import { fortniteApiUrl } from "../Fortnite/fortniteApi";
 
 // --- 1. Mock Interfaces (Matches the new JSON structure) ---
 interface RootResponse {
@@ -33,7 +34,7 @@ interface TrackItem extends CosmeticItem {
 
 // --- 2. Configuration ---
 const DAYS_THRESHOLD = 300; // Items not seen for this many days are "Missing"
-const API_URL = "https://fortnite-api.com/v2/cosmetics/?responseFlags=7";
+const API_URL = fortniteApiUrl("/v2/cosmetics/?responseFlags=7");
 
 // --- 3. Main Script ---
 (async () => {

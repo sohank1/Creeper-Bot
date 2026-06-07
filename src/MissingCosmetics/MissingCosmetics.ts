@@ -102,6 +102,7 @@ import { Client, Message, MessageEmbed, TextChannel } from "discord.js";
 import axios from "axios";
 import { scheduleJob } from "node-schedule";
 import itemShopChannels from "../ShopSections/shopSectionChannels.json";
+import { fortniteApiUrl } from "../Fortnite/fortniteApi";
 
 // --- NEW INTERFACES BASED ON V2 API ---
 interface NewShopResponse {
@@ -159,7 +160,7 @@ export class MissingCosmetics {
         let shopData: NewShopResponse["data"] | undefined;
         try {
             //  - Switched to the general V2 shop endpoint
-            const resp = await axios.get<NewShopResponse>("https://fortnite-api.com/v2/shop?responseFlags=7");
+            const resp = await axios.get<NewShopResponse>(fortniteApiUrl("/v2/shop?responseFlags=7"));
             shopData = resp.data.data;
         } catch (err: any) {
             console.error("Error fetching shop for missing cosmetics:", err?.message ?? err);
@@ -251,7 +252,7 @@ export class MissingCosmetics {
         let r;
         try {
             // UPDATED URL: Fetching from the root /v2/cosmetics endpoint
-            r = await axios.get("https://fortnite-api.com/v2/cosmetics/?responseFlags=7");
+            r = await axios.get(fortniteApiUrl("/v2/cosmetics/?responseFlags=7"));
         } catch (err: any) {
             if (err?.response?.status === 410) {
                 return message.channel.send("Error: Cosmetics endpoint deprecated (410). Please update the API usage.");

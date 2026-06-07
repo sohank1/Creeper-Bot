@@ -3,6 +3,7 @@ import { Client, Collection, MessageEmbed, Snowflake, TextChannel } from "discor
 import { Br, Creative, NewsResponseObject, Stw } from "./news.type";
 import NewsModel from './news.model'
 import newsChannels from "./newsChannels.json"
+import { fortniteApiUrl } from "../Fortnite/fortniteApi";
 
 export class News {
     public responseObject: NewsResponseObject;
@@ -81,7 +82,7 @@ export class News {
 
     private async fetch(): Promise<NewsResponseObject> {
         try {
-            const responseObject = (await (axios.get("https://fortnite-api.com/v2/news"))).data;
+            const responseObject = (await axios.get(fortniteApiUrl("/v2/news"))).data;
             return this.responseObject = responseObject;
         } catch (err: any) {
             console.error("Error fetching news:", err?.message ?? err);

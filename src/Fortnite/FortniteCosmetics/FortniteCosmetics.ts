@@ -4,6 +4,7 @@ import { ApplicationCommandOptionChoice, AutocompleteInteraction, BaseCommandInt
 import { Cosmetic, Cosmetics, CosmeticsResponse } from "./FortniteCosmetics.type"
 import { rarityColorTable, rarityEmojisTable } from "./rarityEmojisTable";
 import { scheduleJob } from "node-schedule";
+import { fortniteApiUrl } from "../fortniteApi";
 // const cosmeticsData = <CosmeticsResponse>require("./cosmetics.json");
 
 export const sortingPriorities = {
@@ -186,7 +187,7 @@ export class FortniteCosmetics {
     private async fetchCosmetics(): Promise<Cosmetics> {
         let data;
         try {
-            const resp = await axios.get("https://fortnite-api.com/v2/cosmetics/br?responseFlags=7");
+            const resp = await axios.get(fortniteApiUrl("/v2/cosmetics/br?responseFlags=7"));
             data = resp.data?.data;
         } catch (err: any) {
             if (err?.response?.status === 410) {
