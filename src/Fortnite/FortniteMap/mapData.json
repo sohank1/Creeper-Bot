@@ -1,5 +1,15 @@
 [
   {
+    "version": "41_00",
+    "chapter": 7,
+    "season": 3,
+    "patch": "chapter_7/season_3/41_00",
+    "releaseDate": null,
+    "imageUrl": "/api/v1/map/image?version=41_00",
+    "pois": [],
+    "hasImage": true
+  },
+  {
     "version": "40_40",
     "chapter": 7,
     "season": 2,
@@ -11408,15 +11418,5 @@
     "imageUrl": null,
     "pois": [],
     "hasImage": false
-  },
-  {
-    "version": "41_00",
-    "chapter": 7,
-    "season": 3,
-    "patch": "chapter_7/season_3/41_00",
-    "releaseDate": null,
-    "imageUrl": "/api/v1/map/image?version=41_00",
-    "pois": [],
-    "hasImage": true
   }
 ]

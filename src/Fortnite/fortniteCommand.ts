@@ -35,7 +35,7 @@ export const fortniteCommand = new SlashCommandBuilder()
             .addSubcommand(subcommand =>
                 subcommand
                     .setName('view')
-                    .setDescription('View a specific Fortnite map version')
+                    .setDescription('Search for a specific Fortnite map version')
                     .addStringOption(o => o.setName('version').setDescription('The version of the map').setAutocomplete(true).setRequired(true))
             )
             .addSubcommand(subcommand =>

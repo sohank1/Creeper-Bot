@@ -82,7 +82,8 @@ async function fetchMapData() {
         }
 
         const existingVersions = new Set(existingData.map(d => d.version));
-        const finalData: MapDetailedResponse[] = [...existingData];
+        let finalData: MapDetailedResponse[] = [...existingData];
+        const newEntries: MapDetailedResponse[] = [];
 
         for (const h of history) {
             if (existingVersions.has(h.version)) {
@@ -141,11 +142,13 @@ async function fetchMapData() {
                 }
             }
 
-            finalData.push(detailed);
+            newEntries.push(detailed);
 
             // small delay to avoid rate limiting
             await new Promise(r => setTimeout(r, 200));
         }
+
+        finalData = [...newEntries, ...finalData];
 
         // Post-processing: chronologically inherit POIs for versions that are missing them   this is wrong get 
         // finalData is sorted Newest to Oldest. We want to iterate from Oldest to Newest

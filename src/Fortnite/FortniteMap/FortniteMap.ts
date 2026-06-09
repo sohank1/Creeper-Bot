@@ -23,14 +23,20 @@ type MapHistoryItem = {
     imageUrl: string;
     hasPois: boolean;
     pois?: Poi[];
+    parsedVersion?: { formatted: string, major: string, minor?: string, codename: string | null, isMajor: boolean };
 };
 
 export class FortniteMap {
     private _data: MapHistoryItem[] = [];
     private fuse: Fuse<any>;
+    private _allSeasons: { chapter: number, season: number }[] = [];
+    private _allChapters: number[] = [];
+    private _seasonStarts: Map<string, MapHistoryItem> = new Map();
+    private _chapterStarts: Map<number, MapHistoryItem> = new Map();
 
     constructor(private client: Client) {
         this.loadData();
+        this.syncLatestMap();
 
         this.client.on("interactionCreate", (i) => {
             if (i.isAutocomplete() && i.commandName === "fortnite" && i.options.getSubcommandGroup(false) === "map") {
@@ -86,7 +92,7 @@ export class FortniteMap {
     private applyDataOverrides(data: MapHistoryItem[]): MapHistoryItem[] {
         // OVERRIDES: Add custom mappings for seasons that the API doesn't structure perfectly.
         // This runs dynamically after the JSON is loaded, so it persists even when the JSON is updated.
-        return data.map(d => {
+        const mapped = data.map(d => {
             if (d.chapter === 6) {
                 const majorStr = d.version.split('_')[0];
                 if (majorStr === '35') d.season = 3;
@@ -96,6 +102,35 @@ export class FortniteMap {
             }
             return d;
         });
+
+        // Ensure data is properly sorted chronologically (Newest to Oldest)
+        // Since the API sometimes returns items out of order (like 32-week-4 at the end)
+        mapped.sort((a, b) => {
+            if (a.chapter !== b.chapter) return b.chapter - a.chapter;
+            if (a.season !== b.season) return b.season - a.season;
+            
+            const parseV = (v: string) => {
+                const match = v.match(/^([0-9]+)_([0-9]+)/);
+                if (match) return [parseInt(match[1]), parseInt(match[2])];
+                const dotMatch = v.match(/^([0-9]+)\.([0-9]+)/);
+                if (dotMatch) return [parseInt(dotMatch[1]), parseInt(dotMatch[2])];
+                const hypenMatch = v.match(/^([0-9]+)-/);
+                if (hypenMatch) return [parseInt(hypenMatch[1]), 0];
+                return [0, 0];
+            };
+
+            const [aMajor, aMinor] = parseV(a.version);
+            const [bMajor, bMinor] = parseV(b.version);
+            
+            if (aMajor !== bMajor) return bMajor - aMajor;
+            if (aMinor !== bMinor) return bMinor - aMinor;
+            
+            if (a.version > b.version) return -1;
+            if (a.version < b.version) return 1;
+            return 0;
+        });
+
+        return mapped;
     }
 
     private loadData() {
@@ -108,22 +143,66 @@ export class FortniteMap {
             // Apply overrides dynamically over the fresh JSON
             this._data = this.applyDataOverrides(rawData);
 
+            this._data.forEach(item => {
+                item.parsedVersion = this.parseVersion(item.version);
+            });
+
+            this._allSeasons = [];
+            const seasonSet = new Set<string>();
+            for (let i = this._data.length - 1; i >= 0; i--) {
+                const d = this._data[i];
+                const key = `${d.chapter}-${d.season}`;
+                if (!seasonSet.has(key)) {
+                    seasonSet.add(key);
+                    this._allSeasons.push({ chapter: d.chapter, season: d.season });
+                }
+            }
+            this._allChapters = Array.from(new Set(this._allSeasons.map(s => s.chapter)));
+
+            this._seasonStarts.clear();
+            this._chapterStarts.clear();
+            
+            for (const s of this._allSeasons) {
+                const targetVersions = this._data.filter(d => d.chapter === s.chapter && d.season === s.season);
+                if (targetVersions.length > 0) {
+                    const major = targetVersions.find(d => d.parsedVersion?.isMajor);
+                    const start = major || targetVersions[targetVersions.length - 1];
+                    this._seasonStarts.set(`${s.chapter}-${s.season}`, start);
+                }
+            }
+            
+            for (const c of this._allChapters) {
+                const targetVersions = this._data.filter(d => d.chapter === c);
+                if (targetVersions.length > 0) {
+                    const firstSeason = targetVersions[targetVersions.length - 1].season;
+                    const start = this._seasonStarts.get(`${c}-${firstSeason}`);
+                    if (start) this._chapterStarts.set(c, start);
+                }
+            }
+
             const fuseData = this._data.map(item => {
-                const parsedVersion = this.parseVersion(item.version);
+                const p = item.parsedVersion!;
+                const dotVersion = p.minor ? `${p.major}.${p.minor}` : p.major;
                 return {
                     ...item,
-                    codename: parsedVersion.codename,
-                    searchable: `${parsedVersion.formatted} Chapter ${item.chapter} ${this.getSeasonName(item.chapter, item.season)}`
+                    codename: p.codename,
+                    formattedVersion: p.formatted,
+                    dotVersion,
+                    exactLabel: this.formatLabel(item),
+                    searchable: `${p.formatted} Chapter ${item.chapter} ${this.getSeasonName(item.chapter, item.season)}`
                 };
             });
 
             this.fuse = new Fuse(fuseData, {
                 keys: [
-                    { name: "version", weight: 0.5 },
+                    { name: "version", weight: 0.2 },
+                    { name: "formattedVersion", weight: 0.5 },
+                    { name: "dotVersion", weight: 0.5 },
                     { name: "chapter", weight: 0.2 },
                     { name: "season", weight: 0.2 },
                     { name: "codename", weight: 0.8 },
                     { name: "searchable", weight: 0.5 },
+                    { name: "exactLabel", weight: 1.0 },
                     { name: "pois.name", weight: 0.9 }
                 ],
                 threshold: 0.4,
@@ -131,6 +210,90 @@ export class FortniteMap {
             });
         } catch (e) {
             console.error("Failed to load mapData.json", e);
+        }
+    }
+
+    private async syncLatestMap() {
+        try {
+            require("dotenv").config();
+            const apiKey = process.env.FORTNITE_MAP_API_KEY;
+            if (!apiKey) {
+                console.log("[FortniteMap] No API key found for syncLatestMap");
+                return;
+            }
+
+            const historyRes = await axios.get("https://prod.api-fortnite.com/api/v1/map/history", {
+                headers: { "x-api-key": apiKey },
+                httpsAgent: new https.Agent({ rejectUnauthorized: false })
+            });
+
+            const history: MapHistoryItem[] = historyRes.data.data;
+            if (!history || history.length === 0) return;
+
+            const dataPath = path.join(process.cwd(), "src", "Fortnite", "FortniteMap", "mapData.json");
+            let rawData: MapHistoryItem[] = [];
+            try {
+                const fileContent = fs.readFileSync(dataPath, "utf8");
+                const parsed = JSON.parse(fileContent);
+                rawData = Array.isArray(parsed) ? parsed : (parsed.data || []);
+            } catch (e) {
+                console.error("Failed to parse mapData.json during sync", e);
+            }
+
+            const existingVersions = new Set(rawData.map(d => d.version));
+            const newEntries: MapHistoryItem[] = [];
+            let hasNew = false;
+
+            for (const h of history) {
+                if (existingVersions.has(h.version)) {
+                    continue;
+                }
+                
+                console.log(`[FortniteMap] New map version detected from history: ${h.version}. Fetching details...`);
+                hasNew = true;
+
+                let detailed: any = { ...h };
+                try {
+                    const detailRes = await axios.get(`https://prod.api-fortnite.com/api/v1/map?version=${h.version}`, {
+                        headers: { "x-api-key": apiKey },
+                        httpsAgent: new https.Agent({ rejectUnauthorized: false })
+                    });
+                    detailed = detailRes.data.data;
+                } catch (e: any) {
+                    console.error(`[FortniteMap] Failed to fetch details for ${h.version}, using history fallback.`);
+                    detailed.pois = [];
+                }
+
+                if (detailed.hasImage === undefined) detailed.hasImage = h.hasImage;
+                newEntries.push(detailed);
+            }
+
+            if (hasNew && newEntries.length > 0) {
+                let lastSeenPois = rawData.find(d => d.pois && d.pois.length > 0)?.pois || [];
+                
+                for (let i = newEntries.length - 1; i >= 0; i--) {
+                    const entry = newEntries[i];
+                    if (!entry.pois || entry.pois.length === 0) {
+                        if (lastSeenPois.length > 0) {
+                            entry.pois = lastSeenPois.map((p: any) => ({ ...p, type: "Inherited" }));
+                            entry.hasPois = true;
+                        } else {
+                            entry.pois = [];
+                            entry.hasPois = false;
+                        }
+                    } else {
+                        lastSeenPois = entry.pois;
+                        entry.hasPois = true;
+                    }
+                }
+
+                rawData = [...newEntries, ...rawData];
+                fs.writeFileSync(dataPath, JSON.stringify(rawData, null, 2), "utf8");
+                console.log(`[FortniteMap] Synced ${newEntries.length} new map versions.`);
+                this.loadData();
+            }
+        } catch (e: any) {
+            console.error("Failed to sync map history on startup:", e.message);
         }
     }
 
@@ -155,8 +318,8 @@ export class FortniteMap {
     }
 
     private formatLabel(item: MapHistoryItem, matchedPoi?: string) {
-        const p = this.parseVersion(item.version);
-        let label = `Chapter ${item.chapter} ${this.getSeasonName(item.chapter, item.season)} (${p.formatted})`;
+        const p = item.parsedVersion || this.parseVersion(item.version);
+        let label = `Chapter ${item.chapter} ${this.getSeasonName(item.chapter, item.season)} (${p.formatted} 📁)`;
         if (p.codename) label += ` - ${p.codename}`;
         if (matchedPoi) label += ` (${matchedPoi})`;
         return label;
@@ -166,10 +329,10 @@ export class FortniteMap {
         const query = i.options.getFocused(true).value as string;
         if (!query) {
             const top3 = this._data.slice(0, 3);
-            const majorVersions = this._data.filter(d => this.parseVersion(d.version).isMajor && !top3.includes(d));
+            const majorVersions = this._data.filter(d => (d.parsedVersion || this.parseVersion(d.version)).isMajor && !top3.includes(d));
             const recent = [...top3, ...majorVersions].slice(0, 25).map(item => ({
                 name: this.formatLabel(item),
-                value: item.version
+                value: `v${item.version.replace("_", ".")}`
             }));
             return i.respond(recent);
         }
@@ -203,25 +366,25 @@ export class FortniteMap {
         }
 
         if (isMajorIntent && !isCodenameIntent) {
-            rawResults = rawResults.filter(r => this.parseVersion(r.item.version).isMajor);
+            rawResults = rawResults.filter(r => (r.item.parsedVersion || this.parseVersion(r.item.version)).isMajor);
         } else if (!isMajorIntent && !isCodenameIntent) {
-            rawResults = rawResults.filter(r => !this.parseVersion(r.item.version).isMajor);
+            rawResults = rawResults.filter(r => !(r.item.parsedVersion || this.parseVersion(r.item.version)).isMajor);
         }
 
         let sorted = [...rawResults];
 
         if (isCodenameIntent) {
             sorted.sort((a, b) => {
-                const aP = this.parseVersion(a.item.version);
-                const bP = this.parseVersion(b.item.version);
+                const aP = a.item.parsedVersion || this.parseVersion(a.item.version);
+                const bP = b.item.parsedVersion || this.parseVersion(b.item.version);
                 if (aP.codename && !bP.codename) return -1;
                 if (!aP.codename && bP.codename) return 1;
                 return 0;
             });
         } else if (isMajorIntent) {
             sorted.sort((a, b) => {
-                const aP = this.parseVersion(a.item.version);
-                const bP = this.parseVersion(b.item.version);
+                const aP = a.item.parsedVersion || this.parseVersion(a.item.version);
+                const bP = b.item.parsedVersion || this.parseVersion(b.item.version);
                 if (aP.isMajor && !bP.isMajor) return -1;
                 if (!aP.isMajor && bP.isMajor) return 1;
                 return 0;
@@ -230,7 +393,7 @@ export class FortniteMap {
 
         const results = sorted.slice(0, 25).map(r => ({
             name: this.formatLabel(r.item, r.matchedPoi),
-            value: r.item.version
+            value: `v${r.item.version.replace("_", ".")}`
         }));
 
         i.respond(results);
@@ -273,46 +436,28 @@ export class FortniteMap {
         }
 
         const getStartOfSeason = (chapter: number, season: number) => {
-            const targetVersions = this._data.filter(d => d.chapter === chapter && d.season === season);
-            if (targetVersions.length === 0) return null;
-            const major = targetVersions.find(d => this.parseVersion(d.version).isMajor);
-            return major || targetVersions[targetVersions.length - 1];
+            return this._seasonStarts.get(`${chapter}-${season}`) || null;
         };
 
         const getStartOfChapter = (chapter: number) => {
-            const targetVersions = this._data.filter(d => d.chapter === chapter);
-            if (targetVersions.length === 0) return null;
-            const firstSeason = targetVersions[targetVersions.length - 1].season;
-            return getStartOfSeason(chapter, firstSeason);
+            return this._chapterStarts.get(chapter) || null;
         };
-
-        const allSeasons: { chapter: number, season: number }[] = [];
-        const seasonSet = new Set<string>();
-        for (let i = this._data.length - 1; i >= 0; i--) {
-            const d = this._data[i];
-            const key = `${d.chapter}-${d.season}`;
-            if (!seasonSet.has(key)) {
-                seasonSet.add(key);
-                allSeasons.push({ chapter: d.chapter, season: d.season });
-            }
-        }
 
         const seasonVersions = this._data.filter(d => d.chapter === item.chapter && d.season === item.season);
         const svIndex = seasonVersions.findIndex(d => d.version === item.version);
         const newerPatch = svIndex > 0 ? seasonVersions[svIndex - 1] : null;
         const olderPatch = svIndex < seasonVersions.length - 1 ? seasonVersions[svIndex + 1] : null;
 
-        const currentSeasonIndex = allSeasons.findIndex(s => s.chapter === item.chapter && s.season === item.season);
-        const prevSeasonTarget = currentSeasonIndex > 0 ? allSeasons[currentSeasonIndex - 1] : null;
-        const nextSeasonTarget = currentSeasonIndex < allSeasons.length - 1 ? allSeasons[currentSeasonIndex + 1] : null;
+        const currentSeasonIndex = this._allSeasons.findIndex(s => s.chapter === item.chapter && s.season === item.season);
+        const prevSeasonTarget = currentSeasonIndex > 0 ? this._allSeasons[currentSeasonIndex - 1] : null;
+        const nextSeasonTarget = currentSeasonIndex < this._allSeasons.length - 1 ? this._allSeasons[currentSeasonIndex + 1] : null;
 
         const olderSeason = prevSeasonTarget ? getStartOfSeason(prevSeasonTarget.chapter, prevSeasonTarget.season) : null;
         const newerSeason = nextSeasonTarget ? getStartOfSeason(nextSeasonTarget.chapter, nextSeasonTarget.season) : null;
 
-        const allChapters = Array.from(new Set(allSeasons.map(s => s.chapter)));
-        const currentChapterIndex = allChapters.indexOf(item.chapter);
-        const prevChapterTarget = currentChapterIndex > 0 ? allChapters[currentChapterIndex - 1] : null;
-        const nextChapterTarget = currentChapterIndex < allChapters.length - 1 ? allChapters[currentChapterIndex + 1] : null;
+        const currentChapterIndex = this._allChapters.indexOf(item.chapter);
+        const prevChapterTarget = currentChapterIndex > 0 ? this._allChapters[currentChapterIndex - 1] : null;
+        const nextChapterTarget = currentChapterIndex < this._allChapters.length - 1 ? this._allChapters[currentChapterIndex + 1] : null;
 
         const olderChapter = prevChapterTarget !== null ? getStartOfChapter(prevChapterTarget) : null;
         const newerChapter = nextChapterTarget !== null ? getStartOfChapter(nextChapterTarget) : null;
@@ -362,19 +507,41 @@ export class FortniteMap {
 
     private async replyView(i: BaseCommandInteraction<CacheType>) {
         await i.deferReply();
-        const version = i.options.get("version")?.value as string;
+        let versionRaw = i.options.get("version")?.value as string;
+        let version = versionRaw;
+
+        if (version) {
+            // Check if it's an exact match for the label, autocomplete value, or internal version
+            const matchedItem = this._data.find(d => 
+                this.formatLabel(d) === version || 
+                `v${d.version.replace("_", ".")}` === version || 
+                d.version === version
+            );
+
+            if (matchedItem) {
+                version = matchedItem.version;
+            } else {
+                // If the user pasted something like "Chapter 7 Season 2 ⚔ (v40.00 📁)" but the string 
+                // match failed due to invisible characters or slight variation, extract via regex
+                const vMatch = version.match(/v([0-9]+(?:\.[0-9]+)?(?:-\([^)]+\))?)/);
+                if (vMatch) {
+                    version = vMatch[1].replace(".", "_");
+                } else {
+                    version = version.replace(/^v/i, "").replace(".", "_");
+                }
+            }
+        }
+
         const response = await this.generateViewResponse(version, false);
         await i.editReply(response);
     }
 
     private getChapters() {
-        const chapters = new Set(this._data.map(d => d.chapter));
-        return Array.from(chapters).sort((a, b) => b - a);
+        return [...this._allChapters].reverse();
     }
 
     private getSeasons(chapter: number) {
-        const seasons = new Set(this._data.filter(d => d.chapter === chapter).map(d => d.season));
-        return Array.from(seasons).sort((a, b) => b - a);
+        return this._allSeasons.filter(s => s.chapter === chapter).map(s => s.season).reverse();
     }
 
     private getVersions(chapter: number, season: number) {
@@ -416,8 +583,8 @@ export class FortniteMap {
 
         let currentRow = new MessageActionRow();
         currentVersions.forEach((v, index) => {
-            const p = this.parseVersion(v.version);
-            let label = p.formatted;
+            const p = v.parsedVersion || this.parseVersion(v.version);
+            let label = `${p.formatted} 📁`;
             if (p.codename) label += ` (${p.codename})`;
             // button labels max length is 80
             if (label.length > 80) label = label.substring(0, 77) + "...";
