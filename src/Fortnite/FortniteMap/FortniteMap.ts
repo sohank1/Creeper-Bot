@@ -465,17 +465,17 @@ export class FortniteMap {
         const prevRow = new MessageActionRow().addComponents(
             new MessageButton()
                 .setCustomId(olderChapter ? `fn_map_page_chap_${olderChapter.version}` : 'prev_chap_disabled')
-                .setLabel("<<< Chapter")
+                .setLabel("<<< 🏝️ Chapter")
                 .setStyle("SECONDARY")
                 .setDisabled(!olderChapter),
             new MessageButton()
                 .setCustomId(olderSeason ? `fn_map_page_season_${olderSeason.version}` : 'prev_season_disabled')
-                .setLabel("<< Season")
+                .setLabel("<< 🌤️ Season")
                 .setStyle("SUCCESS") // Green
                 .setDisabled(!olderSeason),
             new MessageButton()
                 .setCustomId(olderPatch ? `fn_map_page_patch_${olderPatch.version}` : 'prev_patch_disabled')
-                .setLabel("< Patch")
+                .setLabel("< 📂 Patch")
                 .setStyle("PRIMARY") // Blue
                 .setDisabled(!olderPatch)
         );
@@ -483,17 +483,17 @@ export class FortniteMap {
         const nextRow = new MessageActionRow().addComponents(
             new MessageButton()
                 .setCustomId(newerPatch ? `fn_map_page_patch_${newerPatch.version}` : 'next_patch_disabled')
-                .setLabel("Patch >")
+                .setLabel("📂 Patch >")
                 .setStyle("PRIMARY") // Blue
                 .setDisabled(!newerPatch),
             new MessageButton()
                 .setCustomId(newerSeason ? `fn_map_page_season_${newerSeason.version}` : 'next_season_disabled')
-                .setLabel("Season >>")
+                .setLabel("🌤️ Season >>")
                 .setStyle("SUCCESS") // Green
                 .setDisabled(!newerSeason),
             new MessageButton()
                 .setCustomId(newerChapter ? `fn_map_page_chap_${newerChapter.version}` : 'next_chap_disabled')
-                .setLabel("Chapter >>>")
+                .setLabel("🏝️ Chapter >>>")
                 .setStyle("SECONDARY")
                 .setDisabled(!newerChapter)
         );

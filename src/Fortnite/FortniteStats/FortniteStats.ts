@@ -701,6 +701,7 @@ import { version } from "../../index";
 import { platformChoices } from "../fortniteCommand";
 import * as cheerio from 'cheerio';
 import path from "path";
+import https from "https";
 // 1. Import registerFont
 import { createCanvas, loadImage, registerFont, CanvasRenderingContext2D } from "canvas";
 
@@ -859,9 +860,23 @@ export class FortniteStats {
         }
     }
 
-    private calcDailyLevelsPerGoal(currentLevel: number): { perDay: number[], perWeek: number[], daysLeft: number, weeksLeft: number } {
+    private async calcDailyLevelsPerGoal(currentLevel: number): Promise<{ perDay: number[], perWeek: number[], daysLeft: number, weeksLeft: number }> {
         const goals = [150, 200];
-        const seasonEndDate = new Date("2026-03-03");
+        let seasonEndDate = new Date("2026-03-03");
+
+        try {
+            const res = await axios.get("https://prod.api-fortnite.com/api/v1/season", {
+                headers: { "x-api-key": process.env.FORTNITE_MAP_API_KEY },
+                httpsAgent: new https.Agent({ rejectUnauthorized: false })
+            });
+            if (res.data && res.data.seasonDateEnd) {
+                seasonEndDate = new Date(res.data.seasonDateEnd);
+                console.log(res.data)
+                console.log(seasonEndDate.toLocaleDateString())
+            }
+        } catch (e) {
+            console.error("Failed to fetch season end date:", e);
+        }
 
         const now = new Date();
         const timeDiff = seasonEndDate.getTime() - now.getTime();
@@ -941,7 +956,7 @@ export class FortniteStats {
         // --- 3. Logic ---
         const goal = currentLevel >= 130 ? 200 : 150;
         const percent = Math.min(currentLevel / goal, 1);
-        const levelStats = this.calcDailyLevelsPerGoal(currentLevel);
+        const levelStats = await this.calcDailyLevelsPerGoal(currentLevel);
 
         // --- 4. Text ---
         let cursorY = 40;
