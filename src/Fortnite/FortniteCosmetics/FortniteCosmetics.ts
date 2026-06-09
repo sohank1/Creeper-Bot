@@ -48,7 +48,7 @@ export class FortniteCosmetics {
             console.log(i.type)
 
             if (i.isCommand() && i.options?.getSubcommand(false) !== "cosmetic") return;
-            if (i.isAutocomplete()) this.resolveSearchQuery(i);
+            if (i.isAutocomplete() && i.commandName === "fortnite" && i.options.getSubcommand(false) === "cosmetic") this.resolveSearchQuery(i);
             if (i.isApplicationCommand()) return this.replyEmbed(i);
         })
     }
