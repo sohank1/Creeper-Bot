@@ -1,4 +1,4 @@
-import { AutocompleteInteraction, BaseCommandInteraction, CacheType, Client, MessageActionRow, MessageAttachment, MessageButton, MessageEmbed, MessageSelectMenu, SelectMenuInteraction, ButtonInteraction } from "discord.js";
+import { AutocompleteInteraction, BaseCommandInteraction, CommandInteraction, CacheType, Client, MessageActionRow, MessageAttachment, MessageButton, MessageEmbed, MessageSelectMenu, SelectMenuInteraction, ButtonInteraction, User } from "discord.js";
 import axios from "axios";
 import { version as appVersion } from "../../index";
 import Fuse from "fuse.js";
@@ -108,7 +108,7 @@ export class FortniteMap {
         mapped.sort((a, b) => {
             if (a.chapter !== b.chapter) return b.chapter - a.chapter;
             if (a.season !== b.season) return b.season - a.season;
-            
+
             const parseV = (v: string) => {
                 const match = v.match(/^([0-9]+)_([0-9]+)/);
                 if (match) return [parseInt(match[1]), parseInt(match[2])];
@@ -121,10 +121,10 @@ export class FortniteMap {
 
             const [aMajor, aMinor] = parseV(a.version);
             const [bMajor, bMinor] = parseV(b.version);
-            
+
             if (aMajor !== bMajor) return bMajor - aMajor;
             if (aMinor !== bMinor) return bMinor - aMinor;
-            
+
             if (a.version > b.version) return -1;
             if (a.version < b.version) return 1;
             return 0;
@@ -133,12 +133,25 @@ export class FortniteMap {
         return mapped;
     }
 
+    private normalizeVersion(version: string): string {
+        return version.replace(/\./g, "_");
+    }
+
     private loadData() {
         try {
             const dataPath = path.join(process.cwd(), "src", "Fortnite", "FortniteMap", "mapData.json");
             const fileContent = fs.readFileSync(dataPath, "utf8");
             const parsed = JSON.parse(fileContent);
-            const rawData: MapHistoryItem[] = Array.isArray(parsed) ? parsed : (parsed.data || []);
+            let rawData: MapHistoryItem[] = Array.isArray(parsed) ? parsed : (parsed.data || []);
+
+            // Deduplicate: normalize versions (dot vs underscore) and keep the underscore variant
+            const seenNormalized = new Set<string>();
+            rawData = rawData.filter(d => {
+                const norm = this.normalizeVersion(d.version);
+                if (seenNormalized.has(norm)) return false;
+                seenNormalized.add(norm);
+                return true;
+            });
 
             // Apply overrides dynamically over the fresh JSON
             this._data = this.applyDataOverrides(rawData);
@@ -161,7 +174,7 @@ export class FortniteMap {
 
             this._seasonStarts.clear();
             this._chapterStarts.clear();
-            
+
             for (const s of this._allSeasons) {
                 const targetVersions = this._data.filter(d => d.chapter === s.chapter && d.season === s.season);
                 if (targetVersions.length > 0) {
@@ -170,7 +183,7 @@ export class FortniteMap {
                     this._seasonStarts.set(`${s.chapter}-${s.season}`, start);
                 }
             }
-            
+
             for (const c of this._allChapters) {
                 const targetVersions = this._data.filter(d => d.chapter === c);
                 if (targetVersions.length > 0) {
@@ -240,15 +253,15 @@ export class FortniteMap {
                 console.error("Failed to parse mapData.json during sync", e);
             }
 
-            const existingVersions = new Set(rawData.map(d => d.version));
+            const existingVersions = new Set(rawData.map(d => this.normalizeVersion(d.version)));
             const newEntries: MapHistoryItem[] = [];
             let hasNew = false;
 
             for (const h of history) {
-                if (existingVersions.has(h.version)) {
+                if (existingVersions.has(this.normalizeVersion(h.version))) {
                     continue;
                 }
-                
+
                 console.log(`[FortniteMap] New map version detected from history: ${h.version}. Fetching details...`);
                 hasNew = true;
 
@@ -270,7 +283,7 @@ export class FortniteMap {
 
             if (hasNew && newEntries.length > 0) {
                 let lastSeenPois = rawData.find(d => d.pois && d.pois.length > 0)?.pois || [];
-                
+
                 for (let i = newEntries.length - 1; i >= 0; i--) {
                     const entry = newEntries[i];
                     if (!entry.pois || entry.pois.length === 0) {
@@ -411,7 +424,7 @@ export class FortniteMap {
         return Buffer.from(response.data, 'binary');
     }
 
-    private async generateViewResponse(versionStr: string, showNav: boolean = false) {
+    private async generateViewResponse(versionStr: string, showNav: boolean = false, ownerId?: string, user?: User, displayName?: string) {
         const item = this._data.find(d => d.version === versionStr);
         if (!item) return { content: "Version not found." };
 
@@ -420,6 +433,12 @@ export class FortniteMap {
             .setColor("#2186DB")
             .setFooter({ text: appVersion })
             .setTimestamp();
+
+        if (user && displayName) {
+            embed.setAuthor({ name: displayName, iconURL: user.displayAvatarURL({ dynamic: true }) });
+        } else if (user) {
+            embed.setAuthor({ name: user.username, iconURL: user.displayAvatarURL({ dynamic: true }) });
+        }
 
         let files: MessageAttachment[] = [];
         if (item.hasImage) {
@@ -462,19 +481,21 @@ export class FortniteMap {
         const olderChapter = prevChapterTarget !== null ? getStartOfChapter(prevChapterTarget) : null;
         const newerChapter = nextChapterTarget !== null ? getStartOfChapter(nextChapterTarget) : null;
 
+        const ownerSuffix = ownerId ? `|${ownerId}` : '';
+
         const prevRow = new MessageActionRow().addComponents(
             new MessageButton()
-                .setCustomId(olderChapter ? `fn_map_page_chap_${olderChapter.version}` : 'prev_chap_disabled')
+                .setCustomId(olderChapter ? `fn_map_page_chap_${olderChapter.version}${ownerSuffix}` : 'prev_chap_disabled')
                 .setLabel("<<< 🏝️ Chapter")
                 .setStyle("SECONDARY")
                 .setDisabled(!olderChapter),
             new MessageButton()
-                .setCustomId(olderSeason ? `fn_map_page_season_${olderSeason.version}` : 'prev_season_disabled')
+                .setCustomId(olderSeason ? `fn_map_page_season_${olderSeason.version}${ownerSuffix}` : 'prev_season_disabled')
                 .setLabel("<< 🌤️ Season")
                 .setStyle("SUCCESS") // Green
                 .setDisabled(!olderSeason),
             new MessageButton()
-                .setCustomId(olderPatch ? `fn_map_page_patch_${olderPatch.version}` : 'prev_patch_disabled')
+                .setCustomId(olderPatch ? `fn_map_page_patch_${olderPatch.version}${ownerSuffix}` : 'prev_patch_disabled')
                 .setLabel("< 📂 Patch")
                 .setStyle("PRIMARY") // Blue
                 .setDisabled(!olderPatch)
@@ -482,17 +503,17 @@ export class FortniteMap {
 
         const nextRow = new MessageActionRow().addComponents(
             new MessageButton()
-                .setCustomId(newerPatch ? `fn_map_page_patch_${newerPatch.version}` : 'next_patch_disabled')
+                .setCustomId(newerPatch ? `fn_map_page_patch_${newerPatch.version}${ownerSuffix}` : 'next_patch_disabled')
                 .setLabel("📂 Patch >")
                 .setStyle("PRIMARY") // Blue
                 .setDisabled(!newerPatch),
             new MessageButton()
-                .setCustomId(newerSeason ? `fn_map_page_season_${newerSeason.version}` : 'next_season_disabled')
+                .setCustomId(newerSeason ? `fn_map_page_season_${newerSeason.version}${ownerSuffix}` : 'next_season_disabled')
                 .setLabel("🌤️ Season >>")
                 .setStyle("SUCCESS") // Green
                 .setDisabled(!newerSeason),
             new MessageButton()
-                .setCustomId(newerChapter ? `fn_map_page_chap_${newerChapter.version}` : 'next_chap_disabled')
+                .setCustomId(newerChapter ? `fn_map_page_chap_${newerChapter.version}${ownerSuffix}` : 'next_chap_disabled')
                 .setLabel("🏝️ Chapter >>>")
                 .setStyle("SECONDARY")
                 .setDisabled(!newerChapter)
@@ -512,9 +533,9 @@ export class FortniteMap {
 
         if (version) {
             // Check if it's an exact match for the label, autocomplete value, or internal version
-            const matchedItem = this._data.find(d => 
-                this.formatLabel(d) === version || 
-                `v${d.version.replace("_", ".")}` === version || 
+            const matchedItem = this._data.find(d =>
+                this.formatLabel(d) === version ||
+                `v${d.version.replace("_", ".")}` === version ||
                 d.version === version
             );
 
@@ -532,7 +553,8 @@ export class FortniteMap {
             }
         }
 
-        const response = await this.generateViewResponse(version, false);
+        const displayName = await this.getDisplayName(i as any);
+        const response = await this.generateViewResponse(version, false, i.user.id, i.user as User, displayName);
         await i.editReply(response);
     }
 
@@ -548,14 +570,16 @@ export class FortniteMap {
         return this._data.filter(d => d.chapter === chapter && d.season === season).reverse();
     }
 
-    private generateOptionsUI(chapter: number, season: number, page: number) {
+    private generateOptionsUI(chapter: number, season: number, page: number, ownerId: string) {
         const chapters = this.getChapters();
         const seasons = this.getSeasons(chapter);
         const versions = this.getVersions(chapter, season);
 
+        const ownerSuffix = `|${ownerId}`;
+
         const chapterRow = new MessageActionRow().addComponents(
             new MessageSelectMenu()
-                .setCustomId(`fn_map_chapter_${season}`)
+                .setCustomId(`fn_map_chapter_${season}${ownerSuffix}`)
                 .setPlaceholder("Select Chapter")
                 .addOptions(chapters.map(c => ({
                     label: `Chapter ${c}`,
@@ -566,7 +590,7 @@ export class FortniteMap {
 
         const seasonRow = new MessageActionRow().addComponents(
             new MessageSelectMenu()
-                .setCustomId(`fn_map_season_${chapter}`)
+                .setCustomId(`fn_map_season_${chapter}${ownerSuffix}`)
                 .setPlaceholder("Select Season")
                 .addOptions(seasons.map(s => ({
                     label: this.getSeasonName(chapter, s),
@@ -591,7 +615,7 @@ export class FortniteMap {
 
             currentRow.addComponents(
                 new MessageButton()
-                    .setCustomId(`fn_map_view_${v.version}`)
+                    .setCustomId(`fn_map_view_${v.version}${ownerSuffix}`)
                     .setLabel(label)
                     .setStyle("PRIMARY")
             );
@@ -610,7 +634,7 @@ export class FortniteMap {
         if (page > 0) {
             navRow.addComponents(
                 new MessageButton()
-                    .setCustomId(`fn_map_nav_${chapter}_${season}_${page - 1}`)
+                    .setCustomId(`fn_map_nav_${chapter}_${season}_${page - 1}${ownerSuffix}`)
                     .setLabel("Previous Page")
                     .setStyle("SECONDARY")
             );
@@ -618,7 +642,7 @@ export class FortniteMap {
         if (page < totalPages - 1) {
             navRow.addComponents(
                 new MessageButton()
-                    .setCustomId(`fn_map_nav_${chapter}_${season}_${page + 1}`)
+                    .setCustomId(`fn_map_nav_${chapter}_${season}_${page + 1}${ownerSuffix}`)
                     .setLabel("Next Page")
                     .setStyle("SECONDARY")
             );
@@ -636,94 +660,162 @@ export class FortniteMap {
         const defaultChapter = chapters[0];
         const defaultSeason = this.getSeasons(defaultChapter)[0];
 
-        const rows = this.generateOptionsUI(defaultChapter, defaultSeason, 0);
+        const rows = this.generateOptionsUI(defaultChapter, defaultSeason, 0, i.user.id);
 
+        const displayName = await this.getDisplayName(i as any);
         const embed = new MessageEmbed()
             .setTitle(`Map Options - Chapter ${defaultChapter} ${this.getSeasonName(defaultChapter, defaultSeason)}`)
             .setDescription("Select a version to view the map.")
-            .setColor("#2186DB");
+            .setColor("#2186DB")
+            .setAuthor({ name: displayName, iconURL: i.user.displayAvatarURL({ dynamic: true }) });
 
         await i.reply({ embeds: [embed], components: rows });
     }
 
+    private extractOwnerId(customId: string): string | null {
+        const pipeIndex = customId.lastIndexOf('|');
+        if (pipeIndex === -1) return null;
+        return customId.substring(pipeIndex + 1);
+    }
+
+    private stripOwnerId(customId: string): string {
+        const pipeIndex = customId.lastIndexOf('|');
+        if (pipeIndex === -1) return customId;
+        return customId.substring(0, pipeIndex);
+    }
+
+    private async getDisplayName(i: SelectMenuInteraction<CacheType> | ButtonInteraction<CacheType> | CommandInteraction<CacheType>): Promise<string> {
+        let member = i.member as any;
+        
+        if (i.guild && (!member || (!member.nickname && !member.nick))) {
+            try {
+                member = await i.guild.members.fetch(i.user.id);
+            } catch (e) {}
+        }
+
+        const user = i.user as any;
+        const nickname = member?.nickname || member?.nick;
+        
+        let globalName = user?.globalName || user?.global_name;
+        
+        if (!nickname && !globalName) {
+            try {
+                const res = await axios.get(`https://discord.com/api/v10/users/${i.user.id}`, {
+                    headers: { Authorization: `Bot ${i.client.token}` }
+                });
+                globalName = res.data.global_name;
+            } catch (e) {
+                console.error("[FortniteMap] Failed to fetch raw user for global_name", e);
+            }
+        }
+        
+        const name = nickname || globalName || user?.username || "User";
+        return name;
+    }
+
     private async handleSelectMenu(i: SelectMenuInteraction<CacheType>) {
+        const rawId = this.stripOwnerId(i.customId);
+        const ownerId = this.extractOwnerId(i.customId) || i.user.id;
+        const isOriginalUser = i.user.id === ownerId;
+
         let chapter = 0;
         let season = 0;
 
-        if (i.customId.startsWith("fn_map_chapter_")) {
-            season = parseInt(i.customId.replace("fn_map_chapter_", ""));
+        if (rawId.startsWith("fn_map_chapter_")) {
+            season = parseInt(rawId.replace("fn_map_chapter_", ""));
             chapter = parseInt(i.values[0]);
             const availableSeasons = this.getSeasons(chapter);
             if (!availableSeasons.includes(season)) {
                 season = availableSeasons[0];
             }
-        } else if (i.customId.startsWith("fn_map_season_")) {
-            chapter = parseInt(i.customId.replace("fn_map_season_", ""));
+        } else if (rawId.startsWith("fn_map_season_")) {
+            chapter = parseInt(rawId.replace("fn_map_season_", ""));
             season = parseInt(i.values[0]);
         }
 
-        const rows = this.generateOptionsUI(chapter, season, 0);
-        const embed = new MessageEmbed()
-            .setTitle(`Map Options - Chapter ${chapter} ${this.getSeasonName(chapter, season)}`)
-            .setDescription("Select a version to view the map.")
-            .setColor("#2186DB")
-            .setFooter({ text: appVersion })
-            .setTimestamp();
+        const displayName = await this.getDisplayName(i);
 
-        const isOriginalUser = i.message.interaction ? i.user.id === i.message.interaction.user.id : false;
-        
         if (!isOriginalUser) {
-            const displayName = (i.member as any)?.displayName || i.user.username;
-            await i.reply({ content: `**${displayName}**,`, embeds: [embed], components: rows });
+            // Another user clicked — send them their own options UI
+            const rows = this.generateOptionsUI(chapter, season, 0, i.user.id);
+            const embed = new MessageEmbed()
+                .setTitle(`Map Options - Chapter ${chapter} ${this.getSeasonName(chapter, season)}`)
+                .setDescription("Select a version to view the map.")
+                .setColor("#2186DB")
+                .setAuthor({ name: displayName, iconURL: i.user.displayAvatarURL({ dynamic: true }) })
+                .setFooter({ text: appVersion })
+                .setTimestamp();
+            await i.reply({ embeds: [embed], components: rows });
         } else {
+            const rows = this.generateOptionsUI(chapter, season, 0, ownerId);
+            const embed = new MessageEmbed()
+                .setTitle(`Map Options - Chapter ${chapter} ${this.getSeasonName(chapter, season)}`)
+                .setDescription("Select a version to view the map.")
+                .setColor("#2186DB")
+                .setAuthor({ name: displayName, iconURL: i.user.displayAvatarURL({ dynamic: true }) })
+                .setFooter({ text: appVersion })
+                .setTimestamp();
             await i.update({ embeds: [embed], components: rows });
         }
     }
 
     private async handleButton(i: ButtonInteraction<CacheType>) {
-        const isOriginalUser = i.message.interaction ? i.user.id === i.message.interaction.user.id : false;
-        const displayName = (i.member as any)?.displayName || i.user.username;
+        const rawId = this.stripOwnerId(i.customId);
+        const ownerId = this.extractOwnerId(i.customId) || i.user.id;
+        const isOriginalUser = i.user.id === ownerId;
+        const displayName = await this.getDisplayName(i);
 
-        if (i.customId.startsWith("fn_map_view_")) {
-            const version = i.customId.replace("fn_map_view_", "");
-            await i.deferReply();
-            const response: any = await this.generateViewResponse(version, true);
+        if (rawId.startsWith("fn_map_view_")) {
+            const version = rawId.replace("fn_map_view_", "");
+            
             if (!isOriginalUser) {
-                response.content = response.content ? `**${displayName}**, ${response.content}` : `**${displayName}**,`;
+                await i.deferReply();
+                const response: any = await this.generateViewResponse(version, true, i.user.id, i.user, displayName);
+                await i.editReply(response);
+            } else {
+                await i.deferReply();
+                const response: any = await this.generateViewResponse(version, true, ownerId, i.user, displayName);
+                await i.editReply(response);
             }
-            await i.editReply(response);
-        } else if (i.customId.startsWith("fn_map_page_")) {
-            let version = i.customId;
+        } else if (rawId.startsWith("fn_map_page_")) {
+            let version = rawId;
             version = version.replace(/^fn_map_page_(chap|season|patch)_/, "");
             version = version.replace("fn_map_page_", "");
 
             if (!isOriginalUser) {
                 await i.deferReply();
-                const response: any = await this.generateViewResponse(version, true);
-                response.content = response.content ? `**${displayName}**, ${response.content}` : `**${displayName}**,`;
+                const response: any = await this.generateViewResponse(version, true, i.user.id, i.user, displayName);
                 await i.editReply(response);
             } else {
                 await i.deferUpdate();
-                const response = await this.generateViewResponse(version, true);
+                const response = await this.generateViewResponse(version, true, ownerId, i.user, displayName);
                 await i.editReply({ embeds: response.embeds, files: response.files, components: response.components, attachments: [] });
             }
-        } else if (i.customId.startsWith("fn_map_nav_")) {
-            const parts = i.customId.split("_");
+        } else if (rawId.startsWith("fn_map_nav_")) {
+            const parts = rawId.split("_");
             const chapter = parseInt(parts[3]);
             const season = parseInt(parts[4]);
             const page = parseInt(parts[5]);
 
-            const rows = this.generateOptionsUI(chapter, season, page);
-            const embed = new MessageEmbed()
-                .setTitle(`Map Options - Chapter ${chapter} ${this.getSeasonName(chapter, season)} (Page ${page + 1})`)
-                .setDescription("Select a version to view the map.")
-                .setColor("#2186DB")
-                .setFooter({ text: appVersion })
-                .setTimestamp();
-
             if (!isOriginalUser) {
-                await i.reply({ content: `**${displayName}**,`, embeds: [embed], components: rows });
+                const rows = this.generateOptionsUI(chapter, season, page, i.user.id);
+                const embed = new MessageEmbed()
+                    .setTitle(`Map Options - Chapter ${chapter} ${this.getSeasonName(chapter, season)} (Page ${page + 1})`)
+                    .setDescription("Select a version to view the map.")
+                    .setColor("#2186DB")
+                    .setAuthor({ name: displayName, iconURL: i.user.displayAvatarURL({ dynamic: true }) })
+                    .setFooter({ text: appVersion })
+                    .setTimestamp();
+                await i.reply({ embeds: [embed], components: rows });
             } else {
+                const rows = this.generateOptionsUI(chapter, season, page, ownerId);
+                const embed = new MessageEmbed()
+                    .setTitle(`Map Options - Chapter ${chapter} ${this.getSeasonName(chapter, season)} (Page ${page + 1})`)
+                    .setDescription("Select a version to view the map.")
+                    .setColor("#2186DB")
+                    .setAuthor({ name: displayName, iconURL: i.user.displayAvatarURL({ dynamic: true }) })
+                    .setFooter({ text: appVersion })
+                    .setTimestamp();
                 await i.update({ embeds: [embed], components: rows });
             }
         }
