@@ -670,22 +670,43 @@ export class FortniteMap {
             .setFooter({ text: appVersion })
             .setTimestamp();
 
-        await i.update({ embeds: [embed], components: rows });
+        const isOriginalUser = i.message.interaction ? i.user.id === i.message.interaction.user.id : false;
+        
+        if (!isOriginalUser) {
+            const displayName = (i.member as any)?.displayName || i.user.username;
+            await i.reply({ content: `**${displayName}**,`, embeds: [embed], components: rows });
+        } else {
+            await i.update({ embeds: [embed], components: rows });
+        }
     }
 
     private async handleButton(i: ButtonInteraction<CacheType>) {
+        const isOriginalUser = i.message.interaction ? i.user.id === i.message.interaction.user.id : false;
+        const displayName = (i.member as any)?.displayName || i.user.username;
+
         if (i.customId.startsWith("fn_map_view_")) {
             const version = i.customId.replace("fn_map_view_", "");
             await i.deferReply();
-            const response = await this.generateViewResponse(version, true);
+            const response: any = await this.generateViewResponse(version, true);
+            if (!isOriginalUser) {
+                response.content = response.content ? `**${displayName}**, ${response.content}` : `**${displayName}**,`;
+            }
             await i.editReply(response);
         } else if (i.customId.startsWith("fn_map_page_")) {
             let version = i.customId;
             version = version.replace(/^fn_map_page_(chap|season|patch)_/, "");
             version = version.replace("fn_map_page_", "");
 
-            const response = await this.generateViewResponse(version, true);
-            await i.update(response);
+            if (!isOriginalUser) {
+                await i.deferReply();
+                const response: any = await this.generateViewResponse(version, true);
+                response.content = response.content ? `**${displayName}**, ${response.content}` : `**${displayName}**,`;
+                await i.editReply(response);
+            } else {
+                await i.deferUpdate();
+                const response = await this.generateViewResponse(version, true);
+                await i.editReply({ embeds: response.embeds, files: response.files, components: response.components, attachments: [] });
+            }
         } else if (i.customId.startsWith("fn_map_nav_")) {
             const parts = i.customId.split("_");
             const chapter = parseInt(parts[3]);
@@ -700,12 +721,11 @@ export class FortniteMap {
                 .setFooter({ text: appVersion })
                 .setTimestamp();
 
-            await i.update({ embeds: [embed], components: rows });
-        } else if (i.customId.startsWith("fn_map_page_")) {
-            const version = i.customId.replace("fn_map_page_", "");
-            await i.deferUpdate();
-            const response = await this.generateViewResponse(version, true);
-            await i.editReply({ embeds: response.embeds, files: response.files, components: response.components, attachments: [] });
+            if (!isOriginalUser) {
+                await i.reply({ content: `**${displayName}**,`, embeds: [embed], components: rows });
+            } else {
+                await i.update({ embeds: [embed], components: rows });
+            }
         }
     }
 }
