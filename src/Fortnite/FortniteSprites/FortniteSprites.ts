@@ -17,7 +17,7 @@ import axios from "axios";
 import Fuse from "fuse.js";
 import * as fs from "fs";
 import * as path from "path";
-import puppeteer, { Browser } from "puppeteer";
+import type { Browser } from "puppeteer";
 import https from "https";
 import { fetchSpriteData, SpriteDataFile, SpriteFamily, SpriteRarity, SpriteVariant, SpriteVariantName, stableSpriteDataJson, validateSpriteData } from "./spriteDataSource";
 
@@ -626,13 +626,17 @@ export class FortniteSprites {
         if (this.browser) return this.browser;
         if (this.browserPromise) return this.browserPromise;
 
-        this.browserPromise = puppeteer.launch({
-            headless: true,
-            args: ['--no-sandbox', '--disable-setuid-sandbox']
-        }).then(b => {
+        this.browserPromise = (async () => {
+            // Using Function bypasses TypeScript's CommonJS transform, 
+            // allowing us to properly load Puppeteer's ESM module in Node.
+            const { default: puppeteerModule } = await Function('return import("puppeteer")')();
+            const b = await puppeteerModule.launch({
+                headless: true,
+                args: ['--no-sandbox', '--disable-setuid-sandbox']
+            });
             this.browser = b;
             return b;
-        });
+        })();
 
         return this.browserPromise;
     }
