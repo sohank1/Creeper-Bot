@@ -1323,7 +1323,12 @@ export class FortniteSprites {
 
         const width = 1200;
         const height = 800;
-        const baseVariant = family.variants.find(variant => variant.variant === "Base") || family.variants[0];
+        const sortedVariants = [...family.variants].sort((a, b) => {
+            if (a.variant === "Base" && b.variant !== "Base") return -1;
+            if (a.variant !== "Base" && b.variant === "Base") return 1;
+            return b.chancePercent - a.chancePercent || a.id - b.id;
+        });
+        const baseVariant = sortedVariants.find(variant => variant.variant === "Base") || sortedVariants[0];
 
         const html = this.buildRenderDocument(`
             <div class="canvas">
@@ -1363,7 +1368,7 @@ export class FortniteSprites {
                                     </div>
                                 </div>
                                 <ul class="list-reset variant-list">
-                                    ${family.variants.map(variant => {
+                                    ${sortedVariants.map(variant => {
             return `
                                             <li class="variant-row">
                                                 ${this.renderSpriteThumb(variant.imageUrl, "variant-thumb")}

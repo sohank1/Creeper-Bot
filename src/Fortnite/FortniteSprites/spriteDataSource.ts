@@ -227,7 +227,7 @@ function buildFamilies(variants: (SpriteVariant & { familyName: string; location
         familyVariants.sort((a, b) => {
             if (a.variant === "Base" && b.variant !== "Base") return -1;
             if (a.variant !== "Base" && b.variant === "Base") return 1;
-            return a.variant.localeCompare(b.variant) || a.id - b.id;
+            return b.chancePercent - a.chancePercent || a.id - b.id;
         });
         const base = familyVariants.find(v => v.variant === "Base") || familyVariants[0];
 
