@@ -703,7 +703,7 @@ import * as cheerio from 'cheerio';
 import path from "path";
 import https from "https";
 // 1. Import registerFont
-import { createCanvas, loadImage, registerFont, CanvasRenderingContext2D } from "canvas";
+import { createCanvas, loadImage, registerFont, CanvasRenderingContext2D } from "@napi-rs/canvas/node-canvas";
 
 const loadingStr = "Loading more... <a:loading:1140700893898084382>";
 
