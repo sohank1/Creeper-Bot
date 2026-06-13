@@ -632,6 +632,7 @@ export class FortniteSprites {
             const { default: puppeteerModule } = await Function('return import("puppeteer")')();
             const b = await puppeteerModule.launch({
                 headless: true,
+                executablePath: process.env.GOOGLE_CHROME_BIN || undefined,
                 args: ['--no-sandbox', '--disable-setuid-sandbox']
             });
             this.browser = b;

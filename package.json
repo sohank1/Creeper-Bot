@@ -1,8 +1,8 @@
 {
   "name": "creeper-bot",
-  "version": "4.0.5-BETA",
+  "version": "4.0.6-BETA",
   "engines": {
-    "node": "18.x"
+    "node": "22.x"
   },
   "description": "",
   "main": "dist/index.js",
