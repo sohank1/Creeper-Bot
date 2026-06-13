@@ -28,6 +28,12 @@ export const fortniteCommand = new SlashCommandBuilder()
             .setDescription('Search for a Fortnite cosmetic')
             .addStringOption(o => o.setName('query').setDescription('The cosmetic you are searching for').setAutocomplete(true).setRequired(true)))
 
+    .addSubcommand(subcommand =>
+        subcommand
+            .setName('sprites')
+            .setDescription('Browse Fortnite Chapter 7 Season 3 sprites by variants, rarities, locations, and dust costs')
+            .addStringOption(o => o.setName('search').setDescription('Search by sprite family, variant, rarity, effect, or cost').setAutocomplete(true)))
+
     .addSubcommandGroup(group =>
         group
             .setName('map')

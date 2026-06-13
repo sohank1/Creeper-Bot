@@ -226,6 +226,7 @@ export class FortniteMap {
         }
     }
 
+
     private async syncLatestMap() {
         try {
             require("dotenv").config();
@@ -235,11 +236,27 @@ export class FortniteMap {
                 return;
             }
 
-            const historyRes = await axios.get("https://prod.api-fortnite.com/api/v1/map/history", {
-                headers: { "x-api-key": apiKey },
-                httpsAgent: new https.Agent({ rejectUnauthorized: false })
-            });
+            const fetchWithRetry = async (url: string, retries: number = 3) => {
+                for (let i = 0; i < retries; i++) {
+                    try {
+                        return await axios.get(url, {
+                            headers: { "x-api-key": apiKey },
+                            httpsAgent: new https.Agent({ rejectUnauthorized: false })
+                        });
+                    } catch (err: any) {
+                        const status = err.response?.status;
+                        // Retry on 5xx errors or network failures
+                        if (i < retries - 1 && (!status || status >= 500)) {
+                            console.warn(`[FortniteMap] API error (${status || err.message}) on ${url}. Retrying in ${i + 1} seconds...`);
+                            await new Promise(r => setTimeout(r, 1000 * (i + 1)));
+                            continue;
+                        }
+                        throw err;
+                    }
+                }
+            };
 
+            const historyRes = await fetchWithRetry("https://prod.api-fortnite.com/api/v1/map/history") as any;
             const history: MapHistoryItem[] = historyRes.data.data;
             if (!history || history.length === 0) return;
 
@@ -267,10 +284,7 @@ export class FortniteMap {
 
                 let detailed: any = { ...h };
                 try {
-                    const detailRes = await axios.get(`https://prod.api-fortnite.com/api/v1/map?version=${h.version}`, {
-                        headers: { "x-api-key": apiKey },
-                        httpsAgent: new https.Agent({ rejectUnauthorized: false })
-                    });
+                    const detailRes = await fetchWithRetry(`https://prod.api-fortnite.com/api/v1/map?version=${h.version}`) as any;
                     detailed = detailRes.data.data;
                 } catch (e: any) {
                     console.error(`[FortniteMap] Failed to fetch details for ${h.version}, using history fallback.`);
@@ -306,7 +320,12 @@ export class FortniteMap {
                 this.loadData();
             }
         } catch (e: any) {
-            console.error("Failed to sync map history on startup:", e.message);
+            const status = e.response?.status || e.status;
+            if (status === 502 || status === 503) {
+                console.warn(`[FortniteMap] Map API is currently unavailable (Status: ${status}). Falling back to local cached data.`);
+            } else {
+                console.error("[FortniteMap] Failed to sync map history on startup:", e.message);
+            }
         }
     }
 
@@ -421,7 +440,7 @@ export class FortniteMap {
             },
             httpsAgent: new https.Agent({ rejectUnauthorized: false })
         });
-        return Buffer.from(response.data, 'binary');
+        return Buffer.from(response.data as any);
     }
 
     private async generateViewResponse(versionStr: string, showNav: boolean = false, ownerId?: string, user?: User, displayName?: string) {

@@ -1,6 +1,6 @@
 {
   "name": "creeper-bot",
-  "version": "4.0.3-BETA",
+  "version": "4.0.4-BETA",
   "engines": {
     "node": "18.x"
   },
@@ -11,7 +11,9 @@
     "prod": "node dist/index.js",
     "build": "tsc",
     "test": "nodemon --exec ts-node src/scripts/test.ts",
-    "fetch-map": "ts-node src/scripts/fetchMapData.ts"
+    "fetch-map": "ts-node src/scripts/fetchMapData.ts",
+    "fetch-sprites": "ts-node src/scripts/fetchSpriteData.ts",
+    "heroku-postbuild": "mkdir ./.cache && mv /app/.cache/puppeteer ./.cache"
   },
   "author": "Creeper",
   "license": "ISC",
@@ -34,7 +36,7 @@
     "mongoose": "^5.13.8",
     "node-schedule": "^2.1.0",
     "nodemon": "^2.0.15",
-    "puppeteer": "^13.4.1",
+    "puppeteer": "^25.1.0",
     "redis": "^4.4.0",
     "ts-node": "^10.5.0",
     "twitter-api-v2": "^1.12.9",

@@ -8,7 +8,7 @@ import { News } from "./news/news";
 import { DonaldTracker } from "./DonaldTracker/DonaldTracker";
 import { Counting, countingCommand } from "./Counting/";
 import { SlashCommandBuilder } from "@discordjs/builders";
-import { fortniteCommand, FortniteCosmetics, FortniteStats, FortniteMap } from "./Fortnite/";
+import { fortniteCommand, FortniteCosmetics, FortniteStats, FortniteMap, FortniteSprites } from "./Fortnite/";
 import { Trello, trelloCommand } from "./Trello";
 import { Avatar, avatarCommand } from "./AvatarCommand";
 import { DeletedClient } from "./DeletedClient/";
@@ -220,6 +220,7 @@ app.listen(port, () => {
       new ShopSectionsTracker(client)
       new FortniteCosmetics(client)
       new FortniteMap(client)
+      new FortniteSprites(client)
       new MissingCosmetics(client)
 
       // music = new Music(client);
