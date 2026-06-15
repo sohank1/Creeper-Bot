@@ -1,7 +1,7 @@
 {
-  "fetchedAt": "2026-06-13T16:52:39.001Z",
-  "totalSprites": 41,
-  "totalLevels": 205,
+  "fetchedAt": "2026-06-15T23:17:20.160Z",
+  "totalSprites": 31,
+  "totalLevels": 155,
   "families": [
     {
       "key": "water",
@@ -14,55 +14,95 @@
           "id": 1,
           "name": "Water Sprite",
           "rarity": "rare",
-          "chancePercent": 6.96,
-          "chanceLabel": "6.96%",
+          "chancePercent": 13.92,
+          "chanceLabel": "13.92%",
           "starter": true,
           "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Water_Unvault_Ch7S3_ui_L.png",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 13.92,
+              "label": "13.92%"
+            },
+            "rareChest": {
+              "percent": 4.872,
+              "label": "4.872%"
+            },
+            "chest": {
+              "percent": 1.392,
+              "label": "1.392%"
+            },
+            "supplyDrop": {
+              "percent": 4.872,
+              "label": "4.872%"
+            }
+          },
           "variant": "Base",
           "summonCost": 100,
           "effectText": "Replenish shields while standing in water!",
           "detailStatus": "complete"
         },
         {
-          "id": 2,
-          "name": "Gummy Water Sprite",
-          "rarity": "special",
-          "chancePercent": 0.04,
-          "chanceLabel": "0.04%",
-          "starter": false,
-          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Water_Candy_ui_L.png",
-          "variant": "Candy",
-          "summonCost": 4000,
-          "effectText": "Replenish shields while standing in water!",
-          "specialEffectText": "Gain 10% more Sprite Dust upon Extraction",
-          "detailStatus": "complete"
-        },
-        {
-          "id": 3,
-          "name": "Galaxy Water Sprite",
-          "rarity": "special",
-          "chancePercent": 0,
-          "chanceLabel": "0%",
-          "starter": false,
-          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Water_Galaxy_ui_L.png",
-          "variant": "Galaxy",
-          "summonCost": 4000,
-          "effectText": "Replenish shields while standing in water!",
-          "specialEffectText": "Gain 20% more Ammunition when looting",
-          "detailStatus": "complete"
-        },
-        {
           "id": 4,
           "name": "Gold Water Sprite",
           "rarity": "special",
-          "chancePercent": 3,
-          "chanceLabel": "3%",
+          "chancePercent": 6,
+          "chanceLabel": "6%",
           "starter": false,
           "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Water_Gold_ui_L.png",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 6,
+              "label": "6%"
+            },
+            "rareChest": {
+              "percent": 2.1,
+              "label": "2.1%"
+            },
+            "chest": {
+              "percent": 0.6,
+              "label": "0.6%"
+            },
+            "supplyDrop": {
+              "percent": 2.1,
+              "label": "2.1%"
+            }
+          },
           "variant": "Gold",
           "summonCost": 4000,
           "effectText": "Replenish shields while standing in water!",
           "specialEffectText": "Gain bonus XP from eliminations",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 2,
+          "name": "Gummy Water Sprite",
+          "rarity": "special",
+          "chancePercent": 0.08,
+          "chanceLabel": "0.08%",
+          "starter": false,
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Water_Candy_ui_L.png",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0.08,
+              "label": "0.08%"
+            },
+            "rareChest": {
+              "percent": 0.028,
+              "label": "0.028%"
+            },
+            "chest": {
+              "percent": 0.008,
+              "label": "0.008%"
+            },
+            "supplyDrop": {
+              "percent": 0.028,
+              "label": "0.028%"
+            }
+          },
+          "variant": "Candy",
+          "summonCost": 4000,
+          "effectText": "Replenish shields while standing in water!",
+          "specialEffectText": "Gain 10% more Sprite Dust upon Extraction",
           "detailStatus": "complete"
         }
       ]
@@ -78,55 +118,95 @@
           "id": 5,
           "name": "Earth Sprite",
           "rarity": "rare",
-          "chancePercent": 6.96,
-          "chanceLabel": "6.96%",
+          "chancePercent": 13.92,
+          "chanceLabel": "13.92%",
           "starter": true,
           "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Earth_Ch7S3_UI_L.png",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 13.92,
+              "label": "13.92%"
+            },
+            "rareChest": {
+              "percent": 4.872,
+              "label": "4.872%"
+            },
+            "chest": {
+              "percent": 1.392,
+              "label": "1.392%"
+            },
+            "supplyDrop": {
+              "percent": 4.872,
+              "label": "4.872%"
+            }
+          },
           "variant": "Base",
           "summonCost": 100,
           "effectText": "You have a chance to find additional rare items when opening chests.",
           "detailStatus": "complete"
         },
         {
-          "id": 6,
-          "name": "Gummy Earth Sprite",
-          "rarity": "special",
-          "chancePercent": 0.04,
-          "chanceLabel": "0.04%",
-          "starter": false,
-          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Earth_Candy_ui_L.png",
-          "variant": "Candy",
-          "summonCost": 4000,
-          "effectText": "You have a chance to find additional rare items when opening chests.",
-          "specialEffectText": "Gain 10% more Sprite Dust upon Extraction",
-          "detailStatus": "complete"
-        },
-        {
-          "id": 7,
-          "name": "Galaxy Earth Sprite",
-          "rarity": "special",
-          "chancePercent": 0,
-          "chanceLabel": "0%",
-          "starter": false,
-          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Earth_Galaxy_ui_L.png",
-          "variant": "Galaxy",
-          "summonCost": 4000,
-          "effectText": "You have a chance to find additional rare items when opening chests.",
-          "specialEffectText": "Gain 20% more Ammunition when looting",
-          "detailStatus": "complete"
-        },
-        {
           "id": 8,
           "name": "Gold Earth Sprite",
           "rarity": "special",
-          "chancePercent": 3,
-          "chanceLabel": "3%",
+          "chancePercent": 6,
+          "chanceLabel": "6%",
           "starter": false,
           "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Earth_Gold_ui_L.png",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 6,
+              "label": "6%"
+            },
+            "rareChest": {
+              "percent": 2.1,
+              "label": "2.1%"
+            },
+            "chest": {
+              "percent": 0.6,
+              "label": "0.6%"
+            },
+            "supplyDrop": {
+              "percent": 2.1,
+              "label": "2.1%"
+            }
+          },
           "variant": "Gold",
           "summonCost": 4000,
           "effectText": "You have a chance to find additional rare items when opening chests.",
           "specialEffectText": "Gain bonus XP from eliminations",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 6,
+          "name": "Gummy Earth Sprite",
+          "rarity": "special",
+          "chancePercent": 0.08,
+          "chanceLabel": "0.08%",
+          "starter": false,
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Earth_Candy_ui_L.png",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0.08,
+              "label": "0.08%"
+            },
+            "rareChest": {
+              "percent": 0.028,
+              "label": "0.028%"
+            },
+            "chest": {
+              "percent": 0.008,
+              "label": "0.008%"
+            },
+            "supplyDrop": {
+              "percent": 0.028,
+              "label": "0.028%"
+            }
+          },
+          "variant": "Candy",
+          "summonCost": 4000,
+          "effectText": "You have a chance to find additional rare items when opening chests.",
+          "specialEffectText": "Gain 10% more Sprite Dust upon Extraction",
           "detailStatus": "complete"
         }
       ]
@@ -142,55 +222,95 @@
           "id": 9,
           "name": "Fire Sprite",
           "rarity": "rare",
-          "chancePercent": 6.96,
-          "chanceLabel": "6.96%",
+          "chancePercent": 13.92,
+          "chanceLabel": "13.92%",
           "starter": true,
           "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Fire_Unvault_Ch7S3_ui_L.png",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 13.92,
+              "label": "13.92%"
+            },
+            "rareChest": {
+              "percent": 4.872,
+              "label": "4.872%"
+            },
+            "chest": {
+              "percent": 1.392,
+              "label": "1.392%"
+            },
+            "supplyDrop": {
+              "percent": 4.872,
+              "label": "4.872%"
+            }
+          },
           "variant": "Base",
           "summonCost": 100,
           "effectText": "Creates a fiery burst when you deal enough damage to an enemy!",
           "detailStatus": "complete"
         },
         {
-          "id": 10,
-          "name": "Gummy Fire Sprite",
-          "rarity": "special",
-          "chancePercent": 0.04,
-          "chanceLabel": "0.04%",
-          "starter": false,
-          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Fire_Candy_ui_L.png",
-          "variant": "Candy",
-          "summonCost": 4000,
-          "effectText": "Creates a fiery burst when you deal enough damage to an enemy!",
-          "specialEffectText": "Gain 10% more Sprite Dust upon Extraction",
-          "detailStatus": "complete"
-        },
-        {
-          "id": 11,
-          "name": "Galaxy Fire Sprite",
-          "rarity": "special",
-          "chancePercent": 0,
-          "chanceLabel": "0%",
-          "starter": false,
-          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Fire_Galaxy_ui_L.png",
-          "variant": "Galaxy",
-          "summonCost": 4000,
-          "effectText": "Creates a fiery burst when you deal enough damage to an enemy!",
-          "specialEffectText": "Gain 20% more Ammunition when looting",
-          "detailStatus": "complete"
-        },
-        {
           "id": 12,
           "name": "Gold Fire Sprite",
           "rarity": "special",
-          "chancePercent": 3,
-          "chanceLabel": "3%",
+          "chancePercent": 6,
+          "chanceLabel": "6%",
           "starter": false,
           "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Fire_Gold_ui_L.png",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 6,
+              "label": "6%"
+            },
+            "rareChest": {
+              "percent": 2.1,
+              "label": "2.1%"
+            },
+            "chest": {
+              "percent": 0.6,
+              "label": "0.6%"
+            },
+            "supplyDrop": {
+              "percent": 2.1,
+              "label": "2.1%"
+            }
+          },
           "variant": "Gold",
           "summonCost": 4000,
           "effectText": "Creates a fiery burst when you deal enough damage to an enemy!",
           "specialEffectText": "Gain bonus XP from eliminations",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 10,
+          "name": "Gummy Fire Sprite",
+          "rarity": "special",
+          "chancePercent": 0.08,
+          "chanceLabel": "0.08%",
+          "starter": false,
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Fire_Candy_ui_L.png",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0.08,
+              "label": "0.08%"
+            },
+            "rareChest": {
+              "percent": 0.028,
+              "label": "0.028%"
+            },
+            "chest": {
+              "percent": 0.008,
+              "label": "0.008%"
+            },
+            "supplyDrop": {
+              "percent": 0.028,
+              "label": "0.028%"
+            }
+          },
+          "variant": "Candy",
+          "summonCost": 4000,
+          "effectText": "Creates a fiery burst when you deal enough damage to an enemy!",
+          "specialEffectText": "Gain 10% more Sprite Dust upon Extraction",
           "detailStatus": "complete"
         }
       ]
@@ -206,55 +326,95 @@
           "id": 13,
           "name": "Duck Sprite",
           "rarity": "epic",
-          "chancePercent": 6.96,
-          "chanceLabel": "6.96%",
+          "chancePercent": 5.22,
+          "chanceLabel": "5.22%",
           "starter": false,
           "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Duck_Default_L.png",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 5.22,
+              "label": "5.22%"
+            },
+            "rareChest": {
+              "percent": 1.827,
+              "label": "1.827%"
+            },
+            "chest": {
+              "percent": 0.522,
+              "label": "0.522%"
+            },
+            "supplyDrop": {
+              "percent": 1.827,
+              "label": "1.827%"
+            }
+          },
           "variant": "Base",
           "summonCost": 3000,
           "effectText": "Emoting or Jamming replenishes shields.",
           "detailStatus": "complete"
         },
         {
-          "id": 14,
-          "name": "Gummy Duck Sprite",
-          "rarity": "special",
-          "chancePercent": 0.04,
-          "chanceLabel": "0.04%",
-          "starter": false,
-          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Duck_Candy_L.png",
-          "variant": "Candy",
-          "summonCost": 6000,
-          "effectText": "Emoting or Jamming replenishes shields.",
-          "specialEffectText": "Gain 10% more Sprite Dust upon Extraction",
-          "detailStatus": "complete"
-        },
-        {
-          "id": 15,
-          "name": "Galaxy Duck Sprite",
-          "rarity": "special",
-          "chancePercent": 0,
-          "chanceLabel": "0%",
-          "starter": false,
-          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Duck_Galaxy_L.png",
-          "variant": "Galaxy",
-          "summonCost": 6000,
-          "effectText": "Emoting or Jamming replenishes shields.",
-          "specialEffectText": "Gain 20% more Ammunition when looting",
-          "detailStatus": "complete"
-        },
-        {
           "id": 16,
           "name": "Gold Duck Sprite",
           "rarity": "special",
-          "chancePercent": 3,
-          "chanceLabel": "3%",
+          "chancePercent": 2.25,
+          "chanceLabel": "2.25%",
           "starter": false,
           "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Duck_Gold_L.png",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 2.25,
+              "label": "2.25%"
+            },
+            "rareChest": {
+              "percent": 0.7875,
+              "label": "0.7875%"
+            },
+            "chest": {
+              "percent": 0.225,
+              "label": "0.225%"
+            },
+            "supplyDrop": {
+              "percent": 0.7875,
+              "label": "0.7875%"
+            }
+          },
           "variant": "Gold",
           "summonCost": 6000,
           "effectText": "Emoting or Jamming replenishes shields.",
           "specialEffectText": "Gain bonus XP from eliminations",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 14,
+          "name": "Gummy Duck Sprite",
+          "rarity": "special",
+          "chancePercent": 0.03,
+          "chanceLabel": "0.03%",
+          "starter": false,
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Duck_Candy_L.png",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0.03,
+              "label": "0.03%"
+            },
+            "rareChest": {
+              "percent": 0.0105,
+              "label": "0.0105%"
+            },
+            "chest": {
+              "percent": 0.003,
+              "label": "0.003%"
+            },
+            "supplyDrop": {
+              "percent": 0.0105,
+              "label": "0.0105%"
+            }
+          },
+          "variant": "Candy",
+          "summonCost": 6000,
+          "effectText": "Emoting or Jamming replenishes shields.",
+          "specialEffectText": "Gain 10% more Sprite Dust upon Extraction",
           "detailStatus": "complete"
         }
       ]
@@ -270,55 +430,95 @@
           "id": 17,
           "name": "Ghost Sprite",
           "rarity": "epic",
-          "chancePercent": 6.96,
-          "chanceLabel": "6.96%",
+          "chancePercent": 5.22,
+          "chanceLabel": "5.22%",
           "starter": false,
           "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Ghost_Unvault_L.png",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 5.22,
+              "label": "5.22%"
+            },
+            "rareChest": {
+              "percent": 1.827,
+              "label": "1.827%"
+            },
+            "chest": {
+              "percent": 0.522,
+              "label": "0.522%"
+            },
+            "supplyDrop": {
+              "percent": 1.827,
+              "label": "1.827%"
+            }
+          },
           "variant": "Base",
           "summonCost": 3000,
           "effectText": "Grants cloak for a duration upon reloading.",
           "detailStatus": "complete"
         },
         {
-          "id": 18,
-          "name": "Gummy Ghost Sprite",
-          "rarity": "special",
-          "chancePercent": 0.04,
-          "chanceLabel": "0.04%",
-          "starter": false,
-          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Ghost_Candy_L.png",
-          "variant": "Candy",
-          "summonCost": 6000,
-          "effectText": "Grants cloak for a duration upon reloading.",
-          "specialEffectText": "Gain 10% more Sprite Dust upon Extraction",
-          "detailStatus": "complete"
-        },
-        {
-          "id": 19,
-          "name": "Galaxy Ghost Sprite",
-          "rarity": "special",
-          "chancePercent": 0,
-          "chanceLabel": "0%",
-          "starter": false,
-          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Ghost_Galaxy_L.png",
-          "variant": "Galaxy",
-          "summonCost": 6000,
-          "effectText": "Grants cloak for a duration upon reloading.",
-          "specialEffectText": "Gain 20% more Ammunition when looting",
-          "detailStatus": "complete"
-        },
-        {
           "id": 20,
           "name": "Gold Ghost Sprite",
           "rarity": "special",
-          "chancePercent": 3,
-          "chanceLabel": "3%",
+          "chancePercent": 2.25,
+          "chanceLabel": "2.25%",
           "starter": false,
           "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Ghost_Gold_L.png",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 2.25,
+              "label": "2.25%"
+            },
+            "rareChest": {
+              "percent": 0.7875,
+              "label": "0.7875%"
+            },
+            "chest": {
+              "percent": 0.225,
+              "label": "0.225%"
+            },
+            "supplyDrop": {
+              "percent": 0.7875,
+              "label": "0.7875%"
+            }
+          },
           "variant": "Gold",
           "summonCost": 6000,
           "effectText": "Grants cloak for a duration upon reloading.",
           "specialEffectText": "Gain bonus XP from eliminations",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 18,
+          "name": "Gummy Ghost Sprite",
+          "rarity": "special",
+          "chancePercent": 0.03,
+          "chanceLabel": "0.03%",
+          "starter": false,
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Ghost_Candy_L.png",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0.03,
+              "label": "0.03%"
+            },
+            "rareChest": {
+              "percent": 0.0105,
+              "label": "0.0105%"
+            },
+            "chest": {
+              "percent": 0.003,
+              "label": "0.003%"
+            },
+            "supplyDrop": {
+              "percent": 0.0105,
+              "label": "0.0105%"
+            }
+          },
+          "variant": "Candy",
+          "summonCost": 6000,
+          "effectText": "Grants cloak for a duration upon reloading.",
+          "specialEffectText": "Gain 10% more Sprite Dust upon Extraction",
           "detailStatus": "complete"
         }
       ]
@@ -334,55 +534,95 @@
           "id": 21,
           "name": "Dream Sprite",
           "rarity": "legendary",
-          "chancePercent": 6.96,
-          "chanceLabel": "6.96%",
+          "chancePercent": 2.436,
+          "chanceLabel": "2.436%",
           "starter": false,
           "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Sleepy_ui_L.png",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 2.436,
+              "label": "2.436%"
+            },
+            "rareChest": {
+              "percent": 0.8526,
+              "label": "0.8526%"
+            },
+            "chest": {
+              "percent": 0.2436,
+              "label": "0.2436%"
+            },
+            "supplyDrop": {
+              "percent": 0.8526,
+              "label": "0.8526%"
+            }
+          },
           "variant": "Base",
           "summonCost": 5000,
           "effectText": "Grants a random item at each level, exploding with legendary loot at Max Level.",
           "detailStatus": "complete"
         },
         {
-          "id": 22,
-          "name": "Gummy Dream Sprite",
-          "rarity": "special",
-          "chancePercent": 0.04,
-          "chanceLabel": "0.04%",
-          "starter": false,
-          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Sleepy_Candy_ui_L.png",
-          "variant": "Candy",
-          "summonCost": 10000,
-          "effectText": "Grants a random item at each level, exploding with legendary loot at Max Level.",
-          "specialEffectText": "Gain 10% more Sprite Dust upon Extraction",
-          "detailStatus": "complete"
-        },
-        {
-          "id": 23,
-          "name": "Galaxy Dream Sprite",
-          "rarity": "special",
-          "chancePercent": 0,
-          "chanceLabel": "0%",
-          "starter": false,
-          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Sleepy_Galaxy_ui_L.png",
-          "variant": "Galaxy",
-          "summonCost": 10000,
-          "effectText": "Grants a random item at each level, exploding with legendary loot at Max Level.",
-          "specialEffectText": "Gain 20% more Ammunition when looting",
-          "detailStatus": "complete"
-        },
-        {
           "id": 24,
           "name": "Gold Dream Sprite",
           "rarity": "special",
-          "chancePercent": 3,
-          "chanceLabel": "3%",
+          "chancePercent": 1.05,
+          "chanceLabel": "1.05%",
           "starter": false,
           "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Sleepy_Gold_ui_L.png",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 1.05,
+              "label": "1.05%"
+            },
+            "rareChest": {
+              "percent": 0.3675,
+              "label": "0.3675%"
+            },
+            "chest": {
+              "percent": 0.105,
+              "label": "0.105%"
+            },
+            "supplyDrop": {
+              "percent": 0.3675,
+              "label": "0.3675%"
+            }
+          },
           "variant": "Gold",
           "summonCost": 10000,
           "effectText": "Grants a random item at each level, exploding with legendary loot at Max Level.",
           "specialEffectText": "Gain bonus XP from eliminations",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 22,
+          "name": "Gummy Dream Sprite",
+          "rarity": "special",
+          "chancePercent": 0.014,
+          "chanceLabel": "0.014%",
+          "starter": false,
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Sleepy_Candy_ui_L.png",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0.014,
+              "label": "0.014%"
+            },
+            "rareChest": {
+              "percent": 0.0049,
+              "label": "0.0049%"
+            },
+            "chest": {
+              "percent": 0.0014,
+              "label": "0.0014%"
+            },
+            "supplyDrop": {
+              "percent": 0.0049,
+              "label": "0.0049%"
+            }
+          },
+          "variant": "Candy",
+          "summonCost": 10000,
+          "effectText": "Grants a random item at each level, exploding with legendary loot at Max Level.",
+          "specialEffectText": "Gain 10% more Sprite Dust upon Extraction",
           "detailStatus": "complete"
         }
       ]
@@ -398,55 +638,95 @@
           "id": 25,
           "name": "Punk Sprite",
           "rarity": "legendary",
-          "chancePercent": 6.96,
-          "chanceLabel": "6.96%",
+          "chancePercent": 2.436,
+          "chanceLabel": "2.436%",
           "starter": false,
           "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Punk_ui_L.png",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 2.436,
+              "label": "2.436%"
+            },
+            "rareChest": {
+              "percent": 0.8526,
+              "label": "0.8526%"
+            },
+            "chest": {
+              "percent": 0.2436,
+              "label": "0.2436%"
+            },
+            "supplyDrop": {
+              "percent": 0.8526,
+              "label": "0.8526%"
+            }
+          },
           "variant": "Base",
           "summonCost": 5000,
           "effectText": "Possibly nothing... or infinitely something",
           "detailStatus": "complete"
         },
         {
-          "id": 26,
-          "name": "Gummy Punk Sprite",
-          "rarity": "special",
-          "chancePercent": 0.04,
-          "chanceLabel": "0.04%",
-          "starter": false,
-          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Punk_Candy_ui_L.png",
-          "variant": "Candy",
-          "summonCost": 10000,
-          "effectText": "Possibly nothing... or infinitely something",
-          "specialEffectText": "Gain 10% more Sprite Dust upon Extraction",
-          "detailStatus": "complete"
-        },
-        {
-          "id": 27,
-          "name": "Galaxy Punk Sprite",
-          "rarity": "special",
-          "chancePercent": 0,
-          "chanceLabel": "0%",
-          "starter": false,
-          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Punk_Galaxy_ui_L.png",
-          "variant": "Galaxy",
-          "summonCost": 10000,
-          "effectText": "Possibly nothing... or infinitely something",
-          "specialEffectText": "Gain 20% more Ammunition when looting",
-          "detailStatus": "complete"
-        },
-        {
           "id": 28,
           "name": "Gold Punk Sprite",
           "rarity": "special",
-          "chancePercent": 3,
-          "chanceLabel": "3%",
+          "chancePercent": 1.05,
+          "chanceLabel": "1.05%",
           "starter": false,
           "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Punk_Gold_ui_L.png",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 1.05,
+              "label": "1.05%"
+            },
+            "rareChest": {
+              "percent": 0.3675,
+              "label": "0.3675%"
+            },
+            "chest": {
+              "percent": 0.105,
+              "label": "0.105%"
+            },
+            "supplyDrop": {
+              "percent": 0.3675,
+              "label": "0.3675%"
+            }
+          },
           "variant": "Gold",
           "summonCost": 10000,
           "effectText": "Possibly nothing... or infinitely something",
           "specialEffectText": "Gain bonus XP from eliminations",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 26,
+          "name": "Gummy Punk Sprite",
+          "rarity": "special",
+          "chancePercent": 0.014,
+          "chanceLabel": "0.014%",
+          "starter": false,
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Punk_Candy_ui_L.png",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0.014,
+              "label": "0.014%"
+            },
+            "rareChest": {
+              "percent": 0.0049,
+              "label": "0.0049%"
+            },
+            "chest": {
+              "percent": 0.0014,
+              "label": "0.0014%"
+            },
+            "supplyDrop": {
+              "percent": 0.0049,
+              "label": "0.0049%"
+            }
+          },
+          "variant": "Candy",
+          "summonCost": 10000,
+          "effectText": "Possibly nothing... or infinitely something",
+          "specialEffectText": "Gain 10% more Sprite Dust upon Extraction",
           "detailStatus": "complete"
         }
       ]
@@ -462,55 +742,95 @@
           "id": 29,
           "name": "King Sprite",
           "rarity": "epic",
-          "chancePercent": 6.96,
-          "chanceLabel": "6.96%",
+          "chancePercent": 5.22,
+          "chanceLabel": "5.22%",
           "starter": false,
           "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_King_ui_L.png",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 5.22,
+              "label": "5.22%"
+            },
+            "rareChest": {
+              "percent": 1.827,
+              "label": "1.827%"
+            },
+            "chest": {
+              "percent": 0.522,
+              "label": "0.522%"
+            },
+            "supplyDrop": {
+              "percent": 1.827,
+              "label": "1.827%"
+            }
+          },
           "variant": "Base",
           "summonCost": 3000,
           "effectText": "Your Pickaxe deals more damage.",
           "detailStatus": "complete"
         },
         {
-          "id": 30,
-          "name": "Gummy King Sprite",
-          "rarity": "special",
-          "chancePercent": 0.04,
-          "chanceLabel": "0.04%",
-          "starter": false,
-          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_King_Candy_ui_L.png",
-          "variant": "Candy",
-          "summonCost": 6000,
-          "effectText": "Your Pickaxe deals more damage.",
-          "specialEffectText": "Gain 10% more Sprite Dust upon Extraction",
-          "detailStatus": "complete"
-        },
-        {
-          "id": 31,
-          "name": "Galaxy King Sprite",
-          "rarity": "special",
-          "chancePercent": 0,
-          "chanceLabel": "0%",
-          "starter": false,
-          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_King_Galaxy_ui_L.png",
-          "variant": "Galaxy",
-          "summonCost": 6000,
-          "effectText": "Your Pickaxe deals more damage.",
-          "specialEffectText": "Gain 20% more Ammunition when looting",
-          "detailStatus": "complete"
-        },
-        {
           "id": 32,
           "name": "Gold King Sprite",
           "rarity": "special",
-          "chancePercent": 3,
-          "chanceLabel": "3%",
+          "chancePercent": 2.25,
+          "chanceLabel": "2.25%",
           "starter": false,
           "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_King_Gold_ui_L.png",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 2.25,
+              "label": "2.25%"
+            },
+            "rareChest": {
+              "percent": 0.7875,
+              "label": "0.7875%"
+            },
+            "chest": {
+              "percent": 0.225,
+              "label": "0.225%"
+            },
+            "supplyDrop": {
+              "percent": 0.7875,
+              "label": "0.7875%"
+            }
+          },
           "variant": "Gold",
           "summonCost": 6000,
           "effectText": "Your Pickaxe deals more damage.",
           "specialEffectText": "Gain bonus XP from eliminations",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 30,
+          "name": "Gummy King Sprite",
+          "rarity": "special",
+          "chancePercent": 0.03,
+          "chanceLabel": "0.03%",
+          "starter": false,
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_King_Candy_ui_L.png",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0.03,
+              "label": "0.03%"
+            },
+            "rareChest": {
+              "percent": 0.0105,
+              "label": "0.0105%"
+            },
+            "chest": {
+              "percent": 0.003,
+              "label": "0.003%"
+            },
+            "supplyDrop": {
+              "percent": 0.0105,
+              "label": "0.0105%"
+            }
+          },
+          "variant": "Candy",
+          "summonCost": 6000,
+          "effectText": "Your Pickaxe deals more damage.",
+          "specialEffectText": "Gain 10% more Sprite Dust upon Extraction",
           "detailStatus": "complete"
         }
       ]
@@ -526,55 +846,95 @@
           "id": 33,
           "name": "Zero Point Sprite",
           "rarity": "mythic",
-          "chancePercent": 6.96,
-          "chanceLabel": "6.96%",
+          "chancePercent": 1.044,
+          "chanceLabel": "1.044%",
           "starter": false,
           "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_ZeroPoint_ui_L.png",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 1.044,
+              "label": "1.044%"
+            },
+            "rareChest": {
+              "percent": 0.3654,
+              "label": "0.3654%"
+            },
+            "chest": {
+              "percent": 0.1044,
+              "label": "0.1044%"
+            },
+            "supplyDrop": {
+              "percent": 0.3654,
+              "label": "0.3654%"
+            }
+          },
           "variant": "Base",
           "summonCost": 7500,
           "effectText": "Spawn a Shield Bubble Jr. when you use a healing item on yourself (excluding splashes and grenades).",
           "detailStatus": "complete"
         },
         {
-          "id": 34,
-          "name": "Gummy Zero Point Sprite",
-          "rarity": "special",
-          "chancePercent": 0.04,
-          "chanceLabel": "0.04%",
-          "starter": false,
-          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_ZeroPoint_Candy_ui_L.png",
-          "variant": "Candy",
-          "summonCost": 15000,
-          "effectText": "Spawn a Shield Bubble Jr. when you use a healing item on yourself (excluding splashes and grenades).",
-          "specialEffectText": "Gain 10% more Sprite Dust upon Extraction",
-          "detailStatus": "complete"
-        },
-        {
-          "id": 35,
-          "name": "Galaxy Zero Point Sprite",
-          "rarity": "special",
-          "chancePercent": 0,
-          "chanceLabel": "0%",
-          "starter": false,
-          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_ZeroPoint_Galaxy_ui_L.png",
-          "variant": "Galaxy",
-          "summonCost": 15000,
-          "effectText": "Spawn a Shield Bubble Jr. when you use a healing item on yourself (excluding splashes and grenades).",
-          "specialEffectText": "Gain 20% more Ammunition when looting",
-          "detailStatus": "complete"
-        },
-        {
           "id": 36,
           "name": "Gold Zero Point Sprite",
           "rarity": "special",
-          "chancePercent": 3,
-          "chanceLabel": "3%",
+          "chancePercent": 0.45,
+          "chanceLabel": "0.45%",
           "starter": false,
           "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_ZeroPoint_Gold_ui_L.png",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0.45,
+              "label": "0.45%"
+            },
+            "rareChest": {
+              "percent": 0.1575,
+              "label": "0.1575%"
+            },
+            "chest": {
+              "percent": 0.045,
+              "label": "0.045%"
+            },
+            "supplyDrop": {
+              "percent": 0.1575,
+              "label": "0.1575%"
+            }
+          },
           "variant": "Gold",
           "summonCost": 15000,
           "effectText": "Spawn a Shield Bubble Jr. when you use a healing item on yourself (excluding splashes and grenades).",
           "specialEffectText": "Gain bonus XP from eliminations",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 34,
+          "name": "Gummy Zero Point Sprite",
+          "rarity": "special",
+          "chancePercent": 0.006,
+          "chanceLabel": "0.006%",
+          "starter": false,
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_ZeroPoint_Candy_ui_L.png",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0.006,
+              "label": "0.006%"
+            },
+            "rareChest": {
+              "percent": 0.0021,
+              "label": "0.0021%"
+            },
+            "chest": {
+              "percent": 0.0006,
+              "label": "0.0006%"
+            },
+            "supplyDrop": {
+              "percent": 0.0021,
+              "label": "0.0021%"
+            }
+          },
+          "variant": "Candy",
+          "summonCost": 15000,
+          "effectText": "Spawn a Shield Bubble Jr. when you use a healing item on yourself (excluding splashes and grenades).",
+          "specialEffectText": "Gain 10% more Sprite Dust upon Extraction",
           "detailStatus": "complete"
         }
       ]
@@ -590,55 +950,95 @@
           "id": 37,
           "name": "Demon Sprite",
           "rarity": "epic",
-          "chancePercent": 6.96,
-          "chanceLabel": "6.96%",
+          "chancePercent": 5.22,
+          "chanceLabel": "5.22%",
           "starter": false,
           "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_RedDemon_Default_L.png",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 5.22,
+              "label": "5.22%"
+            },
+            "rareChest": {
+              "percent": 1.827,
+              "label": "1.827%"
+            },
+            "chest": {
+              "percent": 0.522,
+              "label": "0.522%"
+            },
+            "supplyDrop": {
+              "percent": 1.827,
+              "label": "1.827%"
+            }
+          },
           "variant": "Base",
           "summonCost": 3000,
           "effectText": "Siphon some health and shields when you eliminate an opponent.",
           "detailStatus": "complete"
         },
         {
-          "id": 38,
-          "name": "Gummy Demon Sprite",
-          "rarity": "special",
-          "chancePercent": 0.04,
-          "chanceLabel": "0.04%",
-          "starter": false,
-          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_RedDemon_Candy_L.png",
-          "variant": "Candy",
-          "summonCost": 6000,
-          "effectText": "Siphon some health and shields when you eliminate an opponent.",
-          "specialEffectText": "Gain 10% more Sprite Dust upon Extraction",
-          "detailStatus": "complete"
-        },
-        {
-          "id": 39,
-          "name": "Galaxy Demon Sprite",
-          "rarity": "special",
-          "chancePercent": 0,
-          "chanceLabel": "0%",
-          "starter": false,
-          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_RedDemon_Galaxy_L.png",
-          "variant": "Galaxy",
-          "summonCost": 6000,
-          "effectText": "Siphon some health and shields when you eliminate an opponent.",
-          "specialEffectText": "Gain 20% more Ammunition when looting",
-          "detailStatus": "complete"
-        },
-        {
           "id": 40,
           "name": "Gold Demon Sprite",
           "rarity": "special",
-          "chancePercent": 3,
-          "chanceLabel": "3%",
+          "chancePercent": 2.25,
+          "chanceLabel": "2.25%",
           "starter": false,
           "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_RedDemon_Gold_L.png",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 2.25,
+              "label": "2.25%"
+            },
+            "rareChest": {
+              "percent": 0.7875,
+              "label": "0.7875%"
+            },
+            "chest": {
+              "percent": 0.225,
+              "label": "0.225%"
+            },
+            "supplyDrop": {
+              "percent": 0.7875,
+              "label": "0.7875%"
+            }
+          },
           "variant": "Gold",
           "summonCost": 6000,
           "effectText": "Siphon some health and shields when you eliminate an opponent.",
           "specialEffectText": "Gain bonus XP from eliminations",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 38,
+          "name": "Gummy Demon Sprite",
+          "rarity": "special",
+          "chancePercent": 0.03,
+          "chanceLabel": "0.03%",
+          "starter": false,
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_RedDemon_Candy_L.png",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0.03,
+              "label": "0.03%"
+            },
+            "rareChest": {
+              "percent": 0.0105,
+              "label": "0.0105%"
+            },
+            "chest": {
+              "percent": 0.003,
+              "label": "0.003%"
+            },
+            "supplyDrop": {
+              "percent": 0.0105,
+              "label": "0.0105%"
+            }
+          },
+          "variant": "Candy",
+          "summonCost": 6000,
+          "effectText": "Siphon some health and shields when you eliminate an opponent.",
+          "specialEffectText": "Gain 10% more Sprite Dust upon Extraction",
           "detailStatus": "complete"
         }
       ]
@@ -654,10 +1054,28 @@
           "id": 41,
           "name": "Burnt Peanut",
           "rarity": "mythic",
-          "chancePercent": 10,
-          "chanceLabel": "10%",
+          "chancePercent": 1.5,
+          "chanceLabel": "1.5%",
           "starter": false,
           "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_BurntPeanut_ui_L.png",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 1.5,
+              "label": "1.5%"
+            },
+            "rareChest": {
+              "percent": 0.525,
+              "label": "0.525%"
+            },
+            "chest": {
+              "percent": 0.15,
+              "label": "0.15%"
+            },
+            "supplyDrop": {
+              "percent": 0.525,
+              "label": "0.525%"
+            }
+          },
           "variant": "Base",
           "summonCost": 7500,
           "effectText": "Goop! When eliminating players, you may find more loot. Sometimes mythic!",
@@ -665,5 +1083,6 @@
         }
       ]
     }
-  ]
+  ],
+  "contentFingerprint": "3d9647d5b1e3c50a80e396f632bf57feed3f8d99298d28a245ee6f02d84f0e42"
 }

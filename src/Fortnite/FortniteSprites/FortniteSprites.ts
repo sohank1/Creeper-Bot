@@ -5,19 +5,21 @@ import {
     CacheType,
     Client,
     CommandInteraction,
+    Message,
     MessageActionRow,
     MessageAttachment,
     MessageButton,
     MessageEmbed,
     MessageSelectMenu,
     SelectMenuInteraction,
-    User
+    User,
 } from "discord.js";
 import axios from "axios";
 import Fuse from "fuse.js";
 import * as fs from "fs";
 import * as path from "path";
-import type { Browser } from "puppeteer";
+import * as crypto from "crypto";
+import type { Browser, Page } from "puppeteer";
 import https from "https";
 import { fetchSpriteData, SpriteDataFile, SpriteFamily, SpriteRarity, SpriteVariant, SpriteVariantName, stableSpriteDataJson, validateSpriteData } from "./spriteDataSource";
 
@@ -32,6 +34,7 @@ type SpriteSearchItem = {
     searchable: string;
     starter: boolean;
     priority: number;
+    sortId: number;
 };
 
 type SpriteBrowserState = {
@@ -48,11 +51,62 @@ type SpriteSearchIntent =
     | { kind: "family"; familyKey: string }
     | { kind: "variant"; variantId: number };
 
+type SpriteViewState =
+    | { kind: "overview"; state: SpriteBrowserState }
+    | { kind: "family"; familyKey: string }
+    | { kind: "detail"; familyKey: string; variantId: number };
+
+type SpriteAuthor = {
+    name: string;
+    iconURL?: string;
+};
+
+type SpriteSpawnRateEntry = {
+    key: string;
+    label: string;
+    percent: number;
+    display: string;
+    priority: number;
+};
+
+type SpriteMessageState = {
+    messageId: string;
+    channelId: string;
+    ownerId: string;
+    author: SpriteAuthor;
+    view: SpriteViewState;
+    viewVersion: number;
+    editToken: number;
+    refreshGeneration: number | null;
+    updatedAt: number;
+};
+
+type SpriteSyncResult = {
+    changed: boolean;
+    syncedAt: string;
+};
+
+type RenderedImageCacheEntry = {
+    buffer: Buffer;
+    bytes: number;
+};
+
+type SpriteAssetCacheEntry = {
+    src: string;
+    bytes: number;
+};
+
+type PendingRenderPageAcquire = {
+    resolve: (page: Page) => void;
+    reject: (error: Error) => void;
+};
+
 const DATA_PATH = path.join(process.cwd(), "src", "Fortnite", "FortniteSprites", "spriteData.json");
 const TOKENS_PATH = path.join(process.cwd(), "src", "Fortnite", "FortniteSprites", "tokens.css");
 const DUST_ICON_PATH = path.join(process.cwd(), "assets", "sprite-dust.png");
+const SPRITE_ASSET_CACHE_DIR = path.join(process.cwd(), ".cache", "fortnite-sprites", "assets");
 const appVersion = `v${require("../../../package.json").version}`;
-const IMAGE_HTTPS_AGENT = new https.Agent({ rejectUnauthorized: false });
+const IMAGE_HTTPS_AGENT = new https.Agent({ keepAlive: true, maxSockets: 12 });
 const RARITY_ORDER: SpriteRarity[] = ["rare", "epic", "legendary", "mythic", "special"];
 const RARITY_HEX_COLORS: Record<SpriteRarity, string> = {
     rare: "#3da5ff",
@@ -68,17 +122,39 @@ const RARITY_CSS_COLORS: Record<SpriteRarity, string> = {
     mythic: "var(--rarity-mythic)",
     special: "var(--rarity-special)"
 };
+const RENDER_PAGE_POOL_SIZE = 3;
+const MAX_RENDERED_IMAGE_CACHE_BYTES = 96 * 1024 * 1024;
+const MAX_SPRITE_ASSET_CACHE_BYTES = 32 * 1024 * 1024;
+const SPRITE_IMAGE_PREWARM_CONCURRENCY = 6;
 export class FortniteSprites {
     private _data: SpriteDataFile | null = null;
     private fuse: Fuse<SpriteSearchItem> | null = null;
     private searchItems: SpriteSearchItem[] = [];
     private isSyncingSprites = false;
     private refreshTimer?: NodeJS.Timer;
-    private imageCache = new Map<string, Buffer>();
+    private imageCache = new Map<string, RenderedImageCacheEntry>();
+    private imageCacheBytes = 0;
+    private pendingImageRenders = new Map<string, Promise<Buffer>>();
+    private spriteAssetCache = new Map<string, SpriteAssetCacheEntry>();
+    private spriteAssetCacheBytes = 0;
+    private pendingSpriteAssetLoads = new Map<string, Promise<string | null>>();
     private lastSuccessfulSyncAt: string | null = null;
     private lastSyncError: string | null = null;
     private browser: Browser | null = null;
     private browserPromise: Promise<Browser> | null = null;
+    private renderPagePool: Page[] = [];
+    private liveRenderPages = new Set<Page>();
+    private pendingRenderPageAcquires: PendingRenderPageAcquire[] = [];
+    private runtimeRefreshPromise: Promise<void> | null = null;
+    private activeRefreshGeneration: number | null = null;
+    private refreshGenerationCounter = 0;
+    private lastRuntimeRefreshQueuedAt = 0;
+    private readonly runtimeRefreshCooldownMs = 5 * 60 * 1000;
+    private readonly refreshEditConcurrency = 3;
+    private readonly maxTrackedMessages = 80;
+    private trackedSpriteMessages = new Map<string, SpriteMessageState>();
+    private messageEditPipelines = new Map<string, Promise<void>>();
+    private readonly renderTokensCss = fs.readFileSync(TOKENS_PATH, "utf8");
     private dustIconDataUrl = fs.existsSync(DUST_ICON_PATH)
         ? `data:image/png;base64,${fs.readFileSync(DUST_ICON_PATH).toString("base64")}`
         : null;
@@ -94,7 +170,7 @@ export class FortniteSprites {
 
         this.client.on("interactionCreate", (i) => {
             if (i.isAutocomplete() && i.commandName === "fortnite" && i.options.getSubcommand(false) === "sprites") {
-                return void this.resolveAutocomplete(i);
+                return void this.resolveAutocompleteLatest(i);
             }
             if (i.isCommand() && i.commandName === "fortnite" && i.options.getSubcommand(false) === "sprites") {
                 return void this.replySprites(i);
@@ -122,7 +198,7 @@ export class FortniteSprites {
             validateSpriteData(parsed);
             this._data = parsed;
             this.buildSearchIndex();
-            this.imageCache.clear();
+            this.clearRenderCaches();
             console.log(`[FortniteSprites] Loaded ${this.getAllVariants().length} sprites across ${parsed.families.length} families.`);
         } catch (e) {
             console.error("[FortniteSprites] Failed to load spriteData.json", e);
@@ -136,9 +212,15 @@ export class FortniteSprites {
         return Date.now() - fetchedAt > 24 * 60 * 60 * 1000;
     }
 
-    private async syncLatestSprites() {
-        if (this.isSyncingSprites) return;
+    private async syncLatestSprites(): Promise<SpriteSyncResult> {
+        if (this.isSyncingSprites) {
+            return {
+                changed: false,
+                syncedAt: this.lastSuccessfulSyncAt || new Date().toISOString()
+            };
+        }
         this.isSyncingSprites = true;
+        let changed = false;
 
         try {
             const latest = await fetchSpriteData();
@@ -150,22 +232,390 @@ export class FortniteSprites {
                 fs.mkdirSync(path.dirname(DATA_PATH), { recursive: true });
                 fs.writeFileSync(DATA_PATH, latestJson, "utf8");
                 this.loadData();
+                changed = true;
                 console.log("[FortniteSprites] Sprite data cache updated.");
             }
 
             this.lastSuccessfulSyncAt = new Date().toISOString();
             this.lastSyncError = null;
+            return {
+                changed,
+                syncedAt: this.lastSuccessfulSyncAt
+            };
         } catch (e: any) {
             this.lastSyncError = e?.message || String(e);
             console.error("[FortniteSprites] Failed to sync sprite data:", this.lastSyncError);
+            return {
+                changed: false,
+                syncedAt: new Date().toISOString()
+            };
         } finally {
             this.isSyncingSprites = false;
         }
     }
 
-    private buildSearchIndex() {
-        if (!this._data) return;
+    private normalizeWhitespace(value: string | null | undefined) {
+        return String(value || "").replace(/\s+/g, " ").trim();
+    }
 
+    private normalizePercentValue(value: unknown) {
+        if (typeof value === "number" && Number.isFinite(value)) return value;
+        if (typeof value === "string") {
+            const parsed = parseFloat(value.replace("%", "").replace(/,/g, "").trim());
+            return Number.isFinite(parsed) ? parsed : null;
+        }
+        return null;
+    }
+
+    private formatPercentLabel(percent: number) {
+        if (!Number.isFinite(percent)) return "Unknown";
+        if (percent === 0) return "0%";
+        const fixed = percent >= 10 || Number.isInteger(percent) ? percent.toString() : percent.toFixed(percent < 1 ? 2 : 1);
+        return `${fixed.replace(/\.0+$/, "").replace(/(\.\d*?)0+$/, "$1")}%`;
+    }
+
+    private spawnRatePriority(key: string) {
+        if (key === "spriteChest") return 0;
+        if (key === "rareChest") return 1;
+        if (key === "chest") return 2;
+        if (key === "supplyDrop") return 3;
+        if (key === "global") return 4;
+        return 2;
+    }
+
+    private normalizeSpawnRateKey(key: string | undefined) {
+        const rawKey = String(key || "").trim();
+        if (!rawKey) return "global";
+        const normalized = rawKey
+            .replace(/[_\s]+/g, "-")
+            .replace(/[^\w-]+/g, "")
+            .toLowerCase();
+        if (normalized === "sprite-chest" || normalized === "spritechest") return "spriteChest";
+        if (normalized === "rare-chest" || normalized === "rarechest") return "rareChest";
+        if (normalized === "supply-drop" || normalized === "supplydrop") return "supplyDrop";
+        if (normalized === "global" || normalized === "overall" || normalized === "default") return "global";
+        return normalized.replace(/-([a-z])/g, (_, char: string) => char.toUpperCase());
+    }
+
+    private spawnRateLabelForKey(key: string) {
+        const labels: Record<string, string> = {
+            spriteChest: "Sprite Chest",
+            rareChest: "Rare Chest",
+            chest: "Chest",
+            supplyDrop: "Supply Drop",
+            global: "Global"
+        };
+        if (labels[key]) return labels[key];
+        return this.titleCase(key.replace(/([a-z])([A-Z])/g, "$1 $2"));
+    }
+
+    private isPercentLikeLabel(value: unknown) {
+        return typeof value === "string" && value.includes("%") && this.normalizePercentValue(value) != null;
+    }
+
+    private createSpawnRateEntry(rawKey: string | undefined, rawValue: unknown): SpriteSpawnRateEntry | null {
+        if (rawValue == null) return null;
+
+        const objectValue = typeof rawValue === "object" ? rawValue as Record<string, unknown> : null;
+        const key = this.normalizeSpawnRateKey(
+            objectValue?.key as string
+            || objectValue?.type as string
+            || objectValue?.name as string
+            || rawKey
+        );
+        const percent = this.normalizePercentValue(
+            objectValue?.percent
+            ?? objectValue?.chancePercent
+            ?? objectValue?.rate
+            ?? objectValue?.value
+            ?? rawValue
+        );
+
+        if (percent == null) return null;
+
+        const display = this.normalizeWhitespace(
+            typeof rawValue === "string"
+                ? rawValue
+                : objectValue?.display as string
+                || objectValue?.formatted as string
+                || objectValue?.chanceLabel as string
+                || objectValue?.label as string
+        ) || this.formatPercentLabel(percent);
+
+        const objectLabel = this.normalizeWhitespace(objectValue?.label as string);
+        return {
+            key,
+            label: objectLabel && !this.isPercentLikeLabel(objectLabel) ? objectLabel : this.spawnRateLabelForKey(key),
+            percent,
+            display,
+            priority: this.spawnRatePriority(key)
+        };
+    }
+
+    private getSpawnRateEntries(variant: SpriteVariant): SpriteSpawnRateEntry[] {
+        const rawVariant = variant as SpriteVariant & Record<string, unknown>;
+        const entries = new Map<string, SpriteSpawnRateEntry>();
+        const pushEntry = (rawKey: string | undefined, rawValue: unknown) => {
+            const entry = this.createSpawnRateEntry(rawKey, rawValue);
+            if (!entry) return;
+            const existing = entries.get(entry.key);
+            if (!existing || entry.priority < existing.priority) {
+                entries.set(entry.key, entry);
+            }
+        };
+
+        const rawSpawnRates = rawVariant.spawnRates;
+        if (Array.isArray(rawSpawnRates)) {
+            for (const rate of rawSpawnRates) {
+                pushEntry(undefined, rate);
+            }
+        } else if (rawSpawnRates && typeof rawSpawnRates === "object") {
+            for (const [key, value] of Object.entries(rawSpawnRates as Record<string, unknown>)) {
+                pushEntry(key, value);
+            }
+        }
+
+        const topLevelStructuredEntries: Array<[string, unknown]> = [
+            ["spriteChest", rawVariant.spriteChestSpawnRate ?? rawVariant.spriteChestRate ?? rawVariant.spriteChestChance ?? rawVariant.spriteChest],
+            ["global", rawVariant.globalSpawnRate ?? rawVariant.globalRate ?? rawVariant.globalChance]
+        ];
+
+        for (const [key, value] of topLevelStructuredEntries) {
+            pushEntry(key, value);
+        }
+
+        if (!entries.has("spriteChest") && (rawVariant.spriteChestChancePercent != null || rawVariant.spriteChestChanceLabel != null)) {
+            pushEntry("spriteChest", {
+                chancePercent: rawVariant.spriteChestChancePercent,
+                chanceLabel: rawVariant.spriteChestChanceLabel
+            });
+        }
+
+        if (!entries.has("global") && (rawVariant.globalChancePercent != null || rawVariant.globalChanceLabel != null)) {
+            pushEntry("global", {
+                chancePercent: rawVariant.globalChancePercent,
+                chanceLabel: rawVariant.globalChanceLabel
+            });
+        }
+
+        if (entries.size === 0 && (variant.chanceLabel || Number.isFinite(variant.chancePercent))) {
+            pushEntry("global", {
+                chancePercent: variant.chancePercent,
+                chanceLabel: variant.chanceLabel
+            });
+        }
+
+        return Array.from(entries.values())
+            .sort((a, b) => a.priority - b.priority || a.percent - b.percent || a.label.localeCompare(b.label));
+    }
+
+    private getPrimarySpawnRate(variant: SpriteVariant) {
+        const entries = this.getSpawnRateEntries(variant);
+        return entries.find(entry => entry.key === "spriteChest")
+            || entries.find(entry => entry.key === "global")
+            || entries[0]
+            || null;
+    }
+
+    private getLowestSpawnRate(variant: SpriteVariant) {
+        const entries = this.getSpawnRateEntries(variant).filter(entry => entry.percent > 0);
+        if (entries.length === 0) return null;
+        return [...entries].sort((a, b) => a.percent - b.percent || a.priority - b.priority)[0];
+    }
+
+    private findRarestVariant() {
+        const variantsWithRates = this.getAllVariants()
+            .map(variant => ({
+                variant,
+                lowestRate: this.getLowestSpawnRate(variant) || this.getPrimarySpawnRate(variant)
+            }))
+            .filter((entry): entry is { variant: SpriteVariant; lowestRate: SpriteSpawnRateEntry } => !!entry.lowestRate);
+
+        return variantsWithRates
+            .sort((a, b) =>
+                a.lowestRate.percent - b.lowestRate.percent
+                || a.lowestRate.priority - b.lowestRate.priority
+                || a.variant.id - b.variant.id
+            )[0]?.variant;
+    }
+
+    private maybeQueueRuntimeRefresh() {
+        if (this.runtimeRefreshPromise) return this.activeRefreshGeneration;
+        if (Date.now() - this.lastRuntimeRefreshQueuedAt < this.runtimeRefreshCooldownMs) return null;
+
+        this.lastRuntimeRefreshQueuedAt = Date.now();
+        const generation = ++this.refreshGenerationCounter;
+        this.activeRefreshGeneration = generation;
+        this.runtimeRefreshPromise = this.runRuntimeRefresh(generation)
+            .catch((error) => {
+                console.error("[FortniteSprites] Runtime refresh queue failed:", error);
+            })
+            .finally(() => {
+                this.clearRefreshGeneration(generation);
+                if (this.activeRefreshGeneration === generation) {
+                    this.activeRefreshGeneration = null;
+                }
+                this.runtimeRefreshPromise = null;
+            });
+
+        return generation;
+    }
+
+    private async runRuntimeRefresh(generation: number) {
+        // Always perform the full cooldown-gated sync so detail-page-only changes
+        // are picked up even when the main sprite list page has not changed.
+        const syncResult = await this.syncLatestSprites();
+        if (syncResult?.changed) {
+            await this.refreshTrackedMessages(generation, syncResult.syncedAt);
+        }
+    }
+
+    private clearRefreshGeneration(generation: number) {
+        for (const [messageId, state] of this.trackedSpriteMessages.entries()) {
+            if (state.refreshGeneration !== generation) continue;
+            this.trackedSpriteMessages.set(messageId, {
+                ...state,
+                refreshGeneration: null
+            });
+        }
+    }
+
+    private pruneTrackedMessages() {
+        if (this.trackedSpriteMessages.size <= this.maxTrackedMessages) return;
+        const oldest = [...this.trackedSpriteMessages.values()]
+            .sort((a, b) => a.updatedAt - b.updatedAt)
+            .slice(0, this.trackedSpriteMessages.size - this.maxTrackedMessages);
+        for (const state of oldest) {
+            this.trackedSpriteMessages.delete(state.messageId);
+        }
+    }
+
+    private queueMessageEdit(messageId: string, task: () => Promise<void>) {
+        const previous = this.messageEditPipelines.get(messageId) || Promise.resolve();
+        const next = previous
+            .catch(() => { })
+            .then(task)
+            .finally(() => {
+                if (this.messageEditPipelines.get(messageId) === next) {
+                    this.messageEditPipelines.delete(messageId);
+                }
+            });
+        this.messageEditPipelines.set(messageId, next);
+        return next;
+    }
+
+    private beginTrackedMessageTransition(message: Pick<Message, "id" | "channelId">, ownerId: string, author: SpriteAuthor, view: SpriteViewState, refreshGeneration: number | null) {
+        const previous = this.trackedSpriteMessages.get(message.id);
+        const nextState: SpriteMessageState = {
+            messageId: message.id,
+            channelId: message.channelId,
+            ownerId,
+            author,
+            view,
+            viewVersion: (previous?.viewVersion || 0) + 1,
+            editToken: (previous?.editToken || 0) + 1,
+            refreshGeneration: refreshGeneration ?? previous?.refreshGeneration ?? this.activeRefreshGeneration ?? null,
+            updatedAt: Date.now()
+        };
+        this.trackedSpriteMessages.set(message.id, nextState);
+        this.pruneTrackedMessages();
+        return nextState;
+    }
+
+    private rememberSpriteMessage(message: Message, ownerId: string, author: SpriteAuthor, view: SpriteViewState, refreshGeneration: number | null) {
+        const previous = this.trackedSpriteMessages.get(message.id);
+        this.trackedSpriteMessages.set(message.id, {
+            messageId: message.id,
+            channelId: message.channelId,
+            ownerId,
+            author,
+            view,
+            viewVersion: (previous?.viewVersion || 0) + 1,
+            editToken: previous?.editToken || 1,
+            refreshGeneration: refreshGeneration ?? previous?.refreshGeneration ?? this.activeRefreshGeneration ?? null,
+            updatedAt: Date.now()
+        });
+        this.pruneTrackedMessages();
+    }
+
+    private async fetchTrackedMessage(state: SpriteMessageState) {
+        const channel = await this.client.channels.fetch(state.channelId).catch(() => null);
+        if (!channel || !("messages" in channel)) return null;
+        return (channel as any).messages.fetch(state.messageId).catch(() => null) as Promise<Message | null>;
+    }
+
+    private async forEachConcurrent<T>(items: T[], concurrency: number, worker: (item: T) => Promise<void>) {
+        const queue = [...items];
+        const workers = Array.from({ length: Math.max(1, Math.min(concurrency, items.length || 1)) }, async () => {
+            while (queue.length > 0) {
+                const next = queue.shift();
+                if (!next) continue;
+                await worker(next);
+            }
+        });
+        await Promise.all(workers);
+    }
+
+    private async refreshTrackedMessages(generation: number, editedAt: string) {
+        const targets = [...this.trackedSpriteMessages.values()].filter(state => state.refreshGeneration === generation);
+        if (targets.length === 0) return;
+
+        await this.forEachConcurrent(targets, this.refreshEditConcurrency, async (state) => {
+            const liveState = this.trackedSpriteMessages.get(state.messageId);
+            if (!liveState || liveState.refreshGeneration !== generation) return;
+            const expectedVersion = liveState.viewVersion;
+            const expectedToken = liveState.editToken;
+            const message = await this.fetchTrackedMessage(liveState);
+            if (!message) return;
+
+            const response = await this.generateResponseForView(liveState.view, liveState.ownerId, liveState.author, editedAt);
+            const latestState = this.trackedSpriteMessages.get(state.messageId);
+            if (!latestState || latestState.refreshGeneration !== generation || latestState.viewVersion !== expectedVersion || latestState.editToken !== expectedToken) return;
+
+            await this.queueMessageEdit(state.messageId, async () => {
+                const queuedState = this.trackedSpriteMessages.get(state.messageId);
+                if (!queuedState || queuedState.refreshGeneration !== generation || queuedState.viewVersion !== expectedVersion || queuedState.editToken !== expectedToken) return;
+
+                await message.edit({ ...response, attachments: [] } as any).catch((error) => {
+                    console.warn(`[FortniteSprites] Failed to refresh tracked sprite message ${state.messageId}:`, error);
+                });
+            });
+            const refreshedState = this.trackedSpriteMessages.get(state.messageId);
+            if (refreshedState && refreshedState.viewVersion === expectedVersion && refreshedState.editToken === expectedToken) {
+                this.trackedSpriteMessages.set(state.messageId, {
+                    ...refreshedState,
+                    refreshGeneration: null,
+                    updatedAt: Date.now()
+                });
+            }
+        });
+    }
+
+    private createAuthor(displayName: string, iconURL?: string): SpriteAuthor {
+        return { name: displayName, iconURL };
+    }
+
+    private getAuthorIconURL(user: User | SpriteAuthor) {
+        return "displayAvatarURL" in user ? user.displayAvatarURL({ dynamic: true }) : user.iconURL;
+    }
+
+    private async generateResponseForView(view: SpriteViewState, ownerId: string, author: SpriteAuthor, editedAt?: string) {
+        if (view.kind === "family") {
+            return this.generateFamilyResponse(view.familyKey, ownerId, author, author.name, editedAt);
+        }
+
+        if (view.kind === "detail") {
+            const match = this.findVariant(view.variantId);
+            if (!match || match.family.key !== view.familyKey) {
+                return this.generateOverviewResponse({}, ownerId, author, author.name, editedAt);
+            }
+            return this.generateDetailResponse(match.family, match.variant, ownerId, author, author.name, editedAt);
+        }
+
+        return this.generateOverviewResponse(view.state, ownerId, author, author.name, editedAt);
+    }
+
+    private getFamilyAliases(familyKey?: string) {
         const aliases: Record<string, string[]> = {
             water: ["shield", "shields", "river", "beach"],
             earth: ["loot", "chest", "rare"],
@@ -179,32 +629,147 @@ export class FortniteSprites {
             demon: ["heal", "healing", "siphon", "health", "shield", "elimination"],
             "burnt-peanut": ["heal", "healing", "loot", "mythic", "elimination", "relic"]
         };
+        return familyKey ? aliases[familyKey] || [] : [];
+    }
+
+    private getFamilySearchTokens(familyKey?: string) {
+        const tokens: Record<string, string[]> = {
+            water: ["droplet", "aqua", "blue"],
+            earth: ["leaf", "nature", "green"],
+            fire: ["flame", "heat", "red"],
+            duck: ["bird", "yellow", "quack"],
+            ghost: ["spirit", "haunt", "phantom"],
+            dream: ["sleep", "nap", "cloud"],
+            punk: ["guitar", "rock", "music"],
+            king: ["crown", "royal", "gold"],
+            "zero-point": ["portal", "rift", "orb"],
+            demon: ["devil", "horns", "hellfire"],
+            "burnt-peanut": ["peanut", "nut", "toast"]
+        };
+
+        if (!familyKey) return [];
+        return [this.familyEmoji(familyKey), familyKey, ...(tokens[familyKey] || []), ...this.getFamilyAliases(familyKey)];
+    }
+
+    private getVariantSearchTokens(variant?: SpriteVariantName) {
+        const tokens: Record<SpriteVariantName, string[]> = {
+            Base: ["starter", "default", "seed", "green"],
+            Candy: ["gummy", "candy", "sweet", "pink"],
+            Galaxy: ["space", "cosmic", "stars", "purple"],
+            Gold: ["gold", "shiny", "crown", "yellow"]
+        };
+
+        if (!variant) return [];
+        return [this.variantEmoji(variant), variant, this.variantLabel(variant), ...(tokens[variant] || [])];
+    }
+
+    private getRaritySearchTokens(rarity?: SpriteRarity) {
+        const tokens: Record<SpriteRarity, string[]> = {
+            rare: ["blue"],
+            epic: ["purple"],
+            legendary: ["orange"],
+            mythic: ["golden", "yellow"],
+            special: ["teal", "unique"]
+        };
+
+        if (!rarity) return [];
+        return [this.rarityEmoji(rarity), rarity, this.titleCase(rarity), ...(tokens[rarity] || [])];
+    }
+
+    private buildSearchText(...parts: Array<string | number | null | undefined | string[]>) {
+        return parts
+            .flatMap(part => Array.isArray(part) ? part : [part])
+            .map(part => this.normalizeWhitespace(part == null ? "" : String(part)))
+            .filter(Boolean)
+            .join(" ")
+            .toLowerCase();
+    }
+
+    private expandSearchQuery(query: string) {
+        const extras: string[] = [];
+
+        for (const family of this._data?.families || []) {
+            if (query.includes(this.familyEmoji(family.key))) extras.push(...this.getFamilySearchTokens(family.key));
+        }
+
+        for (const variant of this.getVariantNames()) {
+            if (query.includes(this.variantEmoji(variant))) extras.push(...this.getVariantSearchTokens(variant));
+        }
+
+        for (const rarity of RARITY_ORDER) {
+            if (query.includes(this.rarityEmoji(rarity))) extras.push(...this.getRaritySearchTokens(rarity));
+        }
+
+        return this.buildSearchText(query, extras);
+    }
+
+    private getDirectVariantIdMatches(query: string) {
+        const trimmed = query.trim();
+        const prefixedMatch = trimmed.match(/^(?:search:\s*)?(?:variant|id)\s*:\s*#?(\d+)$/i);
+        const numericOnly = prefixedMatch ? prefixedMatch[1] : trimmed.replace(/^#/, "");
+        if (!/^\d+$/.test(numericOnly)) return [];
+
+        return this.searchItems
+            .filter(item => item.type === "variant" && item.variantId != null && String(item.variantId).includes(numericOnly))
+            .sort((a, b) => {
+                const aId = String(a.variantId);
+                const bId = String(b.variantId);
+                const rank = (id: string) => id === numericOnly ? 0 : id.startsWith(numericOnly) ? 1 : 2;
+                return rank(aId) - rank(bId) || aId.length - bId.length || b.sortId - a.sortId;
+            });
+    }
+
+    private parseVariantIdQuery(value: string | undefined) {
+        const rawValue = String(value || "").trim();
+        if (!rawValue) return null;
+
+        const directNumeric = rawValue.replace(/^#/, "");
+        if (/^\d+$/.test(directNumeric)) {
+            const id = parseInt(directNumeric, 10);
+            return this.findVariant(id) ? id : null;
+        }
+
+        const prefixedMatch = rawValue.match(/^(?:search:\s*)?(?:variant|id)\s*:\s*#?(\d+)$/i);
+        if (!prefixedMatch) return null;
+
+        const id = parseInt(prefixedMatch[1], 10);
+        return this.findVariant(id) ? id : null;
+    }
+
+    private buildSearchIndex() {
+        if (!this._data) return;
 
         const items: SpriteSearchItem[] = [];
 
         for (const family of this._data.families) {
-            const familyAliases = aliases[family.key] || [];
-            const familyVariants = family.variants.map(v => `${v.name} ${this.variantLabel(v.variant)} ${v.rarity}`).join(" ");
+            const familyAliases = this.getFamilyAliases(family.key);
+            const familyVariants = family.variants
+                .map(v => `${v.name} ${this.variantLabel(v.variant)} ${v.rarity} ${this.formatChance(v)} #${v.id}`)
+                .join(" ");
 
             items.push({
                 type: "family",
                 name: family.displayName,
                 value: `family:${family.key}`,
                 familyKey: family.key,
-                searchable: [
+                searchable: this.buildSearchText(
                     family.displayName,
                     family.key,
+                    this.getFamilySearchTokens(family.key),
                     family.effectSummary,
                     family.levelScaling,
                     family.location,
                     familyVariants,
-                    familyAliases.join(" ")
-                ].join(" "),
+                    familyAliases,
+                    family.variants.map(variant => `#${variant.id} ${variant.id}`).join(" ")
+                ),
                 starter: family.variants.some(v => v.starter),
-                priority: family.variants.some(v => v.starter) ? 0 : 1
+                priority: family.variants.some(v => v.starter) ? 0 : 1,
+                sortId: Math.max(...family.variants.map(variant => variant.id))
             });
 
             for (const variant of family.variants) {
+                const spawnRates = this.getSpawnRateEntries(variant).map(rate => `${rate.label} ${rate.display}`).join(" ");
                 items.push({
                     type: "variant",
                     name: variant.name,
@@ -213,22 +778,29 @@ export class FortniteSprites {
                     variantId: variant.id,
                     rarity: variant.rarity,
                     variant: variant.variant,
-                    searchable: [
+                    searchable: this.buildSearchText(
                         variant.name,
+                        `#${variant.id}`,
+                        variant.id.toString(),
                         family.displayName,
                         family.key,
+                        this.getFamilySearchTokens(family.key),
+                        this.getVariantSearchTokens(variant.variant),
+                        this.getRaritySearchTokens(variant.rarity),
                         variant.rarity,
                         this.variantLabel(variant.variant),
                         variant.variant,
-                        variant.chanceLabel,
+                        this.formatChance(variant),
+                        spawnRates,
                         variant.summonCost.toString(),
                         family.location,
                         family.effectSummary,
                         family.levelScaling,
-                        familyAliases.join(" ")
-                    ].join(" "),
+                        familyAliases
+                    ),
                     starter: variant.starter,
-                    priority: variant.starter ? 0 : variant.variant === "Base" ? 1 : 2
+                    priority: variant.starter ? 0 : variant.variant === "Base" ? 1 : 2,
+                    sortId: variant.id
                 });
             }
         }
@@ -266,6 +838,8 @@ export class FortniteSprites {
     private resolveSearchIntent(value: string | undefined): SpriteSearchIntent {
         const rawValue = String(value || "").trim();
         if (!rawValue) return { kind: "overview", state: {} };
+        const parsedVariantId = this.parseVariantIdQuery(rawValue);
+        if (parsedVariantId) return { kind: "variant", variantId: parsedVariantId };
 
         if (rawValue === "browse:all") return { kind: "overview", state: {} };
         if (rawValue === "filter:starter") return { kind: "overview", state: { starterOnly: true } };
@@ -278,7 +852,10 @@ export class FortniteSprites {
             return { kind: "overview", state: { variantFilter: variant } };
         }
         if (rawValue.startsWith("search:")) {
-            return { kind: "overview", state: { searchQuery: rawValue.replace("search:", "") } };
+            const searchBody = rawValue.replace(/^search:\s*/i, "");
+            const searchedVariantId = this.parseVariantIdQuery(searchBody);
+            if (searchedVariantId) return { kind: "variant", variantId: searchedVariantId };
+            return { kind: "overview", state: { searchQuery: searchBody } };
         }
 
         if (rawValue.startsWith("family:") || rawValue.startsWith("variant:")) {
@@ -302,7 +879,7 @@ export class FortniteSprites {
         if (exact?.type === "family") return { kind: "family", familyKey: exact.familyKey };
         if (exact?.type === "variant" && exact.variantId) return { kind: "variant", variantId: exact.variantId };
 
-        const best = this.fuse?.search(rawValue)?.[0];
+        const best = this.fuse?.search(this.expandSearchQuery(rawValue))?.[0];
         if (best && (best.score ?? 1) <= 0.08) {
             if (best.item.type === "family") return { kind: "family", familyKey: best.item.familyKey };
             if (best.item.variantId) return { kind: "variant", variantId: best.item.variantId };
@@ -372,6 +949,72 @@ export class FortniteSprites {
         return i.respond(Array.from(deduped.values()).slice(0, 25));
     }
 
+    private resolveAutocompleteLatest(i: AutocompleteInteraction<CacheType>) {
+        const query = String(i.options.getFocused(true).value || "").trim();
+        if (!this._data || !this.fuse) return i.respond([]);
+
+        const choices: { name: string; value: string }[] = [];
+        if (!query) {
+            const newestVariants = this.searchItems
+                .filter(item => item.type === "variant")
+                .sort((a, b) => b.sortId - a.sortId);
+
+            for (const item of newestVariants) {
+                choices.push(this.formatAutocompleteChoice(item));
+                if (choices.length >= 23) break;
+            }
+
+            choices.push(
+                { name: `${this.familyEmoji()} Browse all sprites`, value: "browse:all" },
+                { name: `${this.variantEmoji("Base")} Show starter sprites`, value: "filter:starter" }
+            );
+
+            return i.respond(choices.slice(0, 25));
+        }
+
+        const q = this.expandSearchQuery(query);
+        choices.push({ name: this.truncate(`Search results for "${query}"`, 100), value: `search:${this.truncate(query, 93)}` });
+
+        if (["starter", "starters", "free"].some(term => term.startsWith(q) || q.includes(term))) {
+            choices.push({ name: `${this.variantEmoji("Base")} Show starter sprites`, value: "filter:starter" });
+        }
+
+        for (const rarity of RARITY_ORDER) {
+            if (rarity.includes(q) || q.includes(rarity)) {
+                choices.push({ name: `${this.rarityEmoji(rarity)} Show ${this.titleCase(rarity)} sprites`, value: `filter:rarity:${rarity}` });
+            }
+        }
+
+        for (const variant of this.getVariantNames()) {
+            const label = this.variantLabel(variant);
+            if (variant.toLowerCase().includes(q) || label.toLowerCase().includes(q) || q.includes(variant.toLowerCase()) || q.includes(label.toLowerCase())) {
+                choices.push({ name: `${this.variantEmoji(variant)} Show ${label} variants`, value: `filter:variant:${variant}` });
+            }
+        }
+
+        const directIdMatches = this.getDirectVariantIdMatches(query);
+        const results = [...directIdMatches, ...this.fuse.search(q).map(result => result.item)];
+        const unique = new Map<string, SpriteSearchItem>();
+        for (const item of results) {
+            if (!unique.has(item.value)) unique.set(item.value, item);
+        }
+
+        const ranked = Array.from(unique.values())
+            .sort((a, b) => {
+                const aDirect = directIdMatches.some(match => match.value === a.value) ? 0 : 1;
+                const bDirect = directIdMatches.some(match => match.value === b.value) ? 0 : 1;
+                return aDirect - bDirect || a.priority - b.priority || b.sortId - a.sortId || a.name.localeCompare(b.name);
+            })
+            .map(item => this.formatAutocompleteChoice(item));
+
+        const deduped = new Map<string, { name: string; value: string }>();
+        for (const choice of [...choices, ...ranked]) {
+            if (!deduped.has(choice.value)) deduped.set(choice.value, choice);
+        }
+
+        return i.respond(Array.from(deduped.values()).slice(0, 25));
+    }
+
     private async replySprites(i: BaseCommandInteraction<CacheType>) {
         const search = i.options.get("search")?.value as string | undefined;
         await i.deferReply();
@@ -381,24 +1024,30 @@ export class FortniteSprites {
         }
 
         const displayName = await this.getDisplayName(i as CommandInteraction<CacheType>);
+        const author = this.createAuthor(displayName, i.user.displayAvatarURL({ dynamic: true }));
+        const refreshGeneration = this.maybeQueueRuntimeRefresh();
         const result = this.resolveSearchIntent(search);
+        let response: any;
+        let view: SpriteViewState;
 
         if (result.kind === "variant") {
             const match = this.findVariant(result.variantId);
             if (!match) return i.editReply({ content: "I could not find that sprite variant." });
-            const response = await this.generateDetailResponse(match.family, match.variant, i.user.id, i.user as User, displayName);
-            return i.editReply(response as any);
-        }
-
-        if (result.kind === "family") {
+            view = { kind: "detail", familyKey: match.family.key, variantId: match.variant.id };
+            response = await this.generateDetailResponse(match.family, match.variant, i.user.id, i.user as User, displayName);
+        } else if (result.kind === "family") {
             const family = this.findFamily(result.familyKey);
             if (!family) return i.editReply({ content: "I could not find that sprite family." });
-            const response = await this.generateFamilyResponse(family.key, i.user.id, i.user as User, displayName);
-            return i.editReply(response as any);
+            view = { kind: "family", familyKey: family.key };
+            response = await this.generateFamilyResponse(family.key, i.user.id, i.user as User, displayName);
+        } else {
+            view = { kind: "overview", state: result.state };
+            response = await this.generateOverviewResponse(result.state, i.user.id, i.user as User, displayName);
         }
 
-        const response = await this.generateOverviewResponse(result.state, i.user.id, i.user as User, displayName);
-        return i.editReply(response as any);
+        const message = await i.editReply(response as any) as Message;
+        this.rememberSpriteMessage(message, i.user.id, author, view, refreshGeneration);
+        return message;
     }
 
     private getFilteredFamilies(state: SpriteBrowserState): SpriteFamily[] {
@@ -420,24 +1069,23 @@ export class FortniteSprites {
             .filter(family => family.variants.length > 0);
     }
 
-    private buildFooterText() {
+    private buildFooterText(editedAt?: string) {
         const fetchedAt = this._data?.fetchedAt ? new Date(this._data.fetchedAt).toLocaleString("en-US", { timeZone: "America/New_York" }) : "unknown";
         const syncText = this.lastSyncError ? ` | Last sync error: ${this.lastSyncError}` : "";
-        return `${appVersion} | Data fetched ${fetchedAt}${syncText}`;
+        const editedText = editedAt ? ` | Edited ${new Date(editedAt).toLocaleString("en-US", { timeZone: "America/New_York" })}` : "";
+        return `${appVersion} | Data fetched ${fetchedAt}${editedText}${syncText}`;
     }
 
-    private async generateOverviewResponse(state: SpriteBrowserState, ownerId: string, user: User, displayName: string) {
+    private async generateOverviewResponse(state: SpriteBrowserState, ownerId: string, user: User | SpriteAuthor, displayName: string, editedAt?: string) {
         const families = this.getFilteredFamilies(state);
         const image = await this.renderOverviewImage(families, state);
         const attachment = new MessageAttachment(image, "sprites-overview.png");
-        const shownCount = families.reduce((sum, family) => sum + family.variants.length, 0);
         const summary = this.describeOverviewState(state);
 
         const embed = new MessageEmbed()
             .setColor("#2186DB")
-            .setImage("attachment://sprites-overview.png")
-            .setAuthor({ name: displayName, iconURL: user.displayAvatarURL({ dynamic: true }) })
-            .setFooter({ text: this.buildFooterText() })
+            .setAuthor({ name: displayName, iconURL: this.getAuthorIconURL(user) })
+            .setFooter({ text: this.buildFooterText(editedAt) })
             .setTimestamp();
 
         if (summary) embed.setDescription(summary);
@@ -449,7 +1097,7 @@ export class FortniteSprites {
         };
     }
 
-    private async generateFamilyResponse(familyKey: string, ownerId: string, user: User, displayName: string) {
+    private async generateFamilyResponse(familyKey: string, ownerId: string, user: User | SpriteAuthor, displayName: string, editedAt?: string) {
         const family = this.findFamily(familyKey);
         if (!family) return { content: "Sprite family not found.", components: [] };
 
@@ -458,9 +1106,8 @@ export class FortniteSprites {
 
         const embed = new MessageEmbed()
             .setColor(this.getFamilyColor(family) as any)
-            .setImage(`attachment://sprites-family-${family.key}.png`)
-            .setAuthor({ name: displayName, iconURL: user.displayAvatarURL({ dynamic: true }) })
-            .setFooter({ text: this.buildFooterText() })
+            .setAuthor({ name: displayName, iconURL: this.getAuthorIconURL(user) })
+            .setFooter({ text: this.buildFooterText(editedAt) })
             .setTimestamp();
 
         return {
@@ -470,15 +1117,14 @@ export class FortniteSprites {
         };
     }
 
-    private async generateDetailResponse(family: SpriteFamily, variant: SpriteVariant, ownerId: string, user: User, displayName: string) {
+    private async generateDetailResponse(family: SpriteFamily, variant: SpriteVariant, ownerId: string, user: User | SpriteAuthor, displayName: string, editedAt?: string) {
         const image = await this.renderVariantImage(family, variant);
         const attachment = new MessageAttachment(image, `sprites-variant-${variant.id}.png`);
 
         const embed = new MessageEmbed()
             .setColor(RARITY_HEX_COLORS[variant.rarity] as any)
-            .setImage(`attachment://sprites-variant-${variant.id}.png`)
-            .setAuthor({ name: displayName, iconURL: user.displayAvatarURL({ dynamic: true }) })
-            .setFooter({ text: this.buildFooterText() })
+            .setAuthor({ name: displayName, iconURL: this.getAuthorIconURL(user) })
+            .setFooter({ text: this.buildFooterText(editedAt) })
             .setTimestamp();
 
         return {
@@ -551,7 +1197,7 @@ export class FortniteSprites {
         if (totalFamilyPages > 1) {
             rows.push(new MessageActionRow().addComponents(
                 new MessageButton().setCustomId(`fn_sprites_family_page_${clampedFamilyPage - 1}${ownerSuffix}`).setLabel("⬅️ Families").setStyle("SECONDARY").setDisabled(clampedFamilyPage === 0),
-                new MessageButton().setCustomId(`fn_sprites_family_page_${clampedFamilyPage + 1}${ownerSuffix}`).setLabel("Families ➡️").setStyle("SECONDARY").setDisabled(clampedFamilyPage >= totalFamilyPages - 1)
+                new MessageButton().setCustomId(`fn_sprites_family_page_${clampedFamilyPage + 1}${ownerSuffix}`).setLabel("Families  ➡️").setStyle("SECONDARY").setDisabled(clampedFamilyPage >= totalFamilyPages - 1)
             ));
         }
         rows.push(quickRow);
@@ -564,11 +1210,10 @@ export class FortniteSprites {
         const prev = currentIndex > 0 ? this._data!.families[currentIndex - 1] : null;
         const next = this._data && currentIndex < this._data.families.length - 1 ? this._data.families[currentIndex + 1] : null;
         const variantRows = this.generateVariantComponents(family, ownerId);
-
         const navRow = new MessageActionRow().addComponents(
             new MessageButton().setCustomId(`fn_sprites_family_${prev?.key || family.key}${ownerSuffix}`).setLabel("⬅️ Family").setStyle("SECONDARY").setDisabled(!prev),
-            new MessageButton().setCustomId(`fn_sprites_overview${ownerSuffix}`).setLabel("🧚 Overview").setStyle("PRIMARY"),
-            new MessageButton().setCustomId(`fn_sprites_family_${next?.key || family.key}${ownerSuffix}`).setLabel("Family ➡️").setStyle("SECONDARY").setDisabled(!next)
+            new MessageButton().setCustomId(`fn_sprites_overview${ownerSuffix}`).setLabel("⬅️ Overview").setStyle("PRIMARY"),
+            new MessageButton().setCustomId(`fn_sprites_family_${next?.key || family.key}${ownerSuffix}`).setLabel("Family  ➡️").setStyle("SECONDARY").setDisabled(!next)
         );
 
         return [...variantRows, navRow];
@@ -577,10 +1222,9 @@ export class FortniteSprites {
     private generateDetailComponents(family: SpriteFamily, selectedVariant: SpriteVariant, ownerId: string) {
         const ownerSuffix = `|${ownerId}`;
         const variantRows = this.generateVariantComponents(family, ownerId, selectedVariant.id);
-
         const navRow = new MessageActionRow().addComponents(
-            new MessageButton().setCustomId(`fn_sprites_family_${family.key}${ownerSuffix}`).setLabel("🧬 Family").setStyle("PRIMARY"),
-            new MessageButton().setCustomId(`fn_sprites_overview${ownerSuffix}`).setLabel("🧚 Overview").setStyle("SECONDARY")
+            new MessageButton().setCustomId(`fn_sprites_family_${family.key}${ownerSuffix}`).setLabel("⬅️ Family").setStyle("PRIMARY"),
+            new MessageButton().setCustomId(`fn_sprites_overview${ownerSuffix}`).setLabel("⏪ Overview").setStyle("SECONDARY")
         );
 
         return [...variantRows, navRow];
@@ -623,48 +1267,328 @@ export class FortniteSprites {
 
 
     private async getBrowser(): Promise<Browser> {
-        if (this.browser) return this.browser;
+        if (this.isBrowserConnected(this.browser)) return this.browser as Browser;
         if (this.browserPromise) return this.browserPromise;
 
-        this.browserPromise = (async () => {
-            // Using Function bypasses TypeScript's CommonJS transform, 
+        const launchPromise = (async () => {
+            // Using Function bypasses TypeScript's CommonJS transform,
             // allowing us to properly load Puppeteer's ESM module in Node.
             const { default: puppeteerModule } = await Function('return import("puppeteer")')();
-            const b = await puppeteerModule.launch({
+            const browser = await puppeteerModule.launch({
                 headless: true,
                 executablePath: process.env.GOOGLE_CHROME_BIN || undefined,
                 args: ['--no-sandbox', '--disable-setuid-sandbox']
             });
-            this.browser = b;
-            return b;
+            browser.on("disconnected", () => {
+                if (this.browser === browser) {
+                    this.browser = null;
+                }
+                if (this.browserPromise === launchPromise) {
+                    this.browserPromise = null;
+                }
+                this.resetRenderPagePool(new Error("Sprite render browser disconnected."));
+            });
+            this.browser = browser;
+            return browser;
         })();
 
-        return this.browserPromise;
+        this.browserPromise = launchPromise;
+
+        try {
+            return await launchPromise;
+        } catch (error) {
+            if (this.browserPromise === launchPromise) {
+                this.browserPromise = null;
+            }
+            throw error;
+        }
+    }
+
+    private clearRenderCaches() {
+        this.imageCache.clear();
+        this.imageCacheBytes = 0;
+        this.pendingImageRenders.clear();
+        this.spriteAssetCache.clear();
+        this.spriteAssetCacheBytes = 0;
+        this.pendingSpriteAssetLoads.clear();
+    }
+
+    private touchCacheEntry<T>(cache: Map<string, T>, key: string, value: T) {
+        cache.delete(key);
+        cache.set(key, value);
+    }
+
+    private cacheBytesForText(value: string) {
+        return Buffer.byteLength(value);
+    }
+
+    private isBrowserConnected(browser: Browser | null | undefined) {
+        return !!browser && browser.connected !== false;
+    }
+
+    private setRenderedImageCacheEntry(key: string, buffer: Buffer) {
+        const existing = this.imageCache.get(key);
+        if (existing) {
+            this.imageCacheBytes -= existing.bytes;
+        }
+
+        const entry: RenderedImageCacheEntry = {
+            buffer,
+            bytes: buffer.byteLength
+        };
+        this.touchCacheEntry(this.imageCache, key, entry);
+        this.imageCacheBytes += entry.bytes;
+
+        while (this.imageCacheBytes > MAX_RENDERED_IMAGE_CACHE_BYTES && this.imageCache.size > 1) {
+            const oldestKey = this.imageCache.keys().next().value;
+            if (oldestKey == null) break;
+            const oldest = this.imageCache.get(oldestKey);
+            if (!oldest) {
+                this.imageCache.delete(oldestKey);
+                continue;
+            }
+            this.imageCache.delete(oldestKey);
+            this.imageCacheBytes -= oldest.bytes;
+        }
+    }
+
+    private setSpriteAssetCacheEntry(key: string, src: string) {
+        const existing = this.spriteAssetCache.get(key);
+        if (existing) {
+            this.spriteAssetCacheBytes -= existing.bytes;
+        }
+
+        const entry: SpriteAssetCacheEntry = {
+            src,
+            bytes: this.cacheBytesForText(src)
+        };
+        this.touchCacheEntry(this.spriteAssetCache, key, entry);
+        this.spriteAssetCacheBytes += entry.bytes;
+
+        while (this.spriteAssetCacheBytes > MAX_SPRITE_ASSET_CACHE_BYTES && this.spriteAssetCache.size > 1) {
+            const oldestKey = this.spriteAssetCache.keys().next().value;
+            if (oldestKey == null) break;
+            const oldest = this.spriteAssetCache.get(oldestKey);
+            if (!oldest) {
+                this.spriteAssetCache.delete(oldestKey);
+                continue;
+            }
+            this.spriteAssetCache.delete(oldestKey);
+            this.spriteAssetCacheBytes -= oldest.bytes;
+        }
+    }
+
+    private getSpriteAssetDiskCachePath(imageUrl: string) {
+        const cacheKey = crypto.createHash("sha1").update(imageUrl).digest("hex");
+        return path.join(SPRITE_ASSET_CACHE_DIR, `${cacheKey}.txt`);
+    }
+
+    private async readSpriteAssetFromDisk(imageUrl: string) {
+        try {
+            const cached = await fs.promises.readFile(this.getSpriteAssetDiskCachePath(imageUrl), "utf8");
+            return cached.startsWith("data:image/") ? cached : null;
+        } catch {
+            return null;
+        }
+    }
+
+    private async persistSpriteAssetToDisk(imageUrl: string, src: string) {
+        try {
+            await fs.promises.mkdir(SPRITE_ASSET_CACHE_DIR, { recursive: true });
+            await fs.promises.writeFile(this.getSpriteAssetDiskCachePath(imageUrl), src, "utf8");
+        } catch (error) {
+            console.warn(`[FortniteSprites] Failed to persist sprite asset cache for ${imageUrl}:`, error);
+        }
+    }
+
+    private async resetRenderPagePool(error: Error) {
+        const pooledPages = this.renderPagePool.splice(0);
+        this.liveRenderPages.clear();
+
+        const waiters = this.pendingRenderPageAcquires.splice(0);
+        for (const waiter of waiters) {
+            waiter.reject(error);
+        }
+
+        await Promise.all(pooledPages.map(async (page) => {
+            if (page.isClosed()) return;
+            await page.close().catch(() => { });
+        }));
+    }
+
+    private isRenderPageReusable(page: Page) {
+        try {
+            return !page.isClosed() && this.isBrowserConnected(page.browser());
+        } catch {
+            return false;
+        }
+    }
+
+    private removeRenderPageFromPool(page: Page) {
+        const index = this.renderPagePool.indexOf(page);
+        if (index >= 0) {
+            this.renderPagePool.splice(index, 1);
+        }
+    }
+
+    private async disposeRenderPage(page: Page) {
+        this.removeRenderPageFromPool(page);
+        this.liveRenderPages.delete(page);
+        if (!page.isClosed()) {
+            await page.close().catch(() => { });
+        }
+    }
+
+    private onRenderPageClosed(page: Page) {
+        this.removeRenderPageFromPool(page);
+        const wasTracked = this.liveRenderPages.delete(page);
+        if (wasTracked && this.pendingRenderPageAcquires.length > 0) {
+            const waiter = this.pendingRenderPageAcquires.shift();
+            waiter?.reject(new Error("Sprite render page closed."));
+        }
+    }
+
+    private waitForRenderPage(): Promise<Page> {
+        return new Promise<Page>((resolve, reject) => {
+            this.pendingRenderPageAcquires.push({ resolve, reject });
+        });
+    }
+
+    private async acquireRenderPage(): Promise<Page> {
+        while (true) {
+            while (this.renderPagePool.length > 0) {
+                const pooledPage = this.renderPagePool.pop()!;
+                if (this.isRenderPageReusable(pooledPage)) {
+                    return pooledPage;
+                }
+                await this.disposeRenderPage(pooledPage);
+            }
+
+            const browser = await this.getBrowser();
+
+            if (this.liveRenderPages.size < RENDER_PAGE_POOL_SIZE) {
+                try {
+                    const page = await browser.newPage();
+                    this.liveRenderPages.add(page);
+                    page.on("close", () => this.onRenderPageClosed(page));
+                    return page;
+                } catch (error) {
+                    if (!this.isBrowserConnected(browser)) {
+                        this.browser = null;
+                        if (this.browserPromise) {
+                            this.browserPromise = null;
+                        }
+                        await this.resetRenderPagePool(new Error("Sprite render browser became unavailable."));
+                        continue;
+                    }
+                    throw error;
+                }
+            }
+
+            try {
+                return await this.waitForRenderPage();
+            } catch {
+                continue;
+            }
+        }
+    }
+
+    private async releaseRenderPage(page: Page) {
+        if (!this.liveRenderPages.has(page) || !this.isRenderPageReusable(page)) {
+            await this.disposeRenderPage(page);
+            if (this.pendingRenderPageAcquires.length > 0) {
+                const waiter = this.pendingRenderPageAcquires.shift();
+                waiter?.reject(new Error("Sprite render page was disposed."));
+            }
+            return;
+        }
+
+        const next = this.pendingRenderPageAcquires.shift();
+        if (next) {
+            next.resolve(page);
+            return;
+        }
+
+        this.renderPagePool.push(page);
+    }
+
+    private async resolveSpriteImageSrc(imageUrl: string | undefined): Promise<string | undefined> {
+        if (!imageUrl) return undefined;
+
+        const cached = this.spriteAssetCache.get(imageUrl);
+        if (cached) {
+            this.touchCacheEntry(this.spriteAssetCache, imageUrl, cached);
+            return cached.src;
+        }
+
+        const pending = this.pendingSpriteAssetLoads.get(imageUrl);
+        if (pending) {
+            const resolved = await pending;
+            return resolved || imageUrl;
+        }
+
+        const loadPromise = (async () => {
+            try {
+                const diskCached = await this.readSpriteAssetFromDisk(imageUrl);
+                if (diskCached) {
+                    this.setSpriteAssetCacheEntry(imageUrl, diskCached);
+                    return diskCached;
+                }
+
+                const res = await axios.get<ArrayBuffer>(imageUrl, {
+                    responseType: "arraybuffer",
+                    timeout: 15000,
+                    httpsAgent: IMAGE_HTTPS_AGENT
+                });
+                const contentType = String(res.headers["content-type"] || "").toLowerCase();
+                const mimeType = contentType.includes("image/") ? contentType.split(";")[0] : "image/png";
+                const dataUrl = `data:${mimeType};base64,${Buffer.from(res.data).toString("base64")}`;
+                this.setSpriteAssetCacheEntry(imageUrl, dataUrl);
+                await this.persistSpriteAssetToDisk(imageUrl, dataUrl);
+                return dataUrl;
+            } catch {
+                return null;
+            }
+        })().finally(() => {
+            this.pendingSpriteAssetLoads.delete(imageUrl);
+        });
+
+        this.pendingSpriteAssetLoads.set(imageUrl, loadPromise);
+        const resolved = await loadPromise;
+        return resolved || imageUrl;
+    }
+
+    private async prewarmSpriteImages(imageUrls: Array<string | undefined>) {
+        const uniqueUrls = Array.from(new Set(imageUrls.filter((url): url is string => !!url)));
+        await this.forEachConcurrent(uniqueUrls, SPRITE_IMAGE_PREWARM_CONCURRENCY, async (url) => {
+            await this.resolveSpriteImageSrc(url);
+        });
     }
 
     private async renderHtmlToBuffer(html: string, width: number, height: number): Promise<Buffer> {
-        const browser = await this.getBrowser();
-        const page = await browser.newPage();
-        await page.setViewport({ width, height, deviceScaleFactor: 2 });
-        await page.setContent(html, { waitUntil: 'load', timeout: 15000 });
-        await page.evaluate(async () => {
-            await (document as any).fonts?.ready;
-            const images = Array.from(document.images || []);
-            await Promise.all(images.map(async img => {
-                if (img.complete) return;
-                await new Promise(resolve => {
-                    img.addEventListener("load", resolve, { once: true });
-                    img.addEventListener("error", resolve, { once: true });
-                });
-            }));
-        });
-        const buffer = Buffer.from(await page.screenshot({ type: 'png' }));
-        await page.close();
-        return buffer;
+        const page = await this.acquireRenderPage();
+        try {
+            await page.setViewport({ width, height, deviceScaleFactor: 2 });
+            await page.setContent(html, { waitUntil: "load", timeout: 15000 });
+            await page.evaluate(async () => {
+                await (document as any).fonts?.ready;
+                const images = Array.from(document.images || []);
+                await Promise.all(images.map(async img => {
+                    if (img.complete) return;
+                    await new Promise(resolve => {
+                        img.addEventListener("load", resolve, { once: true });
+                        img.addEventListener("error", resolve, { once: true });
+                    });
+                }));
+            });
+            return Buffer.from(await page.screenshot({ type: "png" }));
+        } finally {
+            await this.releaseRenderPage(page);
+        }
     }
 
     private getRenderTokensCss(): string {
-        return fs.readFileSync(TOKENS_PATH, "utf8");
+        return this.renderTokensCss;
     }
 
     private escapeHtml(value: string | number | null | undefined): string {
@@ -690,9 +1614,10 @@ export class FortniteSprites {
     }
 
     private renderSpriteThumb(imageUrl: string | undefined, className: string, fallback = "No asset") {
+        const resolvedSrc = imageUrl ? this.spriteAssetCache.get(imageUrl)?.src || imageUrl : undefined;
         return `
             <div class="sprite-thumb ${className}">
-                ${imageUrl ? `<img src="${this.escapeHtml(imageUrl)}" alt="">` : `<span class="metric-label">${this.escapeHtml(fallback)}</span>`}
+                ${resolvedSrc ? `<img src="${this.escapeHtml(resolvedSrc)}" alt="">` : `<span class="metric-label">${this.escapeHtml(fallback)}</span>`}
             </div>
         `;
     }
@@ -704,6 +1629,46 @@ export class FortniteSprites {
                 ${this.dustIconDataUrl ? `<img src="${this.dustIconDataUrl}" alt="Dust">` : `<em>dust</em>`}
                 <strong>${amount.toLocaleString("en-US")}</strong>
             </span>
+        `;
+    }
+
+    private renderSpawnRateStack(variant: SpriteVariant) {
+        const entries = this.getSpawnRateEntries(variant);
+        if (entries.length === 0) return "";
+
+        return `
+            <div class="spawn-rate-stack">
+                <span class="metric-label">Spawn rates</span>
+                <ul class="list-reset spawn-rate-list">
+                    ${entries.map(entry => `
+                        <li class="spawn-rate-row">
+                            <span class="spawn-rate-copy">
+                                <em>${this.escapeHtml(entry.label)}</em>
+                            </span>
+                            <strong>${this.escapeHtml(entry.display)}</strong>
+                        </li>
+                    `).join("")}
+                </ul>
+            </div>
+        `;
+    }
+
+    private renderPageBackTrail(items: string[]) {
+        if (items.length === 0) return "";
+        return `
+            <div class="page-backtrail" aria-hidden="true">
+                ${items.map(item => {
+            const normalized = item.trim();
+            const arrowMatch = normalized.match(/^([←→])\s*(.+)$/);
+            if (!arrowMatch) return `<span class="page-backtrail-chip">${this.escapeHtml(normalized)}</span>`;
+            return `
+                        <span class="page-backtrail-chip">
+                            <span class="page-backtrail-arrow">${this.escapeHtml(arrowMatch[1])}</span>
+                            <span>${this.escapeHtml(arrowMatch[2])}</span>
+                        </span>
+                    `;
+        }).join("")}
+            </div>
         `;
     }
 
@@ -893,6 +1858,30 @@ export class FortniteSprites {
                         min-width: 0;
                     }
                     .page-copy { min-width: 0; }
+                    .page-backtrail {
+                        display: inline-flex;
+                        gap: 8px;
+                        flex-wrap: wrap;
+                        margin: 0 0 12px;
+                    }
+                    .page-backtrail-chip {
+                        display: inline-flex;
+                        align-items: center;
+                        gap: 0.44rem;
+                        min-height: 32px;
+                        padding: 0.42rem 0.76rem;
+                        border-radius: 999px;
+                        border: 1px solid var(--color-rule);
+                        background: color-mix(in oklch, var(--color-panel-2) 82%, transparent);
+                        color: var(--color-ink-2);
+                        font: 700 0.7rem/1 var(--font-body);
+                        text-transform: uppercase;
+                        white-space: nowrap;
+                    }
+                    .page-backtrail-arrow {
+                        color: var(--color-muted);
+                        font: 800 0.78rem/1 var(--font-body);
+                    }
                     .page-meta {
                         display: flex;
                         gap: 8px;
@@ -916,23 +1905,45 @@ export class FortniteSprites {
         `;
     }
 
+    private async getOrRenderImage(cacheKey: string, render: () => Promise<Buffer>) {
+        const cached = this.imageCache.get(cacheKey);
+        if (cached) {
+            this.touchCacheEntry(this.imageCache, cacheKey, cached);
+            return cached.buffer;
+        }
+
+        const pending = this.pendingImageRenders.get(cacheKey);
+        if (pending) return pending;
+
+        const renderPromise = render()
+            .then((buffer) => {
+                this.setRenderedImageCacheEntry(cacheKey, buffer);
+                return buffer;
+            })
+            .finally(() => {
+                this.pendingImageRenders.delete(cacheKey);
+            });
+
+        this.pendingImageRenders.set(cacheKey, renderPromise);
+        return renderPromise;
+    }
+
     private async renderOverviewImage(families: SpriteFamily[], state: SpriteBrowserState): Promise<Buffer> {
         const cacheKey = `overview:${this._data?.fetchedAt}:${state.variantFilter || "all"}:${state.rarityFilter || "all"}:${state.starterOnly ? "starter" : "all"}:${state.searchQuery || ""}`;
-        const cached = this.imageCache.get(cacheKey);
-        if (cached) return cached;
+        return this.getOrRenderImage(cacheKey, async () => {
+            const width = 1700;
+            const height = Math.max(1300, 390 + Math.max(families.length, 1) * 84);
+            const variants = families.flatMap(family => family.variants.map(variant => ({ family, variant })));
+            await this.prewarmSpriteImages(variants.map(({ variant }) => variant.imageUrl));
+            const filters = [
+                state.searchQuery ? `Search: ${state.searchQuery}` : null,
+                state.starterOnly ? "Starters" : null,
+                state.variantFilter && state.variantFilter !== "all" ? this.variantLabel(state.variantFilter) : null,
+                state.rarityFilter && state.rarityFilter !== "all" ? this.titleCase(state.rarityFilter) : null
+            ].filter(Boolean).join(" / ") || "All variants";
+            const variantColumns = this.getVariantNames();
 
-        const width = 1700;
-        const height = 1300;
-        const variants = families.flatMap(family => family.variants.map(variant => ({ family, variant })));
-        const filters = [
-            state.searchQuery ? `Search: ${state.searchQuery}` : null,
-            state.starterOnly ? "Starters" : null,
-            state.variantFilter && state.variantFilter !== "all" ? this.variantLabel(state.variantFilter) : null,
-            state.rarityFilter && state.rarityFilter !== "all" ? this.titleCase(state.rarityFilter) : null
-        ].filter(Boolean).join(" / ") || "All variants";
-        const variantColumns = this.getVariantNames();
-
-        const html = this.buildRenderDocument(`
+            const html = this.buildRenderDocument(`
             <div class="canvas">
                 <div class="shell">
                     <div class="content overview-layout">
@@ -963,29 +1974,29 @@ export class FortniteSprites {
                                         </div>
                                         <div class="overview-family-list">
                                             ${families.map(family => {
-            return `
+                return `
                                                     <article class="family-row">
                                                         ${variantColumns.map(variantName => {
-                const variant = family.variants.find(familyVariant => familyVariant.variant === variantName);
-                if (!variant) {
-                    return `
+                    const variant = family.variants.find(familyVariant => familyVariant.variant === variantName);
+                    if (!variant) {
+                        return `
                                                                     <div class="variant-cell variant-cell--empty" aria-hidden="true"></div>
                                                                 `;
-                }
-                return `
+                    }
+                    return `
                                                                 <div class="variant-cell">
                                                                     ${this.renderSpriteThumb(variant.imageUrl, "overview-variant-thumb")}
                                                                     <div class="overview-variant-copy">
                                                                         <h4>${this.escapeHtml(variant.name)}</h4>
-                                                                        <p>${this.escapeHtml(variant.chanceLabel)}</p>
+                                                                        <p>${this.escapeHtml(this.formatChance(variant))}</p>
                                                                     </div>
                                                                     ${this.renderRarityPill(variant.rarity)}
                                                                 </div>
                                                             `;
-            }).join("")}
+                }).join("")}
                                                     </article>
                                                 `;
-        }).join("")}
+            }).join("")}
                                         </div>
                                     `}
                                 </div>
@@ -1105,31 +2116,28 @@ export class FortniteSprites {
                 font-size: 0.88rem;
             }
         `);
-
-        const buffer = await this.renderHtmlToBuffer(html, width, height);
-        this.imageCache.set(cacheKey, buffer);
-        return buffer;
+            return this.renderHtmlToBuffer(html, width, height);
+        });
     }
-
     private async renderVariantImage(family: SpriteFamily, variant: SpriteVariant): Promise<Buffer> {
         const cacheKey = `variant:${this._data?.fetchedAt}:${variant.id}`;
-        const cached = this.imageCache.get(cacheKey);
-        if (cached) return cached;
+        return this.getOrRenderImage(cacheKey, async () => {
+            const width = 1000;
+            const height = 700;
+            await this.prewarmSpriteImages([variant.imageUrl]);
+            const rarityColor = RARITY_CSS_COLORS[variant.rarity];
+            const effect = variant.effectText || family.effectSummary || "No effect description available.";
+            const perk = variant.specialEffectText || "";
+            const location = family.location || "Unknown location";
+            const bannerChance = this.formatChance(variant);
 
-        const width = 1000;
-        const height = 700;
-        const rarityColor = RARITY_CSS_COLORS[variant.rarity];
-        const effect = variant.effectText || family.effectSummary || "No effect description available.";
-        const perk = variant.specialEffectText || "";
-        const location = family.location || "Unknown location";
-        const bannerChance = variant.chancePercent === 0 ? "" : this.formatChance(variant);
-
-        const html = this.buildRenderDocument(`
+            const html = this.buildRenderDocument(`
             <div class="canvas">
                 <div class="shell">
                     <div class="content variant-layout">
                         <section class="page-head">
                             <div class="page-copy">
+                                ${this.renderPageBackTrail(["← Overview", "← Family"])}
                                 <h1 class="headline variant-headline">${this.escapeHtml(variant.name)}</h1>
                                 <p class="lede">${this.escapeHtml(family.displayName)}</p>
                             </div>
@@ -1137,7 +2145,9 @@ export class FortniteSprites {
 
                         <section class="variant-main">
                             <article class="panel variant-art-card">
-                                ${this.renderSpriteThumb(variant.imageUrl, "variant-art")}
+                                <div class="variant-art-stage">
+                                    ${this.renderSpriteThumb(variant.imageUrl, "variant-art")}
+                                </div>
                                 <div class="variant-stat-strip">
                                     <div class="unique-banner">
                                         ${this.renderRarityPill(variant.rarity)}
@@ -1172,26 +2182,29 @@ export class FortniteSprites {
                                     </div>
                                 ` : ""}
 
-                                <div class="copy-block">
+                                <div class="copy-block copy-block--scaling">
                                     <h3 class="copy-title">Level scaling</h3>
                                     <p>${this.escapeHtml(family.levelScaling || "No level scaling available.")}</p>
                                 </div>
+
+                                ${this.renderSpawnRateStack(variant)}
                             </article>
                         </section>
                     </div>
                 </div>
             </div>
         `, `
-            .variant-layout { display: grid; grid-template-rows: auto 1fr; gap: 16px; }
-            .variant-headline { font-size: 2.55rem; }
+            .variant-layout { display: grid; grid-template-rows: auto minmax(0, 1fr); gap: 12px; }
+            .variant-headline { font-size: 2.42rem; }
             .variant-main {
                 display: grid;
                 grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
-                gap: 16px;
+                gap: 14px;
+                min-height: 0;
             }
             .variant-art-card,
             .variant-info-card {
-                padding: 12px;
+                padding: 10px;
                 background: color-mix(in oklch, var(--color-panel-2) 78%, black);
             }
             .variant-art-card {
@@ -1199,6 +2212,7 @@ export class FortniteSprites {
                 grid-template-rows: 1fr auto;
                 gap: 8px;
             }
+            .variant-art-stage { min-height: 0; }
             .variant-art {
                 height: 368px;
                 background:
@@ -1208,6 +2222,52 @@ export class FortniteSprites {
             .variant-art img {
                 width: 330px;
                 height: 330px;
+            }
+            .spawn-rate-stack {
+                min-width: 0;
+                width: 100%;
+                max-width: 220px;
+                justify-self: start;
+                align-self: flex-start;
+                margin-top: 12px;
+                padding: 8px 10px;
+                border: 1px solid color-mix(in srgb, ${rarityColor} 22%, var(--color-rule));
+                border-radius: var(--radius-md);
+                background: color-mix(in oklch, var(--color-panel-2) 86%, black);
+            }
+            .spawn-rate-list {
+                display: grid;
+                gap: 4px;
+                margin: 6px 0 0;
+            }
+            .spawn-rate-row {
+                display: grid;
+                grid-template-columns: minmax(0, 1fr) auto;
+                align-items: center;
+                justify-content: space-between;
+                gap: 10px;
+                min-height: 25px;
+                padding: 5px 7px;
+                border-radius: var(--radius-sm);
+                background: color-mix(in oklch, var(--color-panel) 72%, transparent);
+                color: var(--color-ink-2);
+                font: 600 0.69rem/1.05 var(--font-body);
+            }
+            .spawn-rate-copy {
+                display: grid;
+                min-width: 0;
+            }
+            .spawn-rate-copy em {
+                color: var(--color-ink);
+                font: 700 0.7rem/1.05 var(--font-body);
+                font-style: normal;
+            }
+            .spawn-rate-row strong {
+                color: var(--color-ink);
+                min-width: 56px;
+                text-align: right;
+                font: 700 0.7rem/1 var(--font-mono);
+                white-space: nowrap;
             }
             .variant-stat-strip {
                 display: grid;
@@ -1280,67 +2340,77 @@ export class FortniteSprites {
                 height: 18px;
             }
             .variant-info-card {
-                display: grid;
-                gap: 10px;
-                align-content: start;
+                display: flex;
+                flex-direction: column;
+                gap: 8px;
+                min-height: 0;
             }
             .location-card {
-                padding: 12px;
+                padding: 10px;
                 border-radius: var(--radius-md);
                 border: 1px solid var(--color-rule);
                 background: var(--color-panel);
             }
             .location-card strong {
                 display: block;
-                margin-top: 6px;
+                margin-top: 5px;
                 color: var(--color-ink);
-                font: 700 1.02rem/1.18 var(--font-display);
+                font: 700 0.98rem/1.14 var(--font-display);
                 overflow-wrap: anywhere;
             }
             .copy-block {
-                padding: 12px;
+                min-height: 0;
+                padding: 10px;
                 border-radius: var(--radius-md);
                 border: 1px solid var(--color-rule);
                 background: var(--color-panel);
             }
             .copy-block p {
-                margin: 8px 0 0;
+                margin: 6px 0 0;
                 color: var(--color-ink-2);
                 font-weight: 400;
-                font-size: 0.9rem;
-                line-height: 1.32;
+                font-size: 0.84rem;
+                line-height: 1.24;
+            }
+            .copy-block--scaling {
+                flex: 1 1 auto;
+                display: grid;
+                align-content: start;
+            }
+            .copy-block--scaling p {
+                font-size: 0.78rem;
+                line-height: 1.2;
+                overflow-wrap: anywhere;
             }
             .copy-block--perk {
                 border-color: color-mix(in srgb, ${rarityColor} 45%, var(--color-rule));
                 background: linear-gradient(90deg, color-mix(in srgb, ${rarityColor} 9%, transparent), var(--color-panel));
             }
         `);
-
-        const buffer = await this.renderHtmlToBuffer(html, width, height);
-        this.imageCache.set(cacheKey, buffer);
-        return buffer;
+            return this.renderHtmlToBuffer(html, width, height);
+        });
     }
 
     private async renderFamilyImage(family: SpriteFamily): Promise<Buffer> {
         const cacheKey = `family:${this._data?.fetchedAt}:${family.key}`;
-        const cached = this.imageCache.get(cacheKey);
-        if (cached) return cached;
+        return this.getOrRenderImage(cacheKey, async () => {
+            const width = 1200;
+            const height = 800;
+            await this.prewarmSpriteImages(family.variants.map(variant => variant.imageUrl));
+            const sortedVariants = [...family.variants].sort((a, b) => {
+                if (a.variant === "Base" && b.variant !== "Base") return -1;
+                if (a.variant !== "Base" && b.variant === "Base") return 1;
+                return b.chancePercent - a.chancePercent || a.id - b.id;
+            });
+            const baseVariant = sortedVariants.find(variant => variant.variant === "Base") || sortedVariants[0];
 
-        const width = 1200;
-        const height = 800;
-        const sortedVariants = [...family.variants].sort((a, b) => {
-            if (a.variant === "Base" && b.variant !== "Base") return -1;
-            if (a.variant !== "Base" && b.variant === "Base") return 1;
-            return b.chancePercent - a.chancePercent || a.id - b.id;
-        });
-        const baseVariant = sortedVariants.find(variant => variant.variant === "Base") || sortedVariants[0];
-
-        const html = this.buildRenderDocument(`
+            const html = this.buildRenderDocument(`
             <div class="canvas">
                 <div class="shell">
                     <div class="content family-layout">
                         <section class="page-head">
                             <div class="page-copy">
+                                ${this.renderPageBackTrail(["← Overview"])}
                                 <p class="eyebrow">Sprite family</p>
                                 <h1 class="headline family-headline">${this.escapeHtml(family.displayName)}</h1>
                                 <p class="lede">${this.escapeHtml(family.location)}</p>
@@ -1374,18 +2444,18 @@ export class FortniteSprites {
                                 </div>
                                 <ul class="list-reset variant-list">
                                     ${sortedVariants.map(variant => {
-            return `
+                return `
                                             <li class="variant-row">
                                                 ${this.renderSpriteThumb(variant.imageUrl, "variant-thumb")}
                                                 <div class="variant-copy">
                                                     <h3>${this.escapeHtml(variant.name)}</h3>
-                                                    <p>${this.escapeHtml(variant.chanceLabel)} chance${variant.starter ? " - starter" : ""}</p>
+                                                    <p>${this.escapeHtml(this.formatChance(variant))} chance${variant.starter ? " - starter" : ""}</p>
                                                 </div>
                                                 ${this.renderRarityPill(variant.rarity)}
                                                 <div class="variant-cost">${this.renderDustAmount(variant.summonCost)}</div>
                                             </li>
                                         `;
-        }).join("")}
+            }).join("")}
                                 </ul>
                             </article>
                         </section>
@@ -1471,10 +2541,8 @@ export class FortniteSprites {
                 color: var(--color-ink);
             }
         `);
-
-        const buffer = await this.renderHtmlToBuffer(html, width, height);
-        this.imageCache.set(cacheKey, buffer);
-        return buffer;
+            return this.renderHtmlToBuffer(html, width, height);
+        });
     }
     private getFamilyColor(family: SpriteFamily): string {
         const base = family.variants.find(v => v.variant === "Base") || family.variants[0];
@@ -1493,23 +2561,29 @@ export class FortniteSprites {
     }
 
     private spriteMatchesQuery(family: SpriteFamily, variant: SpriteVariant, query: string) {
-        const q = query.toLowerCase();
-        const haystack = [
+        const q = this.expandSearchQuery(query);
+        const haystack = this.buildSearchText(
             family.displayName,
             family.key,
+            this.getFamilySearchTokens(family.key),
             family.effectSummary,
             family.levelScaling,
             family.location,
             variant.name,
+            `#${variant.id}`,
+            variant.id,
             variant.rarity,
+            this.getRaritySearchTokens(variant.rarity),
             variant.variant,
+            this.getVariantSearchTokens(variant.variant),
             this.variantLabel(variant.variant),
-            variant.chanceLabel,
+            this.formatChance(variant),
+            this.getSpawnRateEntries(variant).map(rate => `${rate.label} ${rate.display}`),
             variant.summonCost.toString(),
             variant.effectText,
             variant.specialEffectText,
             variant.starter ? "starter free" : ""
-        ].filter(Boolean).join(" ").toLowerCase();
+        );
 
         return haystack.includes(q) || q.split(/\s+/).filter(Boolean).every(part => haystack.includes(part));
     }
@@ -1577,8 +2651,10 @@ export class FortniteSprites {
     }
 
     private formatChance(variant: SpriteVariant) {
+        const primaryRate = this.getPrimarySpawnRate(variant);
+        if (primaryRate) return primaryRate.display;
         if (variant.chancePercent === 0) return "Unavailable";
-        return variant.chanceLabel;
+        return variant.chanceLabel || "Unknown";
     }
 
     private variantLabel(variant: SpriteVariantName) {
@@ -1663,21 +2739,29 @@ export class FortniteSprites {
         }
 
         const displayName = await this.getDisplayName(i);
+        const author = this.createAuthor(displayName, i.user.displayAvatarURL({ dynamic: true }));
         const responseOwnerId = isOriginalUser ? ownerId : i.user.id;
 
         let response: any;
+        let view: SpriteViewState | null = null;
         if (rawId === "fn_sprites_family_select") {
+            view = { kind: "family", familyKey: i.values[0] };
             response = await this.generateFamilyResponse(i.values[0], responseOwnerId, i.user, displayName);
         } else if (rawId.startsWith("fn_sprites_variant_select_")) {
             const id = parseInt(i.values[0], 10);
             const match = this.findVariant(id);
             if (!match) return i.reply({ content: "Sprite variant not found.", ephemeral: true });
+            view = { kind: "detail", familyKey: match.family.key, variantId: match.variant.id };
             response = await this.generateDetailResponse(match.family, match.variant, responseOwnerId, i.user, displayName);
         } else if (rawId === "fn_sprites_quick_filter") {
-            response = await this.generateOverviewResponse(this.stateFromQuickFilter(i.values[0]), responseOwnerId, i.user, displayName);
+            const state = this.stateFromQuickFilter(i.values[0]);
+            view = { kind: "overview", state };
+            response = await this.generateOverviewResponse(state, responseOwnerId, i.user, displayName);
         } else if (rawId === "fn_sprites_variant_filter") {
+            view = { kind: "overview", state: { variantFilter: i.values[0] as any } };
             response = await this.generateOverviewResponse({ variantFilter: i.values[0] as any }, responseOwnerId, i.user, displayName);
         } else if (rawId === "fn_sprites_rarity_filter") {
+            view = { kind: "overview", state: { rarityFilter: i.values[0] as any } };
             response = await this.generateOverviewResponse({ rarityFilter: i.values[0] as any }, responseOwnerId, i.user, displayName);
         }
 
@@ -1687,10 +2771,35 @@ export class FortniteSprites {
         }
 
         if (spawnsNewPage || !isOriginalUser) {
-            return i.editReply(response);
+            const message = await i.editReply(response) as Message;
+            if (view && (spawnsNewPage || isOriginalUser)) {
+                this.rememberSpriteMessage(message, responseOwnerId, author, view, null);
+            }
+            return message;
         }
 
-        return i.editReply({ ...response, attachments: [] } as any);
+        const trackedState = view ? this.beginTrackedMessageTransition({ id: i.message.id, channelId: i.channelId }, responseOwnerId, author, view, null) : null;
+        let message: Message | null = null;
+        await this.queueMessageEdit(i.message.id, async () => {
+            const latestState = trackedState ? this.trackedSpriteMessages.get(i.message.id) : null;
+            if (trackedState && (!latestState || latestState.editToken !== trackedState.editToken || latestState.viewVersion !== trackedState.viewVersion)) return;
+            message = await i.editReply({ ...response, attachments: [] } as any) as Message;
+        });
+        if (!message) {
+            return i.message as Message;
+        }
+        if (view) {
+            const latestState = this.trackedSpriteMessages.get(message.id);
+            if (!latestState || (trackedState && latestState.editToken !== trackedState.editToken)) {
+                return message;
+            }
+            this.trackedSpriteMessages.set(message.id, {
+                ...latestState,
+                channelId: message.channelId,
+                updatedAt: Date.now()
+            });
+        }
+        return message;
     }
 
     private async handleButton(i: ButtonInteraction<CacheType>) {
@@ -1706,16 +2815,22 @@ export class FortniteSprites {
         }
 
         const displayName = await this.getDisplayName(i);
+        const author = this.createAuthor(displayName, i.user.displayAvatarURL({ dynamic: true }));
         const responseOwnerId = isOriginalUser ? ownerId : i.user.id;
         let response: any;
+        let view: SpriteViewState | null = null;
 
         if (rawId === "fn_sprites_overview") {
+            view = { kind: "overview", state: {} };
             response = await this.generateOverviewResponse({}, responseOwnerId, i.user, displayName);
         } else if (rawId.startsWith("fn_sprites_family_page_")) {
             const page = parseInt(rawId.replace("fn_sprites_family_page_", ""), 10);
-            response = await this.generateOverviewResponse({ familyPage: Number.isFinite(page) ? page : 0 }, responseOwnerId, i.user, displayName);
+            const state = { familyPage: Number.isFinite(page) ? page : 0 };
+            view = { kind: "overview", state };
+            response = await this.generateOverviewResponse(state, responseOwnerId, i.user, displayName);
         } else if (rawId.startsWith("fn_sprites_family_")) {
             const familyKey = rawId.replace("fn_sprites_family_", "");
+            view = { kind: "family", familyKey };
             response = await this.generateFamilyResponse(familyKey, responseOwnerId, i.user, displayName);
         } else if (rawId.startsWith("fn_sprites_variant_")) {
             const id = parseInt(rawId.replace("fn_sprites_variant_", ""), 10);
@@ -1724,20 +2839,33 @@ export class FortniteSprites {
                 if (isOriginalUser) return i.followUp({ content: "Sprite variant not found.", ephemeral: true });
                 return i.editReply({ content: "Sprite variant not found.", components: [] });
             }
+            view = { kind: "detail", familyKey: match.family.key, variantId: match.variant.id };
             response = await this.generateDetailResponse(match.family, match.variant, responseOwnerId, i.user, displayName);
         } else if (rawId === "fn_sprites_quick_starters") {
+            view = { kind: "overview", state: { starterOnly: true } };
             response = await this.generateOverviewResponse({ starterOnly: true }, responseOwnerId, i.user, displayName);
         } else if (rawId === "fn_sprites_quick_rarest") {
-            response = await this.generateOverviewResponse({ rarityFilter: "mythic" }, responseOwnerId, i.user, displayName);
+            const variant = this.findRarestVariant();
+            const match = this.findVariant(variant?.id);
+            if (match) {
+                view = { kind: "detail", familyKey: match.family.key, variantId: match.variant.id };
+                response = await this.generateDetailResponse(match.family, match.variant, responseOwnerId, i.user, displayName);
+            }
         } else if (rawId === "fn_sprites_quick_cost") {
             const variant = this.getAllVariants().sort((a, b) => b.summonCost - a.summonCost)[0];
             const match = this.findVariant(variant?.id);
-            if (match) response = await this.generateDetailResponse(match.family, match.variant, responseOwnerId, i.user, displayName);
+            if (match) {
+                view = { kind: "detail", familyKey: match.family.key, variantId: match.variant.id };
+                response = await this.generateDetailResponse(match.family, match.variant, responseOwnerId, i.user, displayName);
+            }
         } else if (rawId === "fn_sprites_quick_random") {
             const variants = this.getAllVariants();
             const variant = variants[Math.floor(Math.random() * variants.length)];
             const match = this.findVariant(variant?.id);
-            if (match) response = await this.generateDetailResponse(match.family, match.variant, responseOwnerId, i.user, displayName);
+            if (match) {
+                view = { kind: "detail", familyKey: match.family.key, variantId: match.variant.id };
+                response = await this.generateDetailResponse(match.family, match.variant, responseOwnerId, i.user, displayName);
+            }
         }
 
         if (!response) {
@@ -1746,9 +2874,34 @@ export class FortniteSprites {
         }
 
         if (!isOriginalUser) {
-            return i.editReply(response);
+            const message = await i.editReply(response) as Message;
+            if (view) {
+                this.rememberSpriteMessage(message, responseOwnerId, author, view, null);
+            }
+            return message;
         }
 
-        return i.editReply({ ...response, attachments: [] } as any);
+        const trackedState = view ? this.beginTrackedMessageTransition({ id: i.message.id, channelId: i.channelId }, responseOwnerId, author, view, null) : null;
+        let message: Message | null = null;
+        await this.queueMessageEdit(i.message.id, async () => {
+            const latestState = trackedState ? this.trackedSpriteMessages.get(i.message.id) : null;
+            if (trackedState && (!latestState || latestState.editToken !== trackedState.editToken || latestState.viewVersion !== trackedState.viewVersion)) return;
+            message = await i.editReply({ ...response, attachments: [] } as any) as Message;
+        });
+        if (!message) {
+            return i.message as Message;
+        }
+        if (view) {
+            const latestState = this.trackedSpriteMessages.get(message.id);
+            if (!latestState || (trackedState && latestState.editToken !== trackedState.editToken)) {
+                return message;
+            }
+            this.trackedSpriteMessages.set(message.id, {
+                ...latestState,
+                channelId: message.channelId,
+                updatedAt: Date.now()
+            });
+        }
+        return message;
     }
 }

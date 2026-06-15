@@ -35,8 +35,7 @@ export class FortniteMap {
     private _chapterStarts: Map<number, MapHistoryItem> = new Map();
 
     constructor(private client: Client) {
-        this.loadData();
-        this.syncLatestMap();
+        this.loadData().then(() => this.syncLatestMap());
 
         this.client.on("interactionCreate", (i) => {
             if (i.isAutocomplete() && i.commandName === "fortnite" && i.options.getSubcommandGroup(false) === "map") {
@@ -137,10 +136,10 @@ export class FortniteMap {
         return version.replace(/\./g, "_");
     }
 
-    private loadData() {
+    private async loadData() {
         try {
             const dataPath = path.join(process.cwd(), "src", "Fortnite", "FortniteMap", "mapData.json");
-            const fileContent = fs.readFileSync(dataPath, "utf8");
+            const fileContent = await fs.promises.readFile(dataPath, "utf8");
             const parsed = JSON.parse(fileContent);
             let rawData: MapHistoryItem[] = Array.isArray(parsed) ? parsed : (parsed.data || []);
 
@@ -229,7 +228,6 @@ export class FortniteMap {
 
     private async syncLatestMap() {
         try {
-            require("dotenv").config();
             const apiKey = process.env.FORTNITE_MAP_API_KEY;
             if (!apiKey) {
                 console.log("[FortniteMap] No API key found for syncLatestMap");
@@ -263,7 +261,7 @@ export class FortniteMap {
             const dataPath = path.join(process.cwd(), "src", "Fortnite", "FortniteMap", "mapData.json");
             let rawData: MapHistoryItem[] = [];
             try {
-                const fileContent = fs.readFileSync(dataPath, "utf8");
+                const fileContent = await fs.promises.readFile(dataPath, "utf8");
                 const parsed = JSON.parse(fileContent);
                 rawData = Array.isArray(parsed) ? parsed : (parsed.data || []);
             } catch (e) {
@@ -315,9 +313,9 @@ export class FortniteMap {
                 }
 
                 rawData = [...newEntries, ...rawData];
-                fs.writeFileSync(dataPath, JSON.stringify(rawData, null, 2), "utf8");
+                await fs.promises.writeFile(dataPath, JSON.stringify(rawData, null, 2), "utf8");
                 console.log(`[FortniteMap] Synced ${newEntries.length} new map versions.`);
-                this.loadData();
+                await this.loadData();
             }
         } catch (e: any) {
             const status = e.response?.status || e.status;
@@ -719,10 +717,8 @@ export class FortniteMap {
         
         if (!nickname && !globalName) {
             try {
-                const res = await axios.get(`https://discord.com/api/v10/users/${i.user.id}`, {
-                    headers: { Authorization: `Bot ${i.client.token}` }
-                });
-                globalName = res.data.global_name;
+                const fetchedUser = await i.client.users.fetch(i.user.id, { force: true });
+                globalName = (fetchedUser as any).globalName || (fetchedUser as any).global_name || fetchedUser.username;
             } catch (e) {
                 console.error("[FortniteMap] Failed to fetch raw user for global_name", e);
             }

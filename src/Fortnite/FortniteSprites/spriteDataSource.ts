@@ -1,9 +1,22 @@
 import axios from "axios";
 import cheerio from "cheerio";
+import { createHash } from "crypto";
 import https from "https";
 
 export type SpriteRarity = "rare" | "epic" | "legendary" | "mythic" | "special";
 export type SpriteVariantName = string;
+
+export type SpriteSpawnRate = {
+    percent: number;
+    label: string;
+};
+
+export type SpriteSpawnRates = {
+    spriteChest?: SpriteSpawnRate;
+    rareChest?: SpriteSpawnRate;
+    chest?: SpriteSpawnRate;
+    supplyDrop?: SpriteSpawnRate;
+};
 
 export type SpriteVariant = {
     id: number;
@@ -11,6 +24,7 @@ export type SpriteVariant = {
     rarity: SpriteRarity;
     chancePercent: number;
     chanceLabel: string;
+    spawnRates?: SpriteSpawnRates;
     starter: boolean;
     variant: SpriteVariantName;
     summonCost: number;
@@ -31,6 +45,7 @@ export type SpriteFamily = {
 
 export type SpriteDataFile = {
     fetchedAt: string;
+    contentFingerprint?: string;
     totalSprites: number;
     totalLevels: number;
     families: SpriteFamily[];
@@ -47,9 +62,16 @@ type SpriteListItem = {
     imageUrl: string;
 };
 
+type SpriteVariantDetail = SpriteVariant & {
+    familyName: string;
+    location: string;
+    levelScaling: string;
+};
+
 const SOURCE_URL = "https://fortnite.gg/sprites";
 const BASE_URL = "https://fortnite.gg";
 const httpsAgent = new https.Agent({ rejectUnauthorized: false });
+const DETAIL_FETCH_CONCURRENCY = 4;
 
 function requestHeaders() {
     return {
@@ -80,6 +102,33 @@ function parsePercent(value: string): number {
 function parseNumber(value: string): number {
     const parsed = parseInt(value.replace(/,/g, "").replace(/[^\d]/g, ""), 10);
     return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function parseSpawnRate(value: string | undefined): SpriteSpawnRate | undefined {
+    const label = normalizeText(value);
+    if (!label || !/[\d.]/.test(label)) return undefined;
+    return {
+        percent: parsePercent(label),
+        label
+    };
+}
+
+function resolveFactValue(facts: Record<string, string>, keys: string[]): string | undefined {
+    return keys.map(key => facts[key]).find(value => !!normalizeText(value));
+}
+
+function buildSpawnRates(facts: Record<string, string>, fallbackRate: SpriteSpawnRate): SpriteSpawnRates {
+    const spriteChest = parseSpawnRate(resolveFactValue(facts, ["Sprite Chest", "Sprite Chest Chance", "Sprite Chest Spawn Rate"]));
+    const rareChest = parseSpawnRate(resolveFactValue(facts, ["Rare Chest", "Rare Chest Chance", "Rare Chest Spawn Rate"]));
+    const chest = parseSpawnRate(resolveFactValue(facts, ["Chest", "Chest Chance", "Chest Spawn Rate"]));
+    const supplyDrop = parseSpawnRate(resolveFactValue(facts, ["Supply Drop", "Supply Drop Chance", "Supply Drop Spawn Rate"]));
+
+    return {
+        ...(spriteChest ? { spriteChest } : {}),
+        ...(rareChest ? { rareChest } : {}),
+        ...(chest ? { chest } : {}),
+        ...(supplyDrop ? { supplyDrop } : {})
+    };
 }
 
 function toVariantBase(item: SpriteListItem) {
@@ -167,7 +216,12 @@ async function fetchHtml(url: string): Promise<string> {
     return res.data;
 }
 
-async function fetchDetail(item: SpriteListItem): Promise<SpriteVariant & { familyName: string; location: string; levelScaling: string }> {
+async function fetchDetail(item: SpriteListItem): Promise<SpriteVariantDetail> {
+    const fallbackRate: SpriteSpawnRate = {
+        percent: item.chancePercent,
+        label: item.chanceLabel
+    };
+
     try {
         const html = await fetchHtml(item.sourceUrl);
         const $ = cheerio.load(html);
@@ -184,13 +238,15 @@ async function fetchDetail(item: SpriteListItem): Promise<SpriteVariant & { fami
 
         const relatedNames = $(".sprite-related .sprite-name").map((_, el) => normalizeText($(el).text())).get();
         const variant = normalizeText(facts["Variant"]) || "Base";
-        const chanceLabel = facts["Chance"] || item.chanceLabel;
+        const spawnRates = buildSpawnRates(facts, fallbackRate);
+        const primaryRate = spawnRates.spriteChest || parseSpawnRate(facts["Chance"]) || fallbackRate;
         const summonCost = parseNumber(facts["Summon Cost"]);
 
         return {
             ...toVariantBase(item),
-            chanceLabel,
-            chancePercent: parsePercent(chanceLabel),
+            chanceLabel: primaryRate.label,
+            chancePercent: primaryRate.percent,
+            spawnRates,
             variant,
             summonCost,
             effectText: descriptions[0] || "",
@@ -203,6 +259,7 @@ async function fetchDetail(item: SpriteListItem): Promise<SpriteVariant & { fami
     } catch (e: any) {
         return {
             ...toVariantBase(item),
+            spawnRates: {},
             variant: "Base",
             summonCost: 0,
             effectText: "",
@@ -214,8 +271,31 @@ async function fetchDetail(item: SpriteListItem): Promise<SpriteVariant & { fami
     }
 }
 
-function buildFamilies(variants: (SpriteVariant & { familyName: string; location: string; levelScaling: string })[]): SpriteFamily[] {
-    const groups = new Map<string, (SpriteVariant & { familyName: string; location: string; levelScaling: string })[]>();
+async function mapWithConcurrency<TInput, TOutput>(
+    items: TInput[],
+    concurrency: number,
+    mapper: (item: TInput, index: number) => Promise<TOutput>
+): Promise<TOutput[]> {
+    const limit = Math.max(1, Math.min(concurrency, items.length || 1));
+    const results = new Array<TOutput>(items.length);
+    let nextIndex = 0;
+
+    async function worker() {
+        while (true) {
+            const currentIndex = nextIndex;
+            nextIndex += 1;
+
+            if (currentIndex >= items.length) return;
+            results[currentIndex] = await mapper(items[currentIndex], currentIndex);
+        }
+    }
+
+    await Promise.all(Array.from({ length: limit }, () => worker()));
+    return results;
+}
+
+function buildFamilies(variants: SpriteVariantDetail[]): SpriteFamily[] {
+    const groups = new Map<string, SpriteVariantDetail[]>();
 
     for (const variant of variants) {
         const key = familyKey(variant.familyName);
@@ -242,6 +322,13 @@ function buildFamilies(variants: (SpriteVariant & { familyName: string; location
     }).sort((a, b) => a.variants[0].id - b.variants[0].id);
 }
 
+function validateSpawnRate(rate: SpriteSpawnRate | undefined, label: string, variantId: number) {
+    if (!rate) return;
+    if (!rate.label || !Number.isFinite(rate.percent)) {
+        throw new Error(`Invalid ${label} spawn rate for sprite ${variantId}.`);
+    }
+}
+
 export function validateSpriteData(data: SpriteDataFile) {
     const variants = data.families.flatMap(f => f.variants);
     const ids = new Set<number>();
@@ -263,22 +350,28 @@ export function validateSpriteData(data: SpriteDataFile) {
         if (!variant.name || !variant.rarity || !variant.variant || !variant.imageUrl) {
             throw new Error(`Invalid sprite variant ${variant.id}.`);
         }
+        if (variant.spawnRates) {
+            validateSpawnRate(variant.spawnRates.spriteChest, "sprite chest", variant.id);
+            validateSpawnRate(variant.spawnRates.rareChest, "rare chest", variant.id);
+            validateSpawnRate(variant.spawnRates.chest, "chest", variant.id);
+            validateSpawnRate(variant.spawnRates.supplyDrop, "supply drop", variant.id);
+        }
     }
 }
 
 export async function fetchSpriteData(delayMs = 150): Promise<SpriteDataFile> {
     const listHtml = await fetchHtml(SOURCE_URL);
     const list = parseListPage(listHtml);
-    const details: (SpriteVariant & { familyName: string; location: string; levelScaling: string })[] = [];
 
     if (list.items.length === 0) {
         throw new Error("No sprite cards were found on the remote sprite page.");
     }
 
-    for (const item of list.items) {
-        details.push(await fetchDetail(item));
+    const details = await mapWithConcurrency(list.items, DETAIL_FETCH_CONCURRENCY, async item => {
+        const detail = await fetchDetail(item);
         if (delayMs > 0) await new Promise(resolve => setTimeout(resolve, delayMs));
-    }
+        return detail;
+    });
 
     const data: SpriteDataFile = {
         fetchedAt: new Date().toISOString(),
@@ -287,10 +380,24 @@ export async function fetchSpriteData(delayMs = 150): Promise<SpriteDataFile> {
         families: buildFamilies(details)
     };
 
+    data.contentFingerprint = spriteDataContentFingerprint(data);
     validateSpriteData(data);
     return data;
 }
 
+export function spriteDataContentFingerprint(data: SpriteDataFile): string {
+    return createHash("sha256")
+        .update(JSON.stringify({
+            totalSprites: data.totalSprites,
+            totalLevels: data.totalLevels,
+            families: data.families
+        }))
+        .digest("hex");
+}
+
 export function stableSpriteDataJson(data: SpriteDataFile): string {
-    return JSON.stringify(data, null, 2) + "\n";
+    return JSON.stringify({
+        ...data,
+        contentFingerprint: spriteDataContentFingerprint(data)
+    }, null, 2) + "\n";
 }

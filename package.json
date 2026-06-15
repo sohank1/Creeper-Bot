@@ -7,7 +7,7 @@
   "description": "",
   "main": "dist/index.js",
   "scripts": {
-    "dev": "nodemon --exec ts-node src/index.ts",
+    "dev": "nodemon --watch src --ext ts --ignore src/Fortnite/FortniteSprites/spriteData.json --ignore src/Fortnite/FortniteMap/mapData.json --exec ts-node src/index.ts",
     "prod": "node dist/index.js",
     "build": "tsc",
     "test": "nodemon --exec ts-node src/scripts/test.ts",
