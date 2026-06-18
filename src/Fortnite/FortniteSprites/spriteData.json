@@ -1,5 +1,5 @@
 {
-  "fetchedAt": "2026-06-15T23:17:20.160Z",
+  "fetchedAt": "2026-06-18T01:04:42.015Z",
   "totalSprites": 31,
   "totalLevels": 155,
   "families": [
@@ -42,38 +42,6 @@
           "detailStatus": "complete"
         },
         {
-          "id": 4,
-          "name": "Gold Water Sprite",
-          "rarity": "special",
-          "chancePercent": 6,
-          "chanceLabel": "6%",
-          "starter": false,
-          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Water_Gold_ui_L.png",
-          "spawnRates": {
-            "spriteChest": {
-              "percent": 6,
-              "label": "6%"
-            },
-            "rareChest": {
-              "percent": 2.1,
-              "label": "2.1%"
-            },
-            "chest": {
-              "percent": 0.6,
-              "label": "0.6%"
-            },
-            "supplyDrop": {
-              "percent": 2.1,
-              "label": "2.1%"
-            }
-          },
-          "variant": "Gold",
-          "summonCost": 4000,
-          "effectText": "Replenish shields while standing in water!",
-          "specialEffectText": "Gain bonus XP from eliminations",
-          "detailStatus": "complete"
-        },
-        {
           "id": 2,
           "name": "Gummy Water Sprite",
           "rarity": "special",
@@ -104,6 +72,29 @@
           "effectText": "Replenish shields while standing in water!",
           "specialEffectText": "Gain 10% more Sprite Dust upon Extraction",
           "detailStatus": "complete"
+        }
+      ]
+    },
+    {
+      "key": "gold-water",
+      "displayName": "Gold Water Sprite",
+      "effectSummary": "No effect description available.",
+      "levelScaling": "No level scaling available.",
+      "location": "Unknown",
+      "variants": [
+        {
+          "id": 4,
+          "name": "Gold Water Sprite",
+          "rarity": "special",
+          "chancePercent": 6,
+          "chanceLabel": "6%",
+          "starter": false,
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Water_Gold_ui_L.png",
+          "spawnRates": {},
+          "variant": "Base",
+          "summonCost": 0,
+          "effectText": "",
+          "detailStatus": "partial"
         }
       ]
     },
@@ -1084,5 +1075,5 @@
       ]
     }
   ],
-  "contentFingerprint": "3d9647d5b1e3c50a80e396f632bf57feed3f8d99298d28a245ee6f02d84f0e42"
+  "contentFingerprint": "655d7627542be1239fe27eafb9ebcbe1045eb3d1ac10b6afc0886a02297d626c"
 }

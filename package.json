@@ -1,6 +1,6 @@
 {
   "name": "creeper-bot",
-  "version": "4.0.7-BETA",
+  "version": "4.0.8-BETA",
   "engines": {
     "node": "22.x"
   },
@@ -12,6 +12,8 @@
     "build": "tsc",
     "test": "nodemon --exec ts-node src/scripts/test.ts",
     "fetch-map": "ts-node src/scripts/fetchMapData.ts",
+    "fetch-map-assets": "ts-node src/scripts/fetchMapAssets.ts",
+    "upload-map-assets": "ts-node src/scripts/uploadMapAssetsToDiscord.ts",
     "fetch-sprites": "ts-node src/scripts/fetchSpriteData.ts",
     "heroku-postbuild": "npm run build && mkdir -p ./.cache && mv /app/.cache/puppeteer ./.cache"
   },

@@ -26,6 +26,27 @@ type MapHistoryItem = {
     parsedVersion?: { formatted: string, major: string, minor?: string, codename: string | null, isMajor: boolean };
 };
 
+type MapImageManifestEntry = {
+    archiveVersion: string;
+    relativePath: string;
+    sourceUrl: string;
+    chapter: number;
+    season: number;
+    downloadedAt: string;
+    discordUrl?: string;
+    discordMessageId?: string;
+    discordChannelId?: string;
+    discordGuildId?: string;
+    uploadedAt?: string;
+};
+
+type MapImageManifest = {
+    generatedAt: string;
+    source: string;
+    count: number;
+    versions: Record<string, MapImageManifestEntry>;
+};
+
 export class FortniteMap {
     private _data: MapHistoryItem[] = [];
     private fuse: Fuse<any>;
@@ -33,6 +54,7 @@ export class FortniteMap {
     private _allChapters: number[] = [];
     private _seasonStarts: Map<string, MapHistoryItem> = new Map();
     private _chapterStarts: Map<number, MapHistoryItem> = new Map();
+    private imageManifest: Record<string, MapImageManifestEntry> = {};
 
     constructor(private client: Client) {
         this.loadData().then(() => this.syncLatestMap());
@@ -143,6 +165,8 @@ export class FortniteMap {
             const parsed = JSON.parse(fileContent);
             let rawData: MapHistoryItem[] = Array.isArray(parsed) ? parsed : (parsed.data || []);
 
+            await this.loadImageManifest();
+
             // Deduplicate: normalize versions (dot vs underscore) and keep the underscore variant
             const seenNormalized = new Set<string>();
             rawData = rawData.filter(d => {
@@ -223,6 +247,26 @@ export class FortniteMap {
         } catch (e) {
             console.error("Failed to load mapData.json", e);
         }
+    }
+
+    private async loadImageManifest() {
+        const manifestPath = path.join(process.cwd(), "src", "Fortnite", "FortniteMap", "mapImageManifest.json");
+
+        try {
+            const fileContent = await fs.promises.readFile(manifestPath, "utf8");
+            const parsed = JSON.parse(fileContent) as MapImageManifest;
+            this.imageManifest = parsed.versions || {};
+        } catch (error: any) {
+            if (error?.code !== "ENOENT") {
+                console.warn("[FortniteMap] Failed to load map image manifest.", error);
+            }
+            this.imageManifest = {};
+        }
+    }
+
+    private resolveHostedMapImageUrl(version: string): string | null {
+        const entry = this.imageManifest[this.normalizeVersion(version)];
+        return entry?.discordUrl || null;
     }
 
 
@@ -430,15 +474,14 @@ export class FortniteMap {
     }
 
     private async fetchMapImage(version: string) {
-        const apiKey = process.env.FORTNITE_MAP_API_KEY;
-        const response = await axios.get(`https://prod.api-fortnite.com/api/v1/map/image?version=${version}`, {
-            responseType: 'arraybuffer',
-            headers: {
-                "x-api-key": apiKey
-            },
-            httpsAgent: new https.Agent({ rejectUnauthorized: false })
-        });
-        return Buffer.from(response.data as any);
+        const hostedImageUrl = this.resolveHostedMapImageUrl(version);
+        if (hostedImageUrl) {
+            return {
+                hostedUrl: hostedImageUrl
+            };
+        }
+
+        throw new Error(`No Discord-hosted map image found for version ${version}`);
     }
 
     private async generateViewResponse(versionStr: string, showNav: boolean = false, ownerId?: string, user?: User, displayName?: string) {
@@ -460,12 +503,11 @@ export class FortniteMap {
         let files: MessageAttachment[] = [];
         if (item.hasImage) {
             try {
-                const imageBuffer = await this.fetchMapImage(item.version);
-                const attachment = new MessageAttachment(imageBuffer, "map.png");
-                files.push(attachment);
+                const imageAsset = await this.fetchMapImage(item.version);
+                embed.setImage(imageAsset.hostedUrl);
             } catch (e) {
                 console.error("Failed to fetch map image", e);
-                embed.setDescription("Failed to fetch map image from API.");
+                embed.setDescription("Failed to load the hosted map image. Run `npm run upload-map-assets` or `npm run fetch-map-assets` to rebuild the archive.");
             }
         } else {
             embed.setDescription("No image available for this version.");
