@@ -104,6 +104,12 @@ type PendingRenderPageAcquire = {
 const DATA_PATH = path.join(process.cwd(), "src", "Fortnite", "FortniteSprites", "spriteData.json");
 const TOKENS_PATH = path.join(process.cwd(), "src", "Fortnite", "FortniteSprites", "tokens.css");
 const DUST_ICON_PATH = path.join(process.cwd(), "assets", "sprite-dust.png");
+const SPAWN_RATE_ICON_PATHS: Record<string, string> = {
+    spriteChest: path.join(process.cwd(), "assets", "sprite-chest-resized.png"),
+    rareChest: path.join(process.cwd(), "assets", "rare-chest-resized.png"),
+    chest: path.join(process.cwd(), "assets", "chest-resized.png"),
+    supplyDrop: path.join(process.cwd(), "assets", "drop-resized.png")
+};
 const SPRITE_ASSET_CACHE_DIR = path.join(process.cwd(), ".cache", "fortnite-sprites", "assets");
 const appVersion = `v${require("../../../package.json").version}`;
 const IMAGE_HTTPS_AGENT = new https.Agent({ keepAlive: true, maxSockets: 12 });
@@ -158,6 +164,12 @@ export class FortniteSprites {
     private dustIconDataUrl = fs.existsSync(DUST_ICON_PATH)
         ? `data:image/png;base64,${fs.readFileSync(DUST_ICON_PATH).toString("base64")}`
         : null;
+    private spawnRateIconDataUrls = Object.entries(SPAWN_RATE_ICON_PATHS).reduce<Record<string, string | null>>((acc, [key, filePath]) => {
+        acc[key] = fs.existsSync(filePath)
+            ? `data:image/png;base64,${fs.readFileSync(filePath).toString("base64")}`
+            : null;
+        return acc;
+    }, {});
 
     constructor(private client: Client) {
         this.loadData();
@@ -1632,6 +1644,12 @@ export class FortniteSprites {
         `;
     }
 
+    private renderSpawnRateIcon(key: string, label: string) {
+        const iconSrc = this.spawnRateIconDataUrls[key];
+        if (!iconSrc) return "";
+        return `<img src="${iconSrc}" alt="${this.escapeHtml(label)} icon">`;
+    }
+
     private renderSpawnRateStack(variant: SpriteVariant) {
         const entries = this.getSpawnRateEntries(variant);
         if (entries.length === 0) return "";
@@ -1643,7 +1661,10 @@ export class FortniteSprites {
                     ${entries.map(entry => `
                         <li class="spawn-rate-row">
                             <span class="spawn-rate-copy">
-                                <em>${this.escapeHtml(entry.label)}</em>
+                                <span class="spawn-rate-copy-main">
+                                    <em>${this.escapeHtml(entry.label)}</em>
+                                    ${this.renderSpawnRateIcon(entry.key, entry.label)}
+                                </span>
                             </span>
                             <strong>${this.escapeHtml(entry.display)}</strong>
                         </li>
@@ -2245,9 +2266,9 @@ export class FortniteSprites {
                 grid-template-columns: minmax(0, 1fr) auto;
                 align-items: center;
                 justify-content: space-between;
-                gap: 10px;
-                min-height: 25px;
-                padding: 5px 7px;
+                gap: 8px;
+                min-height: 30px;
+                padding: 4px 6px 4px 6px;
                 border-radius: var(--radius-sm);
                 background: color-mix(in oklch, var(--color-panel) 72%, transparent);
                 color: var(--color-ink-2);
@@ -2257,10 +2278,26 @@ export class FortniteSprites {
                 display: grid;
                 min-width: 0;
             }
+            .spawn-rate-copy-main {
+                display: inline-flex;
+                align-items: center;
+                gap: 14px;
+                min-width: 0;
+            }
             .spawn-rate-copy em {
                 color: var(--color-ink);
                 font: 700 0.7rem/1.05 var(--font-body);
                 font-style: normal;
+            }
+            .spawn-rate-copy img {
+                width: 20px;
+                height: 20px;
+                object-fit: contain;
+                flex: 0 0 auto;
+                display: block;
+                margin-left: 1px;
+                transform: scale(2.15);
+                transform-origin: center;
             }
             .spawn-rate-row strong {
                 color: var(--color-ink);
