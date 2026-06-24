@@ -8,7 +8,7 @@ import { News } from "./news/news";
 import { DonaldTracker } from "./DonaldTracker/DonaldTracker";
 import { Counting, countingCommand } from "./Counting/";
 import { SlashCommandBuilder } from "@discordjs/builders";
-import { fortniteCommand, FortniteCosmetics, FortniteStats, FortniteMap, FortniteSprites } from "./Fortnite/";
+import { fortniteCommand, FortniteCosmetics, FortniteStats, FortniteMap, FortniteSprites, FortniteSpriteCard } from "./Fortnite/";
 import { Trello, trelloCommand } from "./Trello";
 import { Avatar, avatarCommand } from "./AvatarCommand";
 import { DeletedClient } from "./DeletedClient/";
@@ -17,6 +17,8 @@ import { createClient } from "redis";
 import express from "express";
 import mongoose from "mongoose";
 import { MissingCosmetics } from "./MissingCosmetics/MissingCosmetics";
+import { sendPerformanceStats } from "./performanceStats";
+import { createTrackedJob } from "./runtimeDiagnostics";
 // import { ProcessCodes } from "./InstanceManager";
 
 export const version = `v${require("../package.json").version}`;
@@ -40,7 +42,7 @@ app.listen(port, () => {
   console.log(`Example app listening on port ${port}!`)
 
 
-  setInterval(async () => {
+  setInterval(createTrackedJob("server-keepalive", "Server Keepalive Ping", "Every 15 seconds", async () => {
     try {
       if (process.env.NODE_ENV === "production" && process.env?.HOST_TYPE === "render") {
         console.log('fetching onrender url from main app')
@@ -56,7 +58,7 @@ app.listen(port, () => {
     catch (e) {
       console.log(e.message);
     }
-  }, 15000) // 10 mins = 600000, 30 secs = 30000
+  }), 15000) // 10 mins = 600000, 30 secs = 30000
 
 
 
@@ -76,7 +78,7 @@ app.listen(port, () => {
 
       const countChannel = (<TextChannel>client.channels.cache.get('1039551711263588372')) || (<TextChannel>client.channels.cache.get('1045085555878273136'))
       let count = 1;
-      process.env.NODE_ENV === "production" && setInterval(async () => {
+      process.env.NODE_ENV === "production" && setInterval(createTrackedJob("server-count-heartbeat", "Server Count Heartbeat", "Every 30 minutes", async () => {
         if (count === 1) countChannel.send("**---------------------------------------------**")
         countChannel.send(`[\`${serverStartedAt}\`] ---- count: ${count} ---- [\`${version}\`]`);
         console.log(`[\`${serverStartedAt}\`] ---- count: ${count} ---- [\`${version}\`]`);
@@ -100,7 +102,7 @@ app.listen(port, () => {
         // // find all the oldest servers but no the newest one
         // const serversToShutdown = serverInfo.instances.filter((i) => i.platform === process.env.HOST_TYPE).sort((a, b) => new Date(a.serverStartedAt).getTime() - new Date(b.serverStartedAt).getTime()).slice(0, -1)
 
-      }, 1.8e+6) // 30 mins
+      }), 1.8e+6) // 30 mins
 
       // await redis.connect();
       // process.env.NODE_ENV === "production" && setInterval(async () => {
@@ -221,6 +223,7 @@ app.listen(port, () => {
       new FortniteCosmetics(client)
       new FortniteMap(client)
       new FortniteSprites(client)
+      new FortniteSpriteCard(client)
       new MissingCosmetics(client)
 
       // music = new Music(client);
@@ -519,6 +522,10 @@ I ASKED.`)
         } catch (e) {
           return void message.channel.send(`Please format your date string using valid JavaScript Date rules. ex. **${new Date().toLocaleString("en-US", { timeZone: "America/New_York" })}**`);
         }
+      }
+
+      if (message.content.toLowerCase() === "c!cpu") {
+        return void sendPerformanceStats(message, client.ws.ping, version);
       }
 
 

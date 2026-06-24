@@ -705,21 +705,21 @@ import https from "https";
 import * as fs from "fs";
 // 1. Import registerFont
 import { createCanvas, loadImage, registerFont, CanvasRenderingContext2D } from "@napi-rs/canvas/node-canvas";
+import { registerComponent } from "../../runtimeDiagnostics";
 
 const loadingStr = "Loading more... <a:loading:1140700893898084382>";
-const seasonEndCachePath = path.join(__dirname, "seasonEndDate.json");
-
-type SeasonEndCache = {
-    seasonEndDate: string;
-    updatedAt: string;
-};
 
 export class FortniteStats {
     private interaction: BaseCommandInteraction<CacheType>;
+    private static memoryCachedSeasonEndDate: Date | null = null;
+    private static memoryCacheLastFetchTime: number = 0;
+    private lastStatsRequestAt: string | null = null;
+    private lastStatsError: string | null = null;
+    private statsRequestsHandled = 0;
 
     constructor(private client: Client) {
-        void this.refreshSeasonEndDateCache();
-
+        registerComponent("fortniteStats", this);
+        void this.fetchSeasonEndDate();
         this.client.on("interactionCreate", (i) => {
             if (!i.isCommand()) return
             if (i.commandName !== "fortnite") return
@@ -734,24 +734,58 @@ export class FortniteStats {
         })
     }
 
-    private readCachedSeasonEndDate(): Date | null {
+    public getDiagnostics() {
+        return {
+            statsRequestsHandled: this.statsRequestsHandled,
+            lastStatsRequestAt: this.lastStatsRequestAt,
+            lastStatsError: this.lastStatsError,
+            seasonEndDateCached: !!FortniteStats.memoryCachedSeasonEndDate,
+            seasonEndCacheFetchedAt: FortniteStats.memoryCacheLastFetchTime
+                ? new Date(FortniteStats.memoryCacheLastFetchTime).toISOString()
+                : null,
+            seasonEndDate: FortniteStats.memoryCachedSeasonEndDate?.toISOString() || null,
+        };
+    }
+
+    private async fetchSeasonEndDate(): Promise<Date | null> {
+        const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+        if (FortniteStats.memoryCachedSeasonEndDate && (Date.now() - FortniteStats.memoryCacheLastFetchTime) < CACHE_TTL_MS) {
+            return FortniteStats.memoryCachedSeasonEndDate;
+        }
+
         try {
-            if (!fs.existsSync(seasonEndCachePath)) return null;
+            const httpsAgent = new https.Agent({ rejectUnauthorized: false });
+            const res = await axios.get("https://fortnite.gg/season-countdown", {
+                headers: {
+                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0 Safari/537.36",
+                    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
+                },
+                httpsAgent,
+                timeout: 10000
+            });
 
-            const raw = fs.readFileSync(seasonEndCachePath, "utf8");
-            const parsed = JSON.parse(raw) as Partial<SeasonEndCache>;
-            if (!parsed.seasonEndDate) return null;
+            const html = res.data;
+            const match = html.match(/id='big-countdown' data-target='(\d+)'/);
+            
+            if (!match) return null;
 
-            const cachedDate = new Date(parsed.seasonEndDate);
-            return Number.isNaN(cachedDate.getTime()) ? null : cachedDate;
+            const timestamp = parseInt(match[1]);
+            const parsedSeasonEndDate = new Date(timestamp);
+            
+            if (Number.isNaN(parsedSeasonEndDate.getTime())) return null;
+            if (parsedSeasonEndDate.getTime() <= Date.now()) return null;
+
+            FortniteStats.memoryCachedSeasonEndDate = parsedSeasonEndDate;
+            FortniteStats.memoryCacheLastFetchTime = Date.now();
+            return parsedSeasonEndDate;
         } catch (error) {
-            console.warn("Failed to read cached Fortnite season end date.", error);
+            console.warn("Failed to fetch Fortnite season end date from fortnite.gg.", error);
             return null;
         }
     }
 
-    private formatSeasonEndDateForFooter(): string | null {
-        const seasonEndDate = this.readCachedSeasonEndDate();
+    private async formatSeasonEndDateForFooter(): Promise<string | null> {
+        const seasonEndDate = await this.fetchSeasonEndDate();
         if (!seasonEndDate) return null;
 
         return seasonEndDate.toLocaleDateString("en-US", {
@@ -761,46 +795,6 @@ export class FortniteStats {
             year: "numeric",
             timeZone: "America/New_York",
         });
-    }
-
-    private writeCachedSeasonEndDate(seasonEndDate: Date): void {
-        try {
-            const payload: SeasonEndCache = {
-                seasonEndDate: seasonEndDate.toISOString(),
-                updatedAt: new Date().toISOString(),
-            };
-
-            fs.writeFileSync(seasonEndCachePath, JSON.stringify(payload, null, 2), "utf8");
-        } catch (error) {
-            console.warn("Failed to write cached Fortnite season end date.", error);
-        }
-    }
-
-    private async refreshSeasonEndDateCache(): Promise<void> {
-        try {
-            const res = await axios.get("https://prod.api-fortnite.com/api/v1/season", {
-                headers: { "x-api-key": process.env.FORTNITE_MAP_API_KEY },
-                httpsAgent: new https.Agent({ rejectUnauthorized: false })
-            });
-
-            const seasonData = res.data?.data ?? res.data;
-            const seasonEndCandidate =
-                seasonData?.seasonDateEnd ??
-                seasonData?.seasonEndDate ??
-                seasonData?.endDate ??
-                seasonData?.season?.seasonDateEnd ??
-                seasonData?.season?.endDate;
-
-            if (!seasonEndCandidate) return;
-
-            const parsedSeasonEndDate = new Date(seasonEndCandidate);
-            if (Number.isNaN(parsedSeasonEndDate.getTime())) return;
-            if (parsedSeasonEndDate.getTime() <= Date.now()) return;
-
-            this.writeCachedSeasonEndDate(parsedSeasonEndDate);
-        } catch (error) {
-            console.warn("Failed to refresh Fortnite season end cache on startup.", error);
-        }
     }
 
     private async getStats(): Promise<void> {
@@ -818,6 +812,9 @@ export class FortniteStats {
                     'Authorization': process.env.FORTNITE_API_KEY
                 }
             });
+            this.statsRequestsHandled++;
+            this.lastStatsRequestAt = new Date().toISOString();
+            this.lastStatsError = null;
 
             // 2. Pass data to generator
             const attachment = await this.generateProgressAttachment(r.data.data);
@@ -842,7 +839,7 @@ export class FortniteStats {
                 .setColor("#2186DB")
                 .setTimestamp();
 
-            const seasonFooter = this.formatSeasonEndDateForFooter();
+            const seasonFooter = await this.formatSeasonEndDateForFooter();
             if (seasonFooter) {
                 e.setFooter({ text: `${version} | Season ends: ${seasonFooter}` });
             }
@@ -851,6 +848,7 @@ export class FortniteStats {
             this.updateWithRanks(this.interaction, e, r.data.data.account.name);
 
         } catch (e) {
+            this.lastStatsError = e?.response?.data?.error || e?.message || String(e);
             console.log(e.response?.status || e);
             const row = new MessageActionRow().addComponents(
                 new MessageSelectMenu()
@@ -887,6 +885,9 @@ export class FortniteStats {
             const r = await axios.get(`https://fortnite-api.com/v2/stats/br/v2?image=all&accountType=${platform}&name=${username}`, {
                 headers: { 'content-type': "application/json", 'Authorization': process.env.FORTNITE_API_KEY }
             });
+            this.statsRequestsHandled++;
+            this.lastStatsRequestAt = new Date().toISOString();
+            this.lastStatsError = null;
 
             const attachment = await this.generateProgressAttachment(r.data.data);
 
@@ -905,7 +906,7 @@ export class FortniteStats {
                 .setColor("#2186DB")
                 .setTimestamp();
 
-            const seasonFooter = this.formatSeasonEndDateForFooter();
+            const seasonFooter = await this.formatSeasonEndDateForFooter();
             if (seasonFooter) {
                 e.setFooter({ text: `${version} | Season ends: ${seasonFooter}` });
             }
@@ -914,6 +915,7 @@ export class FortniteStats {
             this.updateWithRanks(i, e, r.data.data.account.name);
 
         } catch (e) {
+            this.lastStatsError = e?.response?.data?.error || e?.message || String(e);
             await i.editReply({
                 content: `Error: "${e.response?.data?.error}"\n\n`,
                 components: i.component.options.length === 0 ? [] : [new MessageActionRow().addComponents(new MessageSelectMenu(i.component))]
@@ -950,41 +952,7 @@ export class FortniteStats {
 
     private async calcDailyLevelsPerGoal(currentLevel: number): Promise<{ perDay: number[], perWeek: number[], daysLeft: number, weeksLeft: number }> {
         const goals = [150, 200];
-        let seasonEndDate = this.readCachedSeasonEndDate();
-
-        try {
-            const res = await axios.get("https://prod.api-fortnite.com/api/v1/season", {
-                headers: { "x-api-key": process.env.FORTNITE_MAP_API_KEY },
-                httpsAgent: new https.Agent({ rejectUnauthorized: false })
-            });
-            const seasonData = res.data?.data ?? res.data;
-            const seasonEndCandidate =
-                seasonData?.seasonDateEnd ??
-                seasonData?.seasonEndDate ??
-                seasonData?.endDate ??
-                seasonData?.season?.seasonDateEnd ??
-                seasonData?.season?.endDate;
-
-            if (seasonEndCandidate) {
-                const parsedSeasonEndDate = new Date(seasonEndCandidate);
-                if (!Number.isNaN(parsedSeasonEndDate.getTime())) {
-                    seasonEndDate = parsedSeasonEndDate;
-                    if (parsedSeasonEndDate.getTime() > Date.now()) {
-                        this.writeCachedSeasonEndDate(parsedSeasonEndDate);
-                    }
-                }
-            }
-
-            if (seasonEndDate && seasonEndDate.getTime() <= Date.now()) {
-                console.warn("Season end date lookup returned a past/invalid date; using cached/fallback date.", {
-                    seasonEndCandidate,
-                    seasonEndDate: seasonEndDate.toISOString?.()
-                });
-                seasonEndDate = this.readCachedSeasonEndDate();
-            }
-        } catch (e) {
-            console.error("Failed to fetch season end date:", e);
-        }
+        let seasonEndDate = await this.fetchSeasonEndDate();
 
         if (!seasonEndDate) {
             throw new Error("Missing cached Fortnite season end date.");

@@ -22,6 +22,7 @@ import * as crypto from "crypto";
 import type { Browser, Page } from "puppeteer";
 import https from "https";
 import { fetchSpriteData, SpriteDataFile, SpriteFamily, SpriteRarity, SpriteVariant, SpriteVariantName, stableSpriteDataJson, validateSpriteData } from "./spriteDataSource";
+import { createTrackedJob, registerComponent } from "../../runtimeDiagnostics";
 
 type SpriteSearchItem = {
     type: "family" | "variant";
@@ -172,13 +173,14 @@ export class FortniteSprites {
     }, {});
 
     constructor(private client: Client) {
+        registerComponent("fortniteSprites", this);
         this.loadData();
         if (this.shouldSyncSprites()) {
-            this.syncLatestSprites();
+            createTrackedJob("fortnite-sprites-sync", "Fortnite Sprites Sync", "Daily and startup", () => this.syncLatestSprites())();
         } else {
             console.log("[FortniteSprites] Sprite data cache is fresh; skipping startup sync.");
         }
-        this.refreshTimer = setInterval(() => this.syncLatestSprites(), 24 * 60 * 60 * 1000);
+        this.refreshTimer = setInterval(createTrackedJob("fortnite-sprites-sync", "Fortnite Sprites Sync", "Daily and startup", () => this.syncLatestSprites()), 24 * 60 * 60 * 1000);
 
         this.client.on("interactionCreate", (i) => {
             if (i.isAutocomplete() && i.commandName === "fortnite" && i.options.getSubcommand(false) === "sprites") {
@@ -194,6 +196,22 @@ export class FortniteSprites {
                 return void this.handleButton(i);
             }
         });
+    }
+
+    public getDiagnostics() {
+        return {
+            familiesLoaded: this._data?.families.length || 0,
+            variantsLoaded: this.getAllVariants().length,
+            trackedMessages: this.trackedSpriteMessages.size,
+            renderedImageEntries: this.imageCache.size,
+            renderedImageBytes: this.imageCacheBytes,
+            spriteAssetEntries: this.spriteAssetCache.size,
+            spriteAssetBytes: this.spriteAssetCacheBytes,
+            pendingImageRenders: this.pendingImageRenders.size,
+            pendingAssetLoads: this.pendingSpriteAssetLoads.size,
+            lastSuccessfulSyncAt: this.lastSuccessfulSyncAt,
+            lastSyncError: this.lastSyncError,
+        };
     }
 
     private loadData() {

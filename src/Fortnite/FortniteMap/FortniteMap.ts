@@ -1,10 +1,12 @@
-import { AutocompleteInteraction, BaseCommandInteraction, CommandInteraction, CacheType, Client, MessageActionRow, MessageAttachment, MessageButton, MessageEmbed, MessageSelectMenu, SelectMenuInteraction, ButtonInteraction, User } from "discord.js";
+import { AutocompleteInteraction, BaseCommandInteraction, CommandInteraction, CacheType, Client, MessageActionRow, MessageButton, MessageEmbed, MessageSelectMenu, SelectMenuInteraction, ButtonInteraction, User } from "discord.js";
 import axios from "axios";
 import { version as appVersion } from "../../index";
 import Fuse from "fuse.js";
 import * as fs from "fs";
 import * as path from "path";
 import https from "https";
+import { ensureMapImageHosted, loadMapImageManifest, normalizeMapVersion, MapImageManifestEntry } from "./mapImageArchive";
+import { registerComponent } from "../../runtimeDiagnostics";
 
 type Poi = {
     name: string;
@@ -26,27 +28,6 @@ type MapHistoryItem = {
     parsedVersion?: { formatted: string, major: string, minor?: string, codename: string | null, isMajor: boolean };
 };
 
-type MapImageManifestEntry = {
-    archiveVersion: string;
-    relativePath: string;
-    sourceUrl: string;
-    chapter: number;
-    season: number;
-    downloadedAt: string;
-    discordUrl?: string;
-    discordMessageId?: string;
-    discordChannelId?: string;
-    discordGuildId?: string;
-    uploadedAt?: string;
-};
-
-type MapImageManifest = {
-    generatedAt: string;
-    source: string;
-    count: number;
-    versions: Record<string, MapImageManifestEntry>;
-};
-
 export class FortniteMap {
     private _data: MapHistoryItem[] = [];
     private fuse: Fuse<any>;
@@ -57,6 +38,7 @@ export class FortniteMap {
     private imageManifest: Record<string, MapImageManifestEntry> = {};
 
     constructor(private client: Client) {
+        registerComponent("fortniteMap", this);
         this.loadData().then(() => this.syncLatestMap());
 
         this.client.on("interactionCreate", (i) => {
@@ -77,6 +59,15 @@ export class FortniteMap {
                 this.handleButton(i);
             }
         });
+    }
+
+    public getDiagnostics() {
+        return {
+            versionsLoaded: this._data.length,
+            seasonsLoaded: this._allSeasons.length,
+            chaptersLoaded: this._allChapters.length,
+            hostedImages: Object.keys(this.imageManifest).length,
+        };
     }
 
     private getSeasonName(chapter: number, season: number) {
@@ -155,7 +146,7 @@ export class FortniteMap {
     }
 
     private normalizeVersion(version: string): string {
-        return version.replace(/\./g, "_");
+        return normalizeMapVersion(version);
     }
 
     private async loadData() {
@@ -250,12 +241,9 @@ export class FortniteMap {
     }
 
     private async loadImageManifest() {
-        const manifestPath = path.join(process.cwd(), "src", "Fortnite", "FortniteMap", "mapImageManifest.json");
-
         try {
-            const fileContent = await fs.promises.readFile(manifestPath, "utf8");
-            const parsed = JSON.parse(fileContent) as MapImageManifest;
-            this.imageManifest = parsed.versions || {};
+            const manifest = await loadMapImageManifest();
+            this.imageManifest = manifest.versions || {};
         } catch (error: any) {
             if (error?.code !== "ENOENT") {
                 console.warn("[FortniteMap] Failed to load map image manifest.", error);
@@ -353,6 +341,24 @@ export class FortniteMap {
                     } else {
                         lastSeenPois = entry.pois;
                         entry.hasPois = true;
+                    }
+                }
+
+                for (const entry of newEntries) {
+                    if (!entry.hasImage) {
+                        continue;
+                    }
+
+                    try {
+                        const manifestEntry = await ensureMapImageHosted({
+                            version: entry.version,
+                            chapter: entry.chapter,
+                            season: entry.season
+                        }, apiKey, this.client);
+
+                        this.imageManifest[this.normalizeVersion(entry.version)] = manifestEntry;
+                    } catch (error: any) {
+                        console.warn(`[FortniteMap] Failed to host map image for ${entry.version}: ${error.message}`);
                     }
                 }
 
@@ -476,9 +482,7 @@ export class FortniteMap {
     private async fetchMapImage(version: string) {
         const hostedImageUrl = this.resolveHostedMapImageUrl(version);
         if (hostedImageUrl) {
-            return {
-                hostedUrl: hostedImageUrl
-            };
+            return hostedImageUrl;
         }
 
         throw new Error(`No Discord-hosted map image found for version ${version}`);
@@ -500,14 +504,13 @@ export class FortniteMap {
             embed.setAuthor({ name: user.username, iconURL: user.displayAvatarURL({ dynamic: true }) });
         }
 
-        let files: MessageAttachment[] = [];
         if (item.hasImage) {
             try {
                 const imageAsset = await this.fetchMapImage(item.version);
-                embed.setImage(imageAsset.hostedUrl);
+                embed.setImage(imageAsset);
             } catch (e) {
                 console.error("Failed to fetch map image", e);
-                embed.setDescription("Failed to load the hosted map image. Run `npm run upload-map-assets` or `npm run fetch-map-assets` to rebuild the archive.");
+                embed.setDescription("Failed to load the Discord-hosted map image for this version.");
             }
         } else {
             embed.setDescription("No image available for this version.");
@@ -579,9 +582,9 @@ export class FortniteMap {
         );
 
         if (showNav) {
-            return { embeds: [embed], files, components: [prevRow, nextRow] };
+            return { embeds: [embed], files: [], components: [prevRow, nextRow] };
         } else {
-            return { embeds: [embed], files, components: [] };
+            return { embeds: [embed], files: [], components: [] };
         }
     }
 
