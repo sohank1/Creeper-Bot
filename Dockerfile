@@ -1,7 +1,7 @@
 FROM node:22-bookworm
 
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends \
+    && apt-get install -y \
         chromium \
         fonts-liberation \
         ca-certificates \
@@ -15,6 +15,7 @@ ENV PUPPETEER_SKIP_DOWNLOAD=true
 RUN npm ci
 
 COPY . .
+RUN git config --global --add safe.directory /app
 RUN npm run build
 
 EXPOSE 3001

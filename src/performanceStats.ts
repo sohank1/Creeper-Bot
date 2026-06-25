@@ -5,7 +5,7 @@ let currentBranch = "Unknown";
 try {
     currentBranch = execSync("git rev-parse --abbrev-ref HEAD", { stdio: "pipe" }).toString().trim();
 } catch (e) {
-    // Ignore error if not in a git repository
+    currentBranch = process.env.COOLIFY_BRANCH || "Unknown";
 }
 import { promisify } from "util";
 import { Message, MessageEmbed, MessageAttachment } from "discord.js";
