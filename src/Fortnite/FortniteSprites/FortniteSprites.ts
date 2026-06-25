@@ -1307,7 +1307,7 @@ export class FortniteSprites {
             const { default: puppeteerModule } = await Function('return import("puppeteer")')();
             const browser = await puppeteerModule.launch({
                 headless: true,
-                executablePath: process.env.GOOGLE_CHROME_BIN || undefined,
+                executablePath: process.env.GOOGLE_CHROME_BIN || process.env.PUPPETEER_EXECUTABLE_PATH || "/usr/bin/chromium",
                 args: ['--no-sandbox', '--disable-setuid-sandbox']
             });
             browser.on("disconnected", () => {

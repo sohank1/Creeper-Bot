@@ -474,7 +474,7 @@ async function renderStatsHtmlToBuffer(html: string, width: number, height: numb
     const puppeteer = await import("puppeteer");
     const browser = await puppeteer.launch({
         headless: true,
-        executablePath: process.env.GOOGLE_CHROME_BIN || process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
+        executablePath: process.env.GOOGLE_CHROME_BIN || process.env.PUPPETEER_EXECUTABLE_PATH || "/usr/bin/chromium",
         args: ["--no-sandbox", "--disable-setuid-sandbox"],
     });
 
