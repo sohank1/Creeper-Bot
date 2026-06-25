@@ -1,5 +1,12 @@
 import * as os from "os";
-import { exec } from "child_process";
+import { exec, execSync } from "child_process";
+
+let currentBranch = "Unknown";
+try {
+    currentBranch = execSync("git rev-parse --abbrev-ref HEAD", { stdio: "pipe" }).toString().trim();
+} catch (e) {
+    // Ignore error if not in a git repository
+}
 import { promisify } from "util";
 import { Message, MessageEmbed, MessageAttachment } from "discord.js";
 import mongoose from "mongoose";
@@ -1640,6 +1647,7 @@ export async function sendPerformanceStats(message: Message, apiPing: number, ve
                     `Arch: \`${stats.architecture}\``,
                     `Environment: \`${process.env.HOST_TYPE || "local"}\``,
                     `Machine: \`${stats.hostname}\``,
+                    `Branch: \`${currentBranch}\``,
                 ].join("\n"),
                 inline: true,
             },
