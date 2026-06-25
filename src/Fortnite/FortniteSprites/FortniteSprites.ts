@@ -171,6 +171,7 @@ export class FortniteSprites {
             : null;
         return acc;
     }, {});
+    private readonly renderUiFingerprint = this.computeRenderUiFingerprint();
 
     constructor(private client: Client) {
         registerComponent("fortniteSprites", this);
@@ -1343,6 +1344,15 @@ export class FortniteSprites {
         this.pendingSpriteAssetLoads.clear();
     }
 
+    private computeRenderUiFingerprint() {
+        return crypto.createHash("sha1")
+            .update(fs.readFileSync(__filename, "utf8"))
+            .update(this.renderTokensCss)
+            .update(this.dustIconDataUrl || "")
+            .update(JSON.stringify(this.spawnRateIconDataUrls))
+            .digest("hex");
+    }
+
     private touchCacheEntry<T>(cache: Map<string, T>, key: string, value: T) {
         cache.delete(key);
         cache.set(key, value);
@@ -1968,7 +1978,7 @@ export class FortniteSprites {
     }
 
     private async renderOverviewImage(families: SpriteFamily[], state: SpriteBrowserState): Promise<Buffer> {
-        const cacheKey = `overview:${this._data?.fetchedAt}:${state.variantFilter || "all"}:${state.rarityFilter || "all"}:${state.starterOnly ? "starter" : "all"}:${state.searchQuery || ""}`;
+        const cacheKey = `overview:${this.renderUiFingerprint}:${this._data?.fetchedAt}:${state.variantFilter || "all"}:${state.rarityFilter || "all"}:${state.starterOnly ? "starter" : "all"}:${state.searchQuery || ""}`;
         return this.getOrRenderImage(cacheKey, async () => {
             const width = 1700;
             const height = Math.max(1300, 390 + Math.max(families.length, 1) * 84);
@@ -2159,7 +2169,7 @@ export class FortniteSprites {
         });
     }
     private async renderVariantImage(family: SpriteFamily, variant: SpriteVariant): Promise<Buffer> {
-        const cacheKey = `variant:${this._data?.fetchedAt}:${variant.id}`;
+        const cacheKey = `variant:${this.renderUiFingerprint}:${this._data?.fetchedAt}:${variant.id}`;
         return this.getOrRenderImage(cacheKey, async () => {
             const width = 1000;
             const height = 700;
@@ -2447,7 +2457,7 @@ export class FortniteSprites {
     }
 
     private async renderFamilyImage(family: SpriteFamily): Promise<Buffer> {
-        const cacheKey = `family:${this._data?.fetchedAt}:${family.key}`;
+        const cacheKey = `family:${this.renderUiFingerprint}:${this._data?.fetchedAt}:${family.key}`;
         return this.getOrRenderImage(cacheKey, async () => {
             const width = 1200;
             const height = 800;
