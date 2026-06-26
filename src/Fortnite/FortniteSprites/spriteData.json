@@ -1,5 +1,5 @@
 {
-  "fetchedAt": "2026-06-26T04:05:30.694Z",
+  "fetchedAt": "2026-06-26T06:53:12.823Z",
   "totalSprites": 61,
   "totalLevels": 305,
   "families": [
@@ -17,7 +17,7 @@
           "chancePercent": 12.83,
           "chanceLabel": "12.83%",
           "starter": true,
-          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Water_Unvault_Ch7S3_ui_L.png",
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Water_Unvault_Ch7S3_ui_L.webp",
           "spawnRates": {
             "spriteChest": {
               "percent": 12.83,
@@ -36,7 +36,7 @@
           "chancePercent": 0.7,
           "chanceLabel": "0.7%",
           "starter": false,
-          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Water_Gold_ui_L.png",
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Water_Gold_ui_L.webp",
           "spawnRates": {
             "spriteChest": {
               "percent": 0.7,
@@ -56,7 +56,7 @@
           "chancePercent": 0.28,
           "chanceLabel": "0.28%",
           "starter": false,
-          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Water_Candy_ui_L.png",
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Water_Candy_ui_L.webp",
           "spawnRates": {
             "spriteChest": {
               "percent": 0.28,
@@ -76,7 +76,7 @@
           "chancePercent": 0.28,
           "chanceLabel": "0.28%",
           "starter": false,
-          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Water_Galaxy_ui_L.png",
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Water_Galaxy_ui_L.webp",
           "spawnRates": {
             "spriteChest": {
               "percent": 0.28,
@@ -105,7 +105,7 @@
           "chancePercent": 12.83,
           "chanceLabel": "12.83%",
           "starter": true,
-          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Earth_Ch7S3_UI_L.png",
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Earth_Ch7S3_UI_L.webp",
           "spawnRates": {
             "spriteChest": {
               "percent": 12.83,
@@ -124,7 +124,7 @@
           "chancePercent": 0.7,
           "chanceLabel": "0.7%",
           "starter": false,
-          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Earth_Gold_ui_L.png",
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Earth_Gold_ui_L.webp",
           "spawnRates": {
             "spriteChest": {
               "percent": 0.7,
@@ -144,7 +144,7 @@
           "chancePercent": 0.28,
           "chanceLabel": "0.28%",
           "starter": false,
-          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Earth_Candy_ui_L.png",
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Earth_Candy_ui_L.webp",
           "spawnRates": {
             "spriteChest": {
               "percent": 0.28,
@@ -164,7 +164,7 @@
           "chancePercent": 0.28,
           "chanceLabel": "0.28%",
           "starter": false,
-          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Earth_Galaxy_ui_L.png",
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Earth_Galaxy_ui_L.webp",
           "spawnRates": {
             "spriteChest": {
               "percent": 0.28,
@@ -193,7 +193,7 @@
           "chancePercent": 12.45,
           "chanceLabel": "12.45%",
           "starter": true,
-          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Fire_Unvault_Ch7S3_ui_L.png",
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Fire_Unvault_Ch7S3_ui_L.webp",
           "spawnRates": {
             "spriteChest": {
               "percent": 12.45,
@@ -212,7 +212,7 @@
           "chancePercent": 0.68,
           "chanceLabel": "0.68%",
           "starter": false,
-          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Fire_Candy_ui_L.png",
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Fire_Candy_ui_L.webp",
           "spawnRates": {
             "spriteChest": {
               "percent": 0.68,
@@ -232,7 +232,7 @@
           "chancePercent": 0.68,
           "chanceLabel": "0.68%",
           "starter": false,
-          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Fire_Gold_ui_L.png",
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Fire_Gold_ui_L.webp",
           "spawnRates": {
             "spriteChest": {
               "percent": 0.68,
@@ -252,7 +252,7 @@
           "chancePercent": 0.27,
           "chanceLabel": "0.27%",
           "starter": false,
-          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Fire_Galaxy_ui_L.png",
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Fire_Galaxy_ui_L.webp",
           "spawnRates": {
             "spriteChest": {
               "percent": 0.27,
@@ -281,7 +281,7 @@
           "chancePercent": 5.74,
           "chanceLabel": "5.74%",
           "starter": false,
-          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Duck_Default_L.png",
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Duck_Default_L.webp",
           "spawnRates": {
             "spriteChest": {
               "percent": 5.74,
@@ -300,7 +300,7 @@
           "chancePercent": 0.07,
           "chanceLabel": "0.07%",
           "starter": false,
-          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Duck_Gold_L.png",
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Duck_Gold_L.webp",
           "spawnRates": {
             "spriteChest": {
               "percent": 0.07,
@@ -320,7 +320,7 @@
           "chancePercent": 0.04,
           "chanceLabel": "0.04%",
           "starter": false,
-          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Duck_Candy_L.png",
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Duck_Candy_L.webp",
           "spawnRates": {
             "spriteChest": {
               "percent": 0.04,
@@ -340,7 +340,7 @@
           "chancePercent": 0.02,
           "chanceLabel": "0.02%",
           "starter": false,
-          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Duck_Galaxy_L.png",
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Duck_Galaxy_L.webp",
           "spawnRates": {
             "spriteChest": {
               "percent": 0.02,
@@ -369,7 +369,7 @@
           "chancePercent": 5.74,
           "chanceLabel": "5.74%",
           "starter": false,
-          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Ghost_Unvault_L.png",
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Ghost_Unvault_L.webp",
           "spawnRates": {
             "spriteChest": {
               "percent": 5.74,
@@ -388,7 +388,7 @@
           "chancePercent": 0.07,
           "chanceLabel": "0.07%",
           "starter": false,
-          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Ghost_Gold_L.png",
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Ghost_Gold_L.webp",
           "spawnRates": {
             "spriteChest": {
               "percent": 0.07,
@@ -408,7 +408,7 @@
           "chancePercent": 0.04,
           "chanceLabel": "0.04%",
           "starter": false,
-          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Ghost_Candy_L.png",
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Ghost_Candy_L.webp",
           "spawnRates": {
             "spriteChest": {
               "percent": 0.04,
@@ -428,7 +428,7 @@
           "chancePercent": 0.02,
           "chanceLabel": "0.02%",
           "starter": false,
-          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Ghost_Galaxy_L.png",
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Ghost_Galaxy_L.webp",
           "spawnRates": {
             "spriteChest": {
               "percent": 0.02,
@@ -457,7 +457,7 @@
           "chancePercent": 2.63,
           "chanceLabel": "2.63%",
           "starter": false,
-          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Sleepy_ui_L.png",
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Sleepy_ui_L.webp",
           "spawnRates": {
             "spriteChest": {
               "percent": 2.63,
@@ -476,7 +476,7 @@
           "chancePercent": 0.03,
           "chanceLabel": "0.03%",
           "starter": false,
-          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Sleepy_Gold_ui_L.png",
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Sleepy_Gold_ui_L.webp",
           "spawnRates": {
             "spriteChest": {
               "percent": 0.03,
@@ -496,7 +496,7 @@
           "chancePercent": 0.02,
           "chanceLabel": "0.02%",
           "starter": false,
-          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Sleepy_Candy_ui_L.png",
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Sleepy_Candy_ui_L.webp",
           "spawnRates": {
             "spriteChest": {
               "percent": 0.02,
@@ -516,7 +516,7 @@
           "chancePercent": 0.01,
           "chanceLabel": "0.01%",
           "starter": false,
-          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Sleepy_Galaxy_ui_L.png",
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Sleepy_Galaxy_ui_L.webp",
           "spawnRates": {
             "spriteChest": {
               "percent": 0.01,
@@ -545,7 +545,7 @@
           "chancePercent": 1.98,
           "chanceLabel": "1.98%",
           "starter": false,
-          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Punk_ui_L.png",
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Punk_ui_L.webp",
           "spawnRates": {
             "spriteChest": {
               "percent": 1.98,
@@ -564,7 +564,7 @@
           "chancePercent": 0.02,
           "chanceLabel": "0.02%",
           "starter": false,
-          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Punk_Gold_ui_L.png",
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Punk_Gold_ui_L.webp",
           "spawnRates": {
             "spriteChest": {
               "percent": 0.02,
@@ -584,7 +584,7 @@
           "chancePercent": 0.01,
           "chanceLabel": "0.01%",
           "starter": false,
-          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Punk_Candy_ui_L.png",
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Punk_Candy_ui_L.webp",
           "spawnRates": {
             "spriteChest": {
               "percent": 0.01,
@@ -604,7 +604,7 @@
           "chancePercent": 0,
           "chanceLabel": "0%",
           "starter": false,
-          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Punk_Galaxy_ui_L.png",
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Punk_Galaxy_ui_L.webp",
           "spawnRates": {
             "spriteChest": {
               "percent": 0,
@@ -633,7 +633,7 @@
           "chancePercent": 5.74,
           "chanceLabel": "5.74%",
           "starter": false,
-          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_King_ui_L.png",
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_King_ui_L.webp",
           "spawnRates": {
             "spriteChest": {
               "percent": 5.74,
@@ -652,7 +652,7 @@
           "chancePercent": 0.07,
           "chanceLabel": "0.07%",
           "starter": false,
-          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_King_Gold_ui_L.png",
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_King_Gold_ui_L.webp",
           "spawnRates": {
             "spriteChest": {
               "percent": 0.07,
@@ -672,7 +672,7 @@
           "chancePercent": 0.04,
           "chanceLabel": "0.04%",
           "starter": false,
-          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_King_Candy_ui_L.png",
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_King_Candy_ui_L.webp",
           "spawnRates": {
             "spriteChest": {
               "percent": 0.04,
@@ -692,7 +692,7 @@
           "chancePercent": 0.02,
           "chanceLabel": "0.02%",
           "starter": false,
-          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_King_Galaxy_ui_L.png",
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_King_Galaxy_ui_L.webp",
           "spawnRates": {
             "spriteChest": {
               "percent": 0.02,
@@ -721,7 +721,7 @@
           "chancePercent": 0.000098,
           "chanceLabel": "0.000098%",
           "starter": false,
-          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_ZeroPoint_ui_L.png",
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_ZeroPoint_ui_L.webp",
           "spawnRates": {
             "spriteChest": {
               "percent": 0.000098,
@@ -740,7 +740,7 @@
           "chancePercent": 0.0000012,
           "chanceLabel": "0.0000012%",
           "starter": false,
-          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_ZeroPoint_Gold_ui_L.png",
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_ZeroPoint_Gold_ui_L.webp",
           "spawnRates": {
             "spriteChest": {
               "percent": 0.0000012,
@@ -760,7 +760,7 @@
           "chancePercent": 6e-7,
           "chanceLabel": "0.0000006%",
           "starter": false,
-          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_ZeroPoint_Candy_ui_L.png",
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_ZeroPoint_Candy_ui_L.webp",
           "spawnRates": {
             "spriteChest": {
               "percent": 6e-7,
@@ -780,7 +780,7 @@
           "chancePercent": 4e-7,
           "chanceLabel": "0.0000004%",
           "starter": false,
-          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_ZeroPoint_Galaxy_ui_L.png",
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_ZeroPoint_Galaxy_ui_L.webp",
           "spawnRates": {
             "spriteChest": {
               "percent": 4e-7,
@@ -809,7 +809,7 @@
           "chancePercent": 5.76,
           "chanceLabel": "5.76%",
           "starter": false,
-          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_RedDemon_Default_L.png",
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_RedDemon_Default_L.webp",
           "spawnRates": {
             "spriteChest": {
               "percent": 5.76,
@@ -828,7 +828,7 @@
           "chancePercent": 0.07,
           "chanceLabel": "0.07%",
           "starter": false,
-          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_RedDemon_Gold_L.png",
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_RedDemon_Gold_L.webp",
           "spawnRates": {
             "spriteChest": {
               "percent": 0.07,
@@ -848,7 +848,7 @@
           "chancePercent": 0.04,
           "chanceLabel": "0.04%",
           "starter": false,
-          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_RedDemon_Candy_L.png",
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_RedDemon_Candy_L.webp",
           "spawnRates": {
             "spriteChest": {
               "percent": 0.04,
@@ -868,7 +868,7 @@
           "chancePercent": 0,
           "chanceLabel": "0%",
           "starter": false,
-          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_RedDemon_Galaxy_L.png",
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_RedDemon_Galaxy_L.webp",
           "spawnRates": {
             "spriteChest": {
               "percent": 0,
@@ -897,7 +897,7 @@
           "chancePercent": 1.01,
           "chanceLabel": "1.01%",
           "starter": false,
-          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_BurntPeanut_ui_L.png",
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_BurntPeanut_ui_L.webp",
           "spawnRates": {
             "spriteChest": {
               "percent": 1.01,
@@ -925,7 +925,7 @@
           "chancePercent": 2.63,
           "chanceLabel": "2.63%",
           "starter": false,
-          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Boss_ui_L.png",
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Boss_ui_L.webp",
           "spawnRates": {
             "spriteChest": {
               "percent": 2.63,
@@ -944,7 +944,7 @@
           "chancePercent": 0.03,
           "chanceLabel": "0.03%",
           "starter": false,
-          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Boss_Gold_ui_L.png",
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Boss_Gold_ui_L.webp",
           "spawnRates": {
             "spriteChest": {
               "percent": 0.03,
@@ -964,7 +964,7 @@
           "chancePercent": 0.02,
           "chanceLabel": "0.02%",
           "starter": false,
-          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Boss_Candy_ui_L.png",
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Boss_Candy_ui_L.webp",
           "spawnRates": {
             "spriteChest": {
               "percent": 0.02,
@@ -984,7 +984,7 @@
           "chancePercent": 0.01,
           "chanceLabel": "0.01%",
           "starter": false,
-          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Boss_Galaxy_ui_L.png",
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Boss_Galaxy_ui_L.webp",
           "spawnRates": {
             "spriteChest": {
               "percent": 0.01,
@@ -1013,7 +1013,7 @@
           "chancePercent": 13.79,
           "chanceLabel": "13.79%",
           "starter": false,
-          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Fishy_ui_L.png",
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Fishy_ui_L.webp",
           "spawnRates": {
             "spriteChest": {
               "percent": 13.79,
@@ -1032,7 +1032,7 @@
           "chancePercent": 0.17,
           "chanceLabel": "0.17%",
           "starter": false,
-          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Fishy_Gold_ui_L.png",
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Fishy_Gold_ui_L.webp",
           "spawnRates": {
             "spriteChest": {
               "percent": 0.17,
@@ -1052,7 +1052,7 @@
           "chancePercent": 0.08,
           "chanceLabel": "0.08%",
           "starter": false,
-          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Fishy_Candy_ui_L.png",
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Fishy_Candy_ui_L.webp",
           "spawnRates": {
             "spriteChest": {
               "percent": 0.08,
@@ -1072,7 +1072,7 @@
           "chancePercent": 0.06,
           "chanceLabel": "0.06%",
           "starter": false,
-          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Fishy_Galaxy_ui_L.png",
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Fishy_Galaxy_ui_L.webp",
           "spawnRates": {
             "spriteChest": {
               "percent": 0.06,
@@ -1101,7 +1101,7 @@
           "chancePercent": 5.74,
           "chanceLabel": "5.74%",
           "starter": false,
-          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Soccer_ui_L.png",
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Soccer_ui_L.webp",
           "spawnRates": {
             "spriteChest": {
               "percent": 5.74,
@@ -1120,7 +1120,7 @@
           "chancePercent": 0.07,
           "chanceLabel": "0.07%",
           "starter": false,
-          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Soccer_Gold_L.png",
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Soccer_Gold_L.webp",
           "spawnRates": {
             "spriteChest": {
               "percent": 0.07,
@@ -1140,7 +1140,7 @@
           "chancePercent": 0.04,
           "chanceLabel": "0.04%",
           "starter": false,
-          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Soccer_Candy_L.png",
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Soccer_Candy_L.webp",
           "spawnRates": {
             "spriteChest": {
               "percent": 0.04,
@@ -1160,7 +1160,7 @@
           "chancePercent": 0.02,
           "chanceLabel": "0.02%",
           "starter": false,
-          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Soccer_Galaxy_L.png",
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Soccer_Galaxy_L.webp",
           "spawnRates": {
             "spriteChest": {
               "percent": 0.02,
@@ -1189,7 +1189,7 @@
           "chancePercent": 5.74,
           "chanceLabel": "5.74%",
           "starter": false,
-          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Drifter_ui_L.png",
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Drifter_ui_L.webp",
           "spawnRates": {
             "spriteChest": {
               "percent": 5.74,
@@ -1208,7 +1208,7 @@
           "chancePercent": 0.07,
           "chanceLabel": "0.07%",
           "starter": false,
-          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Drifter_Gold_ui_L.png",
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Drifter_Gold_ui_L.webp",
           "spawnRates": {
             "spriteChest": {
               "percent": 0.07,
@@ -1228,7 +1228,7 @@
           "chancePercent": 0.04,
           "chanceLabel": "0.04%",
           "starter": false,
-          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Drifter_Candy_ui_L.png",
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Drifter_Candy_ui_L.webp",
           "spawnRates": {
             "spriteChest": {
               "percent": 0.04,
@@ -1248,7 +1248,7 @@
           "chancePercent": 0.02,
           "chanceLabel": "0.02%",
           "starter": false,
-          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Drifter_Galaxy_ui_L.png",
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Drifter_Galaxy_ui_L.webp",
           "spawnRates": {
             "spriteChest": {
               "percent": 0.02,
@@ -1277,7 +1277,7 @@
           "chancePercent": 0.000098,
           "chanceLabel": "0.000098%",
           "starter": false,
-          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_GrimReaper_Default_L.png",
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_GrimReaper_Default_L.webp",
           "spawnRates": {
             "spriteChest": {
               "percent": 0.000098,
@@ -1296,7 +1296,7 @@
           "chancePercent": 0.0000012,
           "chanceLabel": "0.0000012%",
           "starter": false,
-          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_GrimReaper_Gold_L.png",
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_GrimReaper_Gold_L.webp",
           "spawnRates": {
             "spriteChest": {
               "percent": 0.0000012,
@@ -1316,7 +1316,7 @@
           "chancePercent": 6e-7,
           "chanceLabel": "0.0000006%",
           "starter": false,
-          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_GrimReaper_Candy_L.png",
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_GrimReaper_Candy_L.webp",
           "spawnRates": {
             "spriteChest": {
               "percent": 6e-7,
@@ -1336,7 +1336,7 @@
           "chancePercent": 4e-7,
           "chanceLabel": "0.0000004%",
           "starter": false,
-          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_GrimReaper_Galaxy_L.png",
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_GrimReaper_Galaxy_L.webp",
           "spawnRates": {
             "spriteChest": {
               "percent": 4e-7,
@@ -1352,5 +1352,5 @@
       ]
     }
   ],
-  "contentFingerprint": "41ce2e0d10f81031dbd3c3ce6d167a56235e3be2c9b6ca8762cbc7f771fdce79"
+  "contentFingerprint": "e6a39543702e47eed1effdbb9c59cf41f3a6d5c7bd330186587d225a5841ed53"
 }

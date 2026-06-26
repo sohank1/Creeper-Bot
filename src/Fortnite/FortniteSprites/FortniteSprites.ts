@@ -1557,10 +1557,19 @@ export class FortniteSprites {
                     return diskCached;
                 }
 
-                const res = await axios.get<ArrayBuffer>(imageUrl, {
+                const correctedUrl = imageUrl.includes("fortnite.gg") ? imageUrl.replace(/\.png(\?.*)?$/i, ".webp$1") : imageUrl;
+                const proxyUrl = correctedUrl.includes("fortnite.gg")
+                    ? `https://wsrv.nl/?url=${encodeURIComponent(correctedUrl)}`
+                    : correctedUrl;
+
+                const res = await axios.get<ArrayBuffer>(proxyUrl, {
                     responseType: "arraybuffer",
                     timeout: 15000,
-                    httpsAgent: IMAGE_HTTPS_AGENT
+                    httpsAgent: IMAGE_HTTPS_AGENT,
+                    headers: {
+                        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                        "Accept": "image/webp,image/apng,image/*,*/*;q=0.8"
+                    }
                 });
                 const contentType = String(res.headers["content-type"] || "").toLowerCase();
                 const mimeType = contentType.includes("image/") ? contentType.split(";")[0] : "image/png";
@@ -1590,6 +1599,10 @@ export class FortniteSprites {
     private async renderHtmlToBuffer(html: string, width: number, height: number): Promise<Buffer> {
         const page = await this.acquireRenderPage();
         try {
+            await page.setExtraHTTPHeaders({
+                "Referer": "https://fortnite.gg/",
+                "Accept-Language": "en-US,en;q=0.9"
+            });
             await page.setViewport({ width, height, deviceScaleFactor: 2 });
             await page.setContent(html, { waitUntil: "load", timeout: 15000 });
             await page.evaluate(async () => {
@@ -1636,7 +1649,11 @@ export class FortniteSprites {
     }
 
     private renderSpriteThumb(imageUrl: string | undefined, className: string, fallback = "No asset") {
-        const resolvedSrc = imageUrl ? this.spriteAssetCache.get(imageUrl)?.src || imageUrl : undefined;
+        const correctedUrl = imageUrl && imageUrl.includes("fortnite.gg") ? imageUrl.replace(/\.png(\?.*)?$/i, ".webp$1") : imageUrl;
+        const proxyUrl = correctedUrl && correctedUrl.includes("fortnite.gg")
+            ? `https://wsrv.nl/?url=${encodeURIComponent(correctedUrl)}`
+            : correctedUrl;
+        const resolvedSrc = imageUrl ? this.spriteAssetCache.get(imageUrl)?.src || proxyUrl : undefined;
         return `
             <div class="sprite-thumb ${className}">
                 ${resolvedSrc ? `<img src="${this.escapeHtml(resolvedSrc)}" alt="">` : `<span class="metric-label">${this.escapeHtml(fallback)}</span>`}

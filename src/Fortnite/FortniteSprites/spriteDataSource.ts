@@ -87,7 +87,7 @@ function absoluteUrl(url: string | undefined): string {
 }
 
 function normalizeImageUrl(url: string): string {
-    return url.replace(/\.webp(\?.*)?$/i, ".png$1");
+    return url;
 }
 
 function normalizeText(value: string | undefined): string {
