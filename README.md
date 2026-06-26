@@ -31,7 +31,6 @@ Copy `.env.example` to `.env` and fill in the values you need:
 
 Optional variables are only required for features that use them:
 
-- `REDIS_URI`
 - `FORTNITE_API_KEY`
 - `FORTNITE_MAP_API_KEY`
 - `SCRAPER_API_KEY`

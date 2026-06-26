@@ -472,9 +472,21 @@ function buildStatsRenderDocument(content: string, extraCss = "") {
 
 async function renderStatsHtmlToBuffer(html: string, width: number, height: number): Promise<Buffer> {
     const puppeteer = await import("puppeteer");
+    const envExecutablePath = process.env.GOOGLE_CHROME_BIN || process.env.PUPPETEER_EXECUTABLE_PATH;
+    const candidatePaths = [
+        envExecutablePath,
+        process.platform === "win32" ? "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe" : null,
+        process.platform === "win32" ? "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe" : null,
+        process.platform === "win32" && process.env.LOCALAPPDATA ? require("path").join(process.env.LOCALAPPDATA, "Google", "Chrome", "Application", "chrome.exe") : null,
+        process.platform === "win32" ? "C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe" : null,
+        process.platform === "linux" ? "/usr/bin/chromium" : null,
+        process.platform === "linux" ? "/usr/bin/chromium-browser" : null,
+        process.platform === "linux" ? "/usr/bin/google-chrome" : null,
+    ].filter((candidate): candidate is string => !!candidate && require("fs").existsSync(candidate));
+    const executablePath = candidatePaths[0] || await puppeteer.executablePath();
     const browser = await puppeteer.launch({
         headless: true,
-        executablePath: process.env.GOOGLE_CHROME_BIN || process.env.PUPPETEER_EXECUTABLE_PATH || "/usr/bin/chromium",
+        executablePath,
         args: ["--no-sandbox", "--disable-setuid-sandbox"],
     });
 

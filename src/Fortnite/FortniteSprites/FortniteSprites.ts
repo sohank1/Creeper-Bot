@@ -43,7 +43,6 @@ type SpriteBrowserState = {
     variantFilter?: "all" | SpriteVariantName;
     rarityFilter?: "all" | SpriteRarity;
     searchQuery?: string;
-    starterOnly?: boolean;
     familyPage?: number;
 };
 
@@ -54,8 +53,8 @@ type SpriteSearchIntent =
 
 type SpriteViewState =
     | { kind: "overview"; state: SpriteBrowserState }
-    | { kind: "family"; familyKey: string }
-    | { kind: "detail"; familyKey: string; variantId: number };
+    | { kind: "family"; familyKey: string; state?: SpriteBrowserState }
+    | { kind: "detail"; familyKey: string; variantId: number; state?: SpriteBrowserState };
 
 type SpriteAuthor = {
     name: string;
@@ -873,7 +872,6 @@ export class FortniteSprites {
         if (parsedVariantId) return { kind: "variant", variantId: parsedVariantId };
 
         if (rawValue === "browse:all") return { kind: "overview", state: {} };
-        if (rawValue === "filter:starter") return { kind: "overview", state: { starterOnly: true } };
         if (rawValue.startsWith("filter:rarity:")) {
             const rarity = rawValue.replace("filter:rarity:", "") as SpriteRarity;
             return { kind: "overview", state: { rarityFilter: rarity } };
@@ -896,7 +894,7 @@ export class FortniteSprites {
         }
 
         const q = rawValue.toLowerCase();
-        if (["starter", "starters", "free"].includes(q)) return { kind: "overview", state: { starterOnly: true } };
+        if (["browse", "overview", "all", "list", "sprites"].includes(q)) return { kind: "overview", state: {} };
 
         const matchingRarity = RARITY_ORDER.find(rarity => rarity === q || this.titleCase(rarity).toLowerCase() === q);
         if (matchingRarity) return { kind: "overview", state: { rarityFilter: matchingRarity } };
@@ -925,16 +923,14 @@ export class FortniteSprites {
 
         const choices: { name: string; value: string }[] = [];
         if (!query) {
-            const starters = this.searchItems.filter(item => item.type === "variant" && item.starter);
             const baseFamilies = this.searchItems.filter(item => item.type === "family");
             choices.push(
                 { name: "🧚 Browse all sprites", value: "browse:all" },
-                { name: "🌱 Show starter sprites", value: "filter:starter" },
                 { name: "🌟 Show mythic sprites", value: "filter:rarity:mythic" },
                 { name: "🍬 Show Gummy variants", value: "filter:variant:Candy" }
             );
 
-            for (const item of [...starters, ...baseFamilies]) {
+            for (const item of baseFamilies) {
                 choices.push(this.formatAutocompleteChoice(item));
                 if (choices.length >= 25) break;
             }
@@ -944,10 +940,6 @@ export class FortniteSprites {
 
         const q = query.toLowerCase();
         choices.push({ name: this.truncate(`🔎 Search results for "${query}"`, 100), value: `search:${this.truncate(query, 93)}` });
-
-        if (["starter", "starters", "free"].some(term => term.startsWith(q) || q.includes(term))) {
-            choices.push({ name: "🌱 Show starter sprites", value: "filter:starter" });
-        }
 
         for (const rarity of RARITY_ORDER) {
             if (rarity.includes(q) || q.includes(rarity)) {
@@ -996,8 +988,7 @@ export class FortniteSprites {
             }
 
             choices.push(
-                { name: `${this.familyEmoji()} Browse all sprites`, value: "browse:all" },
-                { name: `${this.variantEmoji("Base")} Show starter sprites`, value: "filter:starter" }
+                { name: `${this.familyEmoji()} Browse all sprites`, value: "browse:all" }
             );
 
             return i.respond(choices.slice(0, 25));
@@ -1005,10 +996,6 @@ export class FortniteSprites {
 
         const q = this.expandSearchQuery(query);
         choices.push({ name: this.truncate(`Search results for "${query}"`, 100), value: `search:${this.truncate(query, 93)}` });
-
-        if (["starter", "starters", "free"].some(term => term.startsWith(q) || q.includes(term))) {
-            choices.push({ name: `${this.variantEmoji("Base")} Show starter sprites`, value: "filter:starter" });
-        }
 
         for (const rarity of RARITY_ORDER) {
             if (rarity.includes(q) || q.includes(rarity)) {
@@ -1064,12 +1051,12 @@ export class FortniteSprites {
         if (result.kind === "variant") {
             const match = this.findVariant(result.variantId);
             if (!match) return i.editReply({ content: "I could not find that sprite variant." });
-            view = { kind: "detail", familyKey: match.family.key, variantId: match.variant.id };
+            view = { kind: "detail", familyKey: match.family.key, variantId: match.variant.id, state: {} };
             response = await this.generateDetailResponse(match.family, match.variant, i.user.id, i.user as User, displayName);
         } else if (result.kind === "family") {
             const family = this.findFamily(result.familyKey);
             if (!family) return i.editReply({ content: "I could not find that sprite family." });
-            view = { kind: "family", familyKey: family.key };
+            view = { kind: "family", familyKey: family.key, state: {} };
             response = await this.generateFamilyResponse(family.key, i.user.id, i.user as User, displayName);
         } else {
             view = { kind: "overview", state: result.state };
@@ -1092,9 +1079,8 @@ export class FortniteSprites {
                 variants: family.variants.filter(variant => {
                     const variantMatches = variantFilter === "all" || variant.variant === variantFilter;
                     const rarityMatches = rarityFilter === "all" || variant.rarity === rarityFilter;
-                    const starterMatches = !state.starterOnly || variant.starter;
                     const searchMatches = !state.searchQuery || this.spriteMatchesQuery(family, variant, state.searchQuery);
-                    return variantMatches && rarityMatches && starterMatches && searchMatches;
+                    return variantMatches && rarityMatches && searchMatches;
                 })
             }))
             .filter(family => family.variants.length > 0);
@@ -1188,20 +1174,17 @@ export class FortniteSprites {
 
         const variantFilter = state.variantFilter || "all";
         const rarityFilter = state.rarityFilter || "all";
-        const activeQuickFilter = state.starterOnly
-            ? "starter"
-            : rarityFilter !== "all"
-                ? `rarity:${rarityFilter}`
-                : variantFilter !== "all"
-                    ? `variant:${variantFilter}`
-                    : "all";
+        const activeQuickFilter = rarityFilter !== "all"
+            ? `rarity:${rarityFilter}`
+            : variantFilter !== "all"
+                ? `variant:${variantFilter}`
+                : "all";
         const quickFilterRow = new MessageActionRow().addComponents(
             new MessageSelectMenu()
                 .setCustomId(`fn_sprites_quick_filter${ownerSuffix}`)
                 .setPlaceholder("🔎 Choose a view")
                 .addOptions([
                     { label: "🧚 All sprites", description: "Reset filters and show the full sprite list", value: "all", default: activeQuickFilter === "all" },
-                    { label: "🌱 Starter sprites", description: "Sprites marked as starter pulls", value: "starter", default: activeQuickFilter === "starter" },
                     ...this.getVariantNames().slice(0, 8).map(variant => ({
                         label: `${this.variantEmoji(variant)} ${this.variantLabel(variant)} variants`,
                         description: `Show every ${this.variantLabel(variant)} variant`,
@@ -1218,7 +1201,6 @@ export class FortniteSprites {
         );
 
         const quickRow = new MessageActionRow().addComponents(
-            new MessageButton().setCustomId(`fn_sprites_quick_starters${ownerSuffix}`).setLabel("🌱 Starters").setStyle("PRIMARY"),
             new MessageButton().setCustomId(`fn_sprites_quick_rarest${ownerSuffix}`).setLabel("🌟 Rarest").setStyle("SECONDARY"),
             new MessageButton().setCustomId(`fn_sprites_quick_cost${ownerSuffix}`).setLabel("💎 Highest Cost").setStyle("SECONDARY"),
             new MessageButton().setCustomId(`fn_sprites_quick_random${ownerSuffix}`).setLabel("🎲 Random").setStyle("SUCCESS")
@@ -1307,7 +1289,7 @@ export class FortniteSprites {
             const { default: puppeteerModule } = await Function('return import("puppeteer")')();
             const browser = await puppeteerModule.launch({
                 headless: true,
-                executablePath: process.env.GOOGLE_CHROME_BIN || process.env.PUPPETEER_EXECUTABLE_PATH || "/usr/bin/chromium",
+                executablePath: process.env.GOOGLE_CHROME_BIN || process.env.PUPPETEER_EXECUTABLE_PATH || (process.platform === 'linux' ? "/usr/bin/chromium" : undefined),
                 args: ['--no-sandbox', '--disable-setuid-sandbox']
             });
             browser.on("disconnected", () => {
@@ -1978,15 +1960,14 @@ export class FortniteSprites {
     }
 
     private async renderOverviewImage(families: SpriteFamily[], state: SpriteBrowserState): Promise<Buffer> {
-        const cacheKey = `overview:${this.renderUiFingerprint}:${this._data?.fetchedAt}:${state.variantFilter || "all"}:${state.rarityFilter || "all"}:${state.starterOnly ? "starter" : "all"}:${state.searchQuery || ""}`;
+        const cacheKey = `overview:${this.renderUiFingerprint}:${this._data?.fetchedAt}:${state.variantFilter || "all"}:${state.rarityFilter || "all"}:${state.searchQuery || ""}`;
         return this.getOrRenderImage(cacheKey, async () => {
             const width = 1700;
             const height = Math.max(1300, 390 + Math.max(families.length, 1) * 84);
             const variants = families.flatMap(family => family.variants.map(variant => ({ family, variant })));
             await this.prewarmSpriteImages(variants.map(({ variant }) => variant.imageUrl));
-            const filters = [
-                state.searchQuery ? `Search: ${state.searchQuery}` : null,
-                state.starterOnly ? "Starters" : null,
+            const tags = [
+                state.searchQuery ? `Search: "${state.searchQuery}"` : null,
                 state.variantFilter && state.variantFilter !== "all" ? this.variantLabel(state.variantFilter) : null,
                 state.rarityFilter && state.rarityFilter !== "all" ? this.titleCase(state.rarityFilter) : null
             ].filter(Boolean).join(" / ") || "All variants";
@@ -2005,7 +1986,7 @@ export class FortniteSprites {
                             <div class="page-meta">
                                 ${this.renderMetaChip(`${families.length} families`)}
                                 ${this.renderMetaChip(`${variants.length} shown`)}
-                                ${this.renderMetaChip(filters)}
+                                ${this.renderMetaChip(tags)}
                             </div>
                         </section>
 
@@ -2514,7 +2495,7 @@ export class FortniteSprites {
                                                 ${this.renderSpriteThumb(variant.imageUrl, "variant-thumb")}
                                                 <div class="variant-copy">
                                                     <h3>${this.escapeHtml(variant.name)}</h3>
-                                                    <p>${this.escapeHtml(this.formatChance(variant))} chance${variant.starter ? " - starter" : ""}</p>
+                                                    <p>${this.escapeHtml(this.formatChance(variant))} chance</p>
                                                 </div>
                                                 ${this.renderRarityPill(variant.rarity)}
                                                 <div class="variant-cost">${this.renderDustAmount(variant.summonCost)}</div>
@@ -2646,8 +2627,7 @@ export class FortniteSprites {
             this.getSpawnRateEntries(variant).map(rate => `${rate.label} ${rate.display}`),
             variant.summonCost.toString(),
             variant.effectText,
-            variant.specialEffectText,
-            variant.starter ? "starter free" : ""
+            variant.specialEffectText
         );
 
         return haystack.includes(q) || q.split(/\s+/).filter(Boolean).every(part => haystack.includes(part));
@@ -2655,8 +2635,7 @@ export class FortniteSprites {
 
     private describeOverviewState(state: SpriteBrowserState) {
         const parts = [
-            state.searchQuery ? `Search results for "${state.searchQuery}"` : null,
-            state.starterOnly ? "Starter sprites" : null,
+            state.searchQuery ? `Results for "${state.searchQuery}"` : null,
             state.variantFilter && state.variantFilter !== "all" ? `${this.variantEmoji(state.variantFilter)} ${this.variantLabel(state.variantFilter)} variants` : null,
             state.rarityFilter && state.rarityFilter !== "all" ? `${this.rarityEmoji(state.rarityFilter)} ${this.titleCase(state.rarityFilter)} rarity` : null
         ].filter(Boolean);
@@ -2666,7 +2645,6 @@ export class FortniteSprites {
 
     private stateFromQuickFilter(value: string): SpriteBrowserState {
         if (value === "all") return {};
-        if (value === "starter") return { starterOnly: true };
         if (value.startsWith("variant:")) return { variantFilter: value.replace("variant:", "") as SpriteVariantName };
         if (value.startsWith("rarity:")) return { rarityFilter: value.replace("rarity:", "") as SpriteRarity };
         return {};
@@ -2680,11 +2658,16 @@ export class FortniteSprites {
             duck: "🦆",
             ghost: "👻",
             dream: "💤",
-            punk: "🎸",
+            punk: "🤘",
             king: "👑",
-            "zero-point": "🌀",
+            "zero-point": "🌌",
             demon: "😈",
-            "burnt-peanut": "🥜"
+            "burnt-peanut": "🥜",
+            boss: "🕶️",
+            fishy: "🐟",
+            striker: "⚡",
+            aura: "✨",
+            grim: "💀"
         };
         return familyKey ? emojis[familyKey] || "🧚" : "🧚";
     }
@@ -2807,27 +2790,48 @@ export class FortniteSprites {
         const author = this.createAuthor(displayName, i.user.displayAvatarURL({ dynamic: true }));
         const responseOwnerId = isOriginalUser ? ownerId : i.user.id;
 
+        const trackedMessage = this.trackedSpriteMessages.get(i.message.id);
+        const currentState = trackedMessage && 'state' in trackedMessage.view ? (trackedMessage.view.state || {}) : {};
+
         let response: any;
         let view: SpriteViewState | null = null;
         if (rawId === "fn_sprites_family_select") {
-            view = { kind: "family", familyKey: i.values[0] };
-            response = await this.generateFamilyResponse(i.values[0], responseOwnerId, i.user, displayName);
+            const familyKey = i.values[0];
+            const family = this.findFamily(familyKey);
+            let targetVariant: SpriteVariant | undefined;
+            
+            if (currentState.variantFilter || currentState.rarityFilter) {
+                targetVariant = family?.variants.find(v => 
+                    (!currentState.variantFilter || currentState.variantFilter === "all" || v.variant === currentState.variantFilter) &&
+                    (!currentState.rarityFilter || currentState.rarityFilter === "all" || v.rarity === currentState.rarityFilter)
+                );
+            }
+            
+            if (targetVariant) {
+                view = { kind: "detail", familyKey, variantId: targetVariant.id, state: currentState };
+                response = await this.generateDetailResponse(family!, targetVariant, responseOwnerId, i.user, displayName);
+            } else {
+                view = { kind: "family", familyKey, state: currentState };
+                response = await this.generateFamilyResponse(familyKey, responseOwnerId, i.user, displayName);
+            }
         } else if (rawId.startsWith("fn_sprites_variant_select_")) {
             const id = parseInt(i.values[0], 10);
             const match = this.findVariant(id);
             if (!match) return i.reply({ content: "Sprite variant not found.", ephemeral: true });
-            view = { kind: "detail", familyKey: match.family.key, variantId: match.variant.id };
+            view = { kind: "detail", familyKey: match.family.key, variantId: match.variant.id, state: currentState };
             response = await this.generateDetailResponse(match.family, match.variant, responseOwnerId, i.user, displayName);
         } else if (rawId === "fn_sprites_quick_filter") {
             const state = this.stateFromQuickFilter(i.values[0]);
             view = { kind: "overview", state };
             response = await this.generateOverviewResponse(state, responseOwnerId, i.user, displayName);
         } else if (rawId === "fn_sprites_variant_filter") {
-            view = { kind: "overview", state: { variantFilter: i.values[0] as any } };
-            response = await this.generateOverviewResponse({ variantFilter: i.values[0] as any }, responseOwnerId, i.user, displayName);
+            const state = { ...currentState, variantFilter: i.values[0] as any, familyPage: 0 };
+            view = { kind: "overview", state };
+            response = await this.generateOverviewResponse(state, responseOwnerId, i.user, displayName);
         } else if (rawId === "fn_sprites_rarity_filter") {
-            view = { kind: "overview", state: { rarityFilter: i.values[0] as any } };
-            response = await this.generateOverviewResponse({ rarityFilter: i.values[0] as any }, responseOwnerId, i.user, displayName);
+            const state = { ...currentState, rarityFilter: i.values[0] as any, familyPage: 0 };
+            view = { kind: "overview", state };
+            response = await this.generateOverviewResponse(state, responseOwnerId, i.user, displayName);
         }
 
         if (!response) {
@@ -2882,21 +2886,40 @@ export class FortniteSprites {
         const displayName = await this.getDisplayName(i);
         const author = this.createAuthor(displayName, i.user.displayAvatarURL({ dynamic: true }));
         const responseOwnerId = isOriginalUser ? ownerId : i.user.id;
+        const trackedMessage = this.trackedSpriteMessages.get(i.message.id);
+        const currentState = trackedMessage && 'state' in trackedMessage.view ? (trackedMessage.view.state || {}) : {};
+        const currentFamilyKey = trackedMessage?.view.kind === "family" || trackedMessage?.view.kind === "detail" ? trackedMessage.view.familyKey : null;
+
         let response: any;
         let view: SpriteViewState | null = null;
 
         if (rawId === "fn_sprites_overview") {
-            view = { kind: "overview", state: {} };
-            response = await this.generateOverviewResponse({}, responseOwnerId, i.user, displayName);
+            view = { kind: "overview", state: currentState };
+            response = await this.generateOverviewResponse(currentState, responseOwnerId, i.user, displayName);
         } else if (rawId.startsWith("fn_sprites_family_page_")) {
             const page = parseInt(rawId.replace("fn_sprites_family_page_", ""), 10);
-            const state = { familyPage: Number.isFinite(page) ? page : 0 };
+            const state = { ...currentState, familyPage: Number.isFinite(page) ? page : 0 };
             view = { kind: "overview", state };
             response = await this.generateOverviewResponse(state, responseOwnerId, i.user, displayName);
         } else if (rawId.startsWith("fn_sprites_family_")) {
             const familyKey = rawId.replace("fn_sprites_family_", "");
-            view = { kind: "family", familyKey };
-            response = await this.generateFamilyResponse(familyKey, responseOwnerId, i.user, displayName);
+            const family = this.findFamily(familyKey);
+            let targetVariant: SpriteVariant | undefined;
+            
+            if (familyKey !== currentFamilyKey && (currentState.variantFilter || currentState.rarityFilter)) {
+                targetVariant = family?.variants.find(v => 
+                    (!currentState.variantFilter || currentState.variantFilter === "all" || v.variant === currentState.variantFilter) &&
+                    (!currentState.rarityFilter || currentState.rarityFilter === "all" || v.rarity === currentState.rarityFilter)
+                );
+            }
+
+            if (targetVariant) {
+                view = { kind: "detail", familyKey, variantId: targetVariant.id, state: currentState };
+                response = await this.generateDetailResponse(family!, targetVariant, responseOwnerId, i.user, displayName);
+            } else {
+                view = { kind: "family", familyKey, state: currentState };
+                response = await this.generateFamilyResponse(familyKey, responseOwnerId, i.user, displayName);
+            }
         } else if (rawId.startsWith("fn_sprites_variant_")) {
             const id = parseInt(rawId.replace("fn_sprites_variant_", ""), 10);
             const match = this.findVariant(id);
@@ -2904,23 +2927,20 @@ export class FortniteSprites {
                 if (isOriginalUser) return i.followUp({ content: "Sprite variant not found.", ephemeral: true });
                 return i.editReply({ content: "Sprite variant not found.", components: [] });
             }
-            view = { kind: "detail", familyKey: match.family.key, variantId: match.variant.id };
+            view = { kind: "detail", familyKey: match.family.key, variantId: match.variant.id, state: currentState };
             response = await this.generateDetailResponse(match.family, match.variant, responseOwnerId, i.user, displayName);
-        } else if (rawId === "fn_sprites_quick_starters") {
-            view = { kind: "overview", state: { starterOnly: true } };
-            response = await this.generateOverviewResponse({ starterOnly: true }, responseOwnerId, i.user, displayName);
         } else if (rawId === "fn_sprites_quick_rarest") {
             const variant = this.findRarestVariant();
             const match = this.findVariant(variant?.id);
             if (match) {
-                view = { kind: "detail", familyKey: match.family.key, variantId: match.variant.id };
+                view = { kind: "detail", familyKey: match.family.key, variantId: match.variant.id, state: currentState };
                 response = await this.generateDetailResponse(match.family, match.variant, responseOwnerId, i.user, displayName);
             }
         } else if (rawId === "fn_sprites_quick_cost") {
             const variant = this.getAllVariants().sort((a, b) => b.summonCost - a.summonCost)[0];
             const match = this.findVariant(variant?.id);
             if (match) {
-                view = { kind: "detail", familyKey: match.family.key, variantId: match.variant.id };
+                view = { kind: "detail", familyKey: match.family.key, variantId: match.variant.id, state: currentState };
                 response = await this.generateDetailResponse(match.family, match.variant, responseOwnerId, i.user, displayName);
             }
         } else if (rawId === "fn_sprites_quick_random") {
@@ -2928,7 +2948,7 @@ export class FortniteSprites {
             const variant = variants[Math.floor(Math.random() * variants.length)];
             const match = this.findVariant(variant?.id);
             if (match) {
-                view = { kind: "detail", familyKey: match.family.key, variantId: match.variant.id };
+                view = { kind: "detail", familyKey: match.family.key, variantId: match.variant.id, state: currentState };
                 response = await this.generateDetailResponse(match.family, match.variant, responseOwnerId, i.user, displayName);
             }
         }

@@ -13,7 +13,6 @@ import { Trello, trelloCommand } from "./Trello";
 import { Avatar, avatarCommand } from "./AvatarCommand";
 import { DeletedClient } from "./DeletedClient/";
 import { ShopSectionsTracker } from "./ShopSections/ShopSectionsTracker";
-import { createClient } from "redis";
 import express from "express";
 import mongoose from "mongoose";
 import { MissingCosmetics } from "./MissingCosmetics/MissingCosmetics";
@@ -24,13 +23,6 @@ import { createTrackedJob } from "./runtimeDiagnostics";
 export const version = `v${require("../package.json").version}`;
 export const TEST_SERVER = "640262033329356822";
 
-export const redis = createClient({ url: process.env.REDIS_URI, });
-// const subscriber = redis.duplicate();
-// redis.connect()
-// subscriber.connect();
-
-const key = "creeper_bot_prod_server";
-// const shutdownEvent = "creeper_bot_prod_server_shutdown";
 const serverStartedAt = new Date().toISOString();
 
 const app = express();
@@ -85,33 +77,7 @@ app.listen(port, () => {
         countChannel.send(`[\`${serverStartedAt}\`] ---- count: ${count} ---- [\`${version}\`]`);
         console.log(`[\`${serverStartedAt}\`] ---- count: ${count} ---- [\`${version}\`]`);
         count++;
-
-        // const serverInfo = JSON.parse(await redis.get(key));
-        // const lastPing = new Date()
-        // serverInfo.instances.find((i) => i.serverStartedAt === serverStartedAt).lastPing = lastPing.toISOString();
-        // await redis.set(key, JSON.stringify(serverInfo));
-
-        // // find servers that have not pinged in 20 seconds and delete
-        // const serversToDelete = serverInfo.instances.filter((i) => i.platform === process.env.HOST_TYPE && new Date().getTime() - 20000 > new Date(i.lastPing).getTime())
-        // for (const s of serversToDelete) {
-        //   c?.send("removing old server from array as it has gone inactive: " + s.serverStartedAt)
-        //   // remove the server from the array
-        //   serverInfo.instances.splice(serverInfo.instances.indexOf(s.serverStartedAt), 1);
-        //   await redis.set(key, JSON.stringify(serverInfo));
-        //   // await redis.publish(shutdownEvent, s.serverStartedAt);
-        // }
-
-        // // find all the oldest servers but no the newest one
-        // const serversToShutdown = serverInfo.instances.filter((i) => i.platform === process.env.HOST_TYPE).sort((a, b) => new Date(a.serverStartedAt).getTime() - new Date(b.serverStartedAt).getTime()).slice(0, -1)
-
       }), 1.8e+6) // 30 mins
-
-      // await redis.connect();
-      // process.env.NODE_ENV === "production" && setInterval(async () => {
-      //   const s = await redis.get(key);
-      //   const parsed = JSON.parse(s);
-      //   console.log("parsed json", parsed);
-      // }, 5000)
 
       // stop errors from crashing program
       process.on('uncaughtException', (error) => {
@@ -128,70 +94,6 @@ app.listen(port, () => {
       process.on('unhandledRejection', (reason, promise) => {
         console.error('unhandledRejection at:', promise, 'reason:', reason);
       });
-
-
-      // (async function () {
-      //   if (process.env.NODE_ENV !== "production") return;
-      //   const sessionInfo = { serverStartedAt, platform: process.env.HOST_TYPE }
-
-      //   // let sessionInfo = JSON.parse(await redis.get(key));
-      //   // if (!sessionInfo) {
-      //   //   sessionInfo = { instances: [{ serverStartedAt, platform: process.env.HOST_TYPE }] };
-      //   //   await redis.set(key, JSON.stringify(sessionInfo));
-      //   // }
-
-      //   // else {
-      //   //   sessionInfo.instances.push({ serverStartedAt, platform: process.env.HOST_TYPE });
-      //   //   await redis.set(key, JSON.stringify(sessionInfo))
-      //   // }
-
-      //   await redis.publish(key, JSON.stringify(sessionInfo));
-
-      //   c.send(
-      //     `Created new server: 
-      //   \`\`\`json
-      //   ${JSON.stringify(sessionInfo, null, 2)}
-      //   \`\`\`
-      //     `)
-      // })()
-
-
-      // subscriber.subscribe(key, async (m) => {
-      //   if (process.env.NODE_ENV !== "production") return
-
-      //   console.log('we got new data from redis subscription')
-      //   const data = JSON.parse(m)
-      //   c.send(`new data, ${m}`)
-
-
-      //   // if the platform of the new server is not the same as new server OR the current server is newer or the same as the new one, then do not clean up current server 
-      //   // if (data.platform !== process.env.HOST_TYPE || !(new Date(data.serverStartedAt) > new Date(serverStartedAt))) return
-
-      //   if (data.platform === process.env.HOST_TYPE && new Date(data.serverStartedAt) > new Date(serverStartedAt)) {
-      //     await c.send('we r cleaning up')
-
-      //     await c.send(
-      //       `A new server has started that is on the same host as this, the date of the new server is more than this server. Shutting down the current one. Here's the new server's data
-      //     \`\`\`json
-      //     ${JSON.stringify(data, null, 2)}
-      //     \`\`\`
-      //     >
-      //     Here's the current server's data
-      //     \`\`\`json
-      //     ${JSON.stringify({ serverStartedAt, platform: process.env.HOST_TYPE }, null, 2)}
-      //     \`\`\`
-      //     `
-      //     )
-
-      //     await c.send(`shutting down: \`${serverStartedAt}\` and spawning post script`)
-      //     process.send(ProcessCodes.Shutdown)
-      //   }
-      //   // client.destroy();
-      //   // await mongoose.connection.close();
-      //   // await redis.quit();
-      //   // await subscriber.quit();
-      // });
-
 
       client.application.commands.fetch().then(console.log);
 
