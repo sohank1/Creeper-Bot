@@ -87,7 +87,7 @@ function absoluteUrl(url: string | undefined): string {
 }
 
 function normalizeImageUrl(url: string): string {
-    return url;
+    return url.replace(/\.webp(\?.*)?$/i, ".png$1");
 }
 
 function normalizeText(value: string | undefined): string {
@@ -195,9 +195,11 @@ function parseListPage(html: string): { items: SpriteListItem[]; totalSprites: n
         return { current, max };
     }).get();
 
+    const reportedTotalSprites = parseNumber(statValues[0]?.max);
+
     return {
         items: items.sort((a, b) => a.id - b.id),
-        totalSprites: parseNumber(statValues[0]?.max) || items.length,
+        totalSprites: Math.max(reportedTotalSprites, items.length),
         totalLevels: parseNumber(statValues[1]?.max) || items.length * 5
     };
 }
