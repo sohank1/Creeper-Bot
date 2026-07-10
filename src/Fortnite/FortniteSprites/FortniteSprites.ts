@@ -21,6 +21,7 @@ import * as path from "path";
 import * as crypto from "crypto";
 import type { Browser, Page } from "puppeteer";
 import https from "https";
+import { createCanvas, loadImage } from "@napi-rs/canvas";
 import { fetchSpriteData, SpriteDataFile, SpriteFamily, SpriteRarity, SpriteVariant, SpriteVariantName, stableSpriteDataJson, validateSpriteData } from "./spriteDataSource";
 import { createTrackedJob, registerComponent } from "../../runtimeDiagnostics";
 
@@ -111,6 +112,7 @@ const SPAWN_RATE_ICON_PATHS: Record<string, string> = {
     supplyDrop: path.join(process.cwd(), "assets", "drop-resized.png")
 };
 const SPRITE_ASSET_CACHE_DIR = path.join(process.cwd(), ".cache", "fortnite-sprites", "assets");
+const SPRITE_ASSET_CACHE_VERSION = "v3-hide-black-placeholder-assets";
 const appVersion = `v${require("../../../package.json").version}`;
 const IMAGE_HTTPS_AGENT = new https.Agent({ keepAlive: true, maxSockets: 12 });
 const RARITY_ORDER: SpriteRarity[] = ["rare", "epic", "legendary", "mythic", "special"];
@@ -852,6 +854,15 @@ export class FortniteSprites {
         return this._data?.families.flatMap(f => f.variants) || [];
     }
 
+    private getDisplayFamilies(families: SpriteFamily[]) {
+        return families
+            .map(family => ({
+                ...family,
+                variants: family.variants
+            }))
+            .filter(family => family.variants.length > 0);
+    }
+
     private findFamily(key: string | undefined): SpriteFamily | undefined {
         return this._data?.families.find(f => f.key === key);
     }
@@ -1117,12 +1128,14 @@ export class FortniteSprites {
     private async generateFamilyResponse(familyKey: string, ownerId: string, user: User | SpriteAuthor, displayName: string, editedAt?: string) {
         const family = this.findFamily(familyKey);
         if (!family) return { content: "Sprite family not found.", components: [] };
+        const displayFamily = this.getDisplayFamilies([family])[0];
+        if (!displayFamily) return { content: "That sprite family does not have released artwork yet.", components: this.generateOverviewComponents({}, ownerId) };
 
-        const image = await this.renderFamilyImage(family);
-        const attachment = new MessageAttachment(image, `sprites-family-${family.key}.png`);
+        const image = await this.renderFamilyImage(displayFamily);
+        const attachment = new MessageAttachment(image, `sprites-family-${displayFamily.key}.png`);
 
         const embed = new MessageEmbed()
-            .setColor(this.getFamilyColor(family) as any)
+            .setColor(this.getFamilyColor(displayFamily) as any)
             .setAuthor({ name: displayName, iconURL: this.getAuthorIconURL(user) })
             .setFooter({ text: this.buildFooterText(editedAt) })
             .setTimestamp();
@@ -1130,11 +1143,15 @@ export class FortniteSprites {
         return {
             embeds: [embed],
             files: [attachment],
-            components: this.generateFamilyComponents(family, ownerId)
+            components: this.generateFamilyComponents(displayFamily, ownerId)
         };
     }
 
     private async generateDetailResponse(family: SpriteFamily, variant: SpriteVariant, ownerId: string, user: User | SpriteAuthor, displayName: string, editedAt?: string) {
+        if (!await this.hasRenderableSpriteArtwork(variant)) {
+            return { content: "That sprite variant does not have released artwork yet.", components: this.generateOverviewComponents({}, ownerId) };
+        }
+
         const image = await this.renderVariantImage(family, variant);
         const attachment = new MessageAttachment(image, `sprites-variant-${variant.id}.png`);
 
@@ -1152,7 +1169,7 @@ export class FortniteSprites {
     }
     private generateOverviewComponents(state: SpriteBrowserState, ownerId: string) {
         const ownerSuffix = `|${ownerId}`;
-        const families = this._data?.families || [];
+        const families = this.getDisplayFamilies(this._data?.families || []);
         const selectedFamily = state.familyKey && families.some(f => f.key === state.familyKey) ? state.familyKey : undefined;
         const familyPage = state.familyPage || 0;
         const familiesPerPage = 25;
@@ -1289,7 +1306,7 @@ export class FortniteSprites {
             const { default: puppeteerModule } = await Function('return import("puppeteer")')();
             const browser = await puppeteerModule.launch({
                 headless: true,
-                executablePath: process.env.GOOGLE_CHROME_BIN || process.env.PUPPETEER_EXECUTABLE_PATH || (process.platform === 'linux' ? "/usr/bin/chromium" : undefined),
+                executablePath: this.getChromiumExecutablePath(),
                 args: ['--no-sandbox', '--disable-setuid-sandbox']
             });
             browser.on("disconnected", () => {
@@ -1315,6 +1332,18 @@ export class FortniteSprites {
             }
             throw error;
         }
+    }
+
+    private getChromiumExecutablePath(): string | undefined {
+        const configuredPath = process.env.GOOGLE_CHROME_BIN || process.env.PUPPETEER_EXECUTABLE_PATH;
+        if (configuredPath) return configuredPath;
+        if (process.platform !== "linux") return undefined;
+
+        return [
+            "/usr/bin/chromium",
+            "/usr/bin/chromium-browser",
+            "/snap/bin/chromium"
+        ].find(candidate => fs.existsSync(candidate));
     }
 
     private clearRenderCaches() {
@@ -1401,7 +1430,7 @@ export class FortniteSprites {
     }
 
     private getSpriteAssetDiskCachePath(imageUrl: string) {
-        const cacheKey = crypto.createHash("sha1").update(imageUrl).digest("hex");
+        const cacheKey = crypto.createHash("sha1").update(`${SPRITE_ASSET_CACHE_VERSION}:${imageUrl}`).digest("hex");
         return path.join(SPRITE_ASSET_CACHE_DIR, `${cacheKey}.txt`);
     }
 
@@ -1546,7 +1575,7 @@ export class FortniteSprites {
         const pending = this.pendingSpriteAssetLoads.get(imageUrl);
         if (pending) {
             const resolved = await pending;
-            return resolved || imageUrl;
+            return resolved || undefined;
         }
 
         const loadPromise = (async () => {
@@ -1557,26 +1586,36 @@ export class FortniteSprites {
                     return diskCached;
                 }
 
-                const correctedUrl = imageUrl.includes("fortnite.gg") ? imageUrl.replace(/\.png(\?.*)?$/i, ".webp$1") : imageUrl;
-                const proxyUrl = correctedUrl.includes("fortnite.gg")
-                    ? `https://wsrv.nl/?url=${encodeURIComponent(correctedUrl)}`
-                    : correctedUrl;
-
-                const res = await axios.get<ArrayBuffer>(proxyUrl, {
-                    responseType: "arraybuffer",
-                    timeout: 15000,
-                    httpsAgent: IMAGE_HTTPS_AGENT,
-                    headers: {
-                        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-                        "Accept": "image/webp,image/apng,image/*,*/*;q=0.8"
+                for (const candidateUrl of this.getSpriteImageUrlCandidates(imageUrl)) {
+                    try {
+                        const res = await axios.get<ArrayBuffer>(candidateUrl, {
+                            responseType: "arraybuffer",
+                            timeout: 15000,
+                            httpsAgent: IMAGE_HTTPS_AGENT,
+                            headers: {
+                                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                                "Accept": "image/webp,image/png,image/apng,image/*,*/*;q=0.8"
+                            }
+                        });
+                        const contentType = String(res.headers["content-type"] || "").toLowerCase();
+                        if (!contentType.includes("image/")) {
+                            continue;
+                        }
+                        const imageBuffer = Buffer.from(res.data);
+                        if (!await this.isUsableSpriteArtwork(imageBuffer)) {
+                            continue;
+                        }
+                        const mimeType = contentType.includes("image/") ? contentType.split(";")[0] : "image/png";
+                        const dataUrl = `data:${mimeType};base64,${imageBuffer.toString("base64")}`;
+                        this.setSpriteAssetCacheEntry(imageUrl, dataUrl);
+                        await this.persistSpriteAssetToDisk(imageUrl, dataUrl);
+                        return dataUrl;
+                    } catch {
+                        // Try the next known Fortnite image extension before giving up.
                     }
-                });
-                const contentType = String(res.headers["content-type"] || "").toLowerCase();
-                const mimeType = contentType.includes("image/") ? contentType.split(";")[0] : "image/png";
-                const dataUrl = `data:${mimeType};base64,${Buffer.from(res.data).toString("base64")}`;
-                this.setSpriteAssetCacheEntry(imageUrl, dataUrl);
-                await this.persistSpriteAssetToDisk(imageUrl, dataUrl);
-                return dataUrl;
+                }
+
+                return null;
             } catch {
                 return null;
             }
@@ -1586,7 +1625,7 @@ export class FortniteSprites {
 
         this.pendingSpriteAssetLoads.set(imageUrl, loadPromise);
         const resolved = await loadPromise;
-        return resolved || imageUrl;
+        return resolved || undefined;
     }
 
     private async prewarmSpriteImages(imageUrls: Array<string | undefined>) {
@@ -1594,6 +1633,61 @@ export class FortniteSprites {
         await this.forEachConcurrent(uniqueUrls, SPRITE_IMAGE_PREWARM_CONCURRENCY, async (url) => {
             await this.resolveSpriteImageSrc(url);
         });
+    }
+
+    private async hasRenderableSpriteArtwork(variant: SpriteVariant) {
+        return !!await this.resolveSpriteImageSrc(variant.imageUrl);
+    }
+
+    private async isUsableSpriteArtwork(imageBuffer: Buffer) {
+        try {
+            const image = await loadImage(imageBuffer);
+            const canvas = createCanvas(image.width, image.height);
+            const ctx = canvas.getContext("2d");
+            ctx.drawImage(image, 0, 0);
+
+            const pixels = ctx.getImageData(0, 0, image.width, image.height).data;
+            let opaquePixels = 0;
+            let darkPixels = 0;
+            let colorfulPixels = 0;
+            let lumaTotal = 0;
+
+            for (let index = 0; index < pixels.length; index += 4) {
+                const red = pixels[index];
+                const green = pixels[index + 1];
+                const blue = pixels[index + 2];
+                const alpha = pixels[index + 3];
+                if (alpha < 24) continue;
+
+                opaquePixels += 1;
+                const max = Math.max(red, green, blue);
+                const min = Math.min(red, green, blue);
+                const saturation = max === 0 ? 0 : (max - min) / max;
+                const luma = 0.2126 * red + 0.7152 * green + 0.0722 * blue;
+
+                lumaTotal += luma;
+                if (max < 45) darkPixels += 1;
+                if (saturation > 0.18 && max > 55) colorfulPixels += 1;
+            }
+
+            if (opaquePixels === 0) return false;
+
+            const darkRatio = darkPixels / opaquePixels;
+            const colorfulRatio = colorfulPixels / opaquePixels;
+            const averageLuma = lumaTotal / opaquePixels;
+
+            return !(darkRatio > 0.98 && colorfulRatio < 0.01 && averageLuma < 8);
+        } catch {
+            return false;
+        }
+    }
+
+    private getSpriteImageUrlCandidates(imageUrl: string): string[] {
+        if (!imageUrl.includes("fortnite.gg")) return [imageUrl];
+
+        const webpUrl = imageUrl.replace(/\.(?:png|webp)(\?.*)?$/i, ".webp$1");
+        const pngUrl = imageUrl.replace(/\.(?:png|webp)(\?.*)?$/i, ".png$1");
+        return Array.from(new Set([webpUrl, imageUrl, pngUrl]));
     }
 
     private async renderHtmlToBuffer(html: string, width: number, height: number): Promise<Buffer> {
@@ -1649,11 +1743,7 @@ export class FortniteSprites {
     }
 
     private renderSpriteThumb(imageUrl: string | undefined, className: string, fallback = "No asset") {
-        const correctedUrl = imageUrl && imageUrl.includes("fortnite.gg") ? imageUrl.replace(/\.png(\?.*)?$/i, ".webp$1") : imageUrl;
-        const proxyUrl = correctedUrl && correctedUrl.includes("fortnite.gg")
-            ? `https://wsrv.nl/?url=${encodeURIComponent(correctedUrl)}`
-            : correctedUrl;
-        const resolvedSrc = imageUrl ? this.spriteAssetCache.get(imageUrl)?.src || proxyUrl : undefined;
+        const resolvedSrc = imageUrl ? this.spriteAssetCache.get(imageUrl)?.src : undefined;
         return `
             <div class="sprite-thumb ${className}">
                 ${resolvedSrc ? `<img src="${this.escapeHtml(resolvedSrc)}" alt="">` : `<span class="metric-label">${this.escapeHtml(fallback)}</span>`}
@@ -1741,7 +1831,7 @@ export class FortniteSprites {
                         text-rendering: optimizeLegibility;
                     }
                     img { display: block; max-width: 100%; }
-                    .canvas {
+                    .sprite-render-root {
                         width: 100%;
                         height: 100%;
                         padding: 26px;
@@ -1979,19 +2069,26 @@ export class FortniteSprites {
     private async renderOverviewImage(families: SpriteFamily[], state: SpriteBrowserState): Promise<Buffer> {
         const cacheKey = `overview:${this.renderUiFingerprint}:${this._data?.fetchedAt}:${state.variantFilter || "all"}:${state.rarityFilter || "all"}:${state.searchQuery || ""}`;
         return this.getOrRenderImage(cacheKey, async () => {
-            const width = 1700;
-            const height = Math.max(1300, 390 + Math.max(families.length, 1) * 84);
-            const variants = families.flatMap(family => family.variants.map(variant => ({ family, variant })));
-            await this.prewarmSpriteImages(variants.map(({ variant }) => variant.imageUrl));
+            const displayFamilies = this.getDisplayFamilies(families);
+            await this.prewarmSpriteImages(displayFamilies.flatMap(family => family.variants.map(variant => variant.imageUrl)));
+            const renderFamilies = displayFamilies
+                .map(family => ({
+                    ...family,
+                    variants: family.variants.filter(variant => this.spriteAssetCache.has(variant.imageUrl))
+                }))
+                .filter(family => family.variants.length > 0);
+            const variants = renderFamilies.flatMap(family => family.variants.map(variant => ({ family, variant })));
+            const variantColumns = this.getVariantNames(renderFamilies);
+            const width = 2100;
+            const height = Math.max(1300, 520 + Math.max(renderFamilies.length, 1) * 92);
             const tags = [
                 state.searchQuery ? `Search: "${state.searchQuery}"` : null,
                 state.variantFilter && state.variantFilter !== "all" ? this.variantLabel(state.variantFilter) : null,
                 state.rarityFilter && state.rarityFilter !== "all" ? this.titleCase(state.rarityFilter) : null
             ].filter(Boolean).join(" / ") || "All variants";
-            const variantColumns = this.getVariantNames();
 
             const html = this.buildRenderDocument(`
-            <div class="canvas">
+            <div class="sprite-render-root">
                 <div class="shell">
                     <div class="content overview-layout">
                         <section class="page-head">
@@ -2001,7 +2098,7 @@ export class FortniteSprites {
                                 <p class="lede">${this.escapeHtml(this.describeOverviewState(state) || "All visible sprites at a glance.")}</p>
                             </div>
                             <div class="page-meta">
-                                ${this.renderMetaChip(`${families.length} families`)}
+                                ${this.renderMetaChip(`${renderFamilies.length} families`)}
                                 ${this.renderMetaChip(`${variants.length} shown`)}
                                 ${this.renderMetaChip(tags)}
                             </div>
@@ -2010,7 +2107,7 @@ export class FortniteSprites {
                         <section class="panel overview-panel">
                             <div class="overview-board">
                                 <div class="overview-table" style="--variant-count:${variantColumns.length}">
-                                    ${families.length === 0 ? `
+                                    ${renderFamilies.length === 0 ? `
                                         <article class="empty-state">
                                             <h3>No sprites found</h3>
                                             <p>Try a broader search, reset to all sprites, or pick a family from the menu.</p>
@@ -2020,7 +2117,7 @@ export class FortniteSprites {
                                             ${variantColumns.map(variantName => `<span>${this.escapeHtml(this.variantLabel(variantName))}</span>`).join("")}
                                         </div>
                                         <div class="overview-family-list">
-                                            ${families.map(family => {
+                                            ${renderFamilies.map(family => {
                 return `
                                                     <article class="family-row">
                                                         ${variantColumns.map(variantName => {
@@ -2179,7 +2276,7 @@ export class FortniteSprites {
             const bannerChance = this.formatChance(variant);
 
             const html = this.buildRenderDocument(`
-            <div class="canvas">
+            <div class="sprite-render-root">
                 <div class="shell">
                     <div class="content variant-layout">
                         <section class="page-head">
@@ -2460,7 +2557,8 @@ export class FortniteSprites {
             const width = 1200;
             const height = 800;
             await this.prewarmSpriteImages(family.variants.map(variant => variant.imageUrl));
-            const sortedVariants = [...family.variants].sort((a, b) => {
+            const renderVariants = family.variants.filter(variant => this.spriteAssetCache.has(variant.imageUrl));
+            const sortedVariants = [...renderVariants].sort((a, b) => {
                 if (a.variant === "Base" && b.variant !== "Base") return -1;
                 if (a.variant !== "Base" && b.variant === "Base") return 1;
                 return b.chancePercent - a.chancePercent || a.id - b.id;
@@ -2468,7 +2566,7 @@ export class FortniteSprites {
             const baseVariant = sortedVariants.find(variant => variant.variant === "Base") || sortedVariants[0];
 
             const html = this.buildRenderDocument(`
-            <div class="canvas">
+            <div class="sprite-render-root">
                 <div class="shell">
                     <div class="content family-layout">
                         <section class="page-head">
@@ -2479,7 +2577,7 @@ export class FortniteSprites {
                                 <p class="lede">${this.escapeHtml(family.location)}</p>
                             </div>
                             <div class="page-meta">
-                                ${this.renderMetaChip(`${family.variants.length} variants`)}
+                                ${this.renderMetaChip(`${sortedVariants.length} variants`)}
                             </div>
                         </section>
 
@@ -2488,7 +2586,7 @@ export class FortniteSprites {
                                 ${this.renderSpriteThumb(baseVariant?.imageUrl, "featured-thumb")}
                                 <div class="family-summary">
                                     ${baseVariant ? this.renderRarityPill(baseVariant.rarity) : ""}
-                                    <span>${family.variants.length} variants</span>
+                                    <span>${sortedVariants.length} variants</span>
                                 </div>
                                 <div class="family-copy">
                                     <h3 class="copy-title">Effect</h3>
@@ -2726,9 +2824,10 @@ export class FortniteSprites {
         return variant === "Candy" ? "Gummy" : variant;
     }
 
-    private getVariantNames() {
-        const names = Array.from(new Set(this.getAllVariants().map(variant => variant.variant)));
-        const preferredOrder = ["Base", "Gold", "Candy", "Galaxy"];
+    private getVariantNames(families?: SpriteFamily[]) {
+        const variants = families ? families.flatMap(family => family.variants) : this.getDisplayFamilies(this._data?.families || []).flatMap(family => family.variants);
+        const names = Array.from(new Set(variants.map(variant => variant.variant)));
+        const preferredOrder = ["Base", "Gold", "Candy", "Galaxy", "Holofoil"];
         return names.sort((a, b) => {
             const aIndex = preferredOrder.indexOf(a);
             const bIndex = preferredOrder.indexOf(b);
