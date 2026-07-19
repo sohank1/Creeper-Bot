@@ -2458,13 +2458,15 @@ export class FortniteSprites {
         const cacheKey = `family:${this.renderUiFingerprint}:${this._data?.fetchedAt}:${family.key}`;
         return this.getOrRenderImage(cacheKey, async () => {
             const width = 1200;
-            const height = 800;
             await this.prewarmSpriteImages(family.variants.map(variant => variant.imageUrl));
             const sortedVariants = [...family.variants].sort((a, b) => {
                 if (a.variant === "Base" && b.variant !== "Base") return -1;
                 if (a.variant !== "Base" && b.variant === "Base") return 1;
                 return b.chancePercent - a.chancePercent || a.id - b.id;
             });
+            // The variant collection is intentionally a full list. Grow the canvas with it so
+            // the shell's overflow clipping never hides variants in larger families.
+            const height = Math.max(800, 300 + sortedVariants.length * 124);
             const baseVariant = sortedVariants.find(variant => variant.variant === "Base") || sortedVariants[0];
 
             const html = this.buildRenderDocument(`
