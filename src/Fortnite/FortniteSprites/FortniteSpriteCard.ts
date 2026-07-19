@@ -140,8 +140,8 @@ export class FortniteSpriteCard {
         ctx.stroke();
 
         try {
-            const response = await axios.get<ArrayBuffer>(variant.imageUrl, { responseType: "arraybuffer", timeout: 10000 });
-            const image = await loadImage(Buffer.from(response.data));
+            const imageBuffer = await this.fetchSpriteImage(variant.imageUrl);
+            const image = await loadImage(imageBuffer);
             const scale = Math.min((artSize - 42) / image.width, (artSize - 42) / image.height);
             const imageWidth = image.width * scale;
             const imageHeight = image.height * scale;
@@ -189,6 +189,36 @@ export class FortniteSpriteCard {
         ctx.textAlign = "right";
         ctx.fillText(family.displayName.toUpperCase(), 1130, 630);
         return canvas.toBuffer("image/png");
+    }
+
+    private async fetchSpriteImage(imageUrl: string): Promise<Buffer> {
+        let lastError: any;
+
+        for (const candidateUrl of this.getSpriteImageUrlCandidates(imageUrl)) {
+            try {
+                const response = await axios.get<ArrayBuffer>(candidateUrl, {
+                    responseType: "arraybuffer",
+                    timeout: 10000,
+                    headers: {
+                        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                        "Accept": "image/webp,image/png,image/apng,image/*,*/*;q=0.8"
+                    }
+                });
+                return Buffer.from(response.data);
+            } catch (error) {
+                lastError = error;
+            }
+        }
+
+        throw lastError || new Error("Sprite image could not be loaded.");
+    }
+
+    private getSpriteImageUrlCandidates(imageUrl: string): string[] {
+        if (!imageUrl.includes("fortnite.gg")) return [imageUrl];
+
+        const webpUrl = imageUrl.replace(/\.(?:png|webp)(\?.*)?$/i, ".webp$1");
+        const pngUrl = imageUrl.replace(/\.(?:png|webp)(\?.*)?$/i, ".png$1");
+        return Array.from(new Set([webpUrl, imageUrl, pngUrl]));
     }
 
     private drawStat(ctx: any, label: string, value: string, x: number, y: number, accent: string): void {
