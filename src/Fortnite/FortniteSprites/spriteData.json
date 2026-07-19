@@ -1,23 +1,24 @@
 {
-  "fetchedAt": "2026-06-26T06:53:12.823Z",
-  "totalSprites": 61,
-  "totalLevels": 305,
+  "fetchedAt": "2026-07-09T13:24:12.204Z",
+  "totalSprites": 146,
+  "totalLevels": 66,
+  "listedVariantIds": [1, 4, 2, 3, 5, 8, 6, 7, 9, 10, 12, 11, 13, 16, 14, 15, 17, 20, 18, 19, 21, 24, 22, 23, 25, 28, 26, 27, 29, 32, 30, 31, 33, 36, 34, 35, 37, 40, 38, 39, 41, 49, 50, 51, 52, 58, 61, 59, 60, 62, 65, 63, 64, 67, 71, 68, 69, 78, 81, 79, 80],
   "families": [
     {
       "key": "water",
-      "displayName": "Water Sprite",
+      "displayName": "Water",
       "effectSummary": "Replenish shields while standing in water!",
       "levelScaling": "Increases in power at each Level Up: 2 Shield -> 3 Shield -> 4 Shield -> 5 Shield -> 6 Shield per tick",
       "location": "Spotted near rivers and beaches",
       "variants": [
         {
           "id": 1,
-          "name": "Water Sprite",
+          "name": "Water",
           "rarity": "rare",
           "chancePercent": 12.83,
           "chanceLabel": "12.83%",
-          "starter": true,
-          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Water_Unvault_Ch7S3_ui_L.webp",
+          "starter": false,
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Water_Unvault_Ch7S3_ui_L.png",
           "spawnRates": {
             "spriteChest": {
               "percent": 12.83,
@@ -31,12 +32,12 @@
         },
         {
           "id": 4,
-          "name": "Gold Water Sprite",
+          "name": "Gold Water",
           "rarity": "special",
           "chancePercent": 0.7,
           "chanceLabel": "0.7%",
           "starter": false,
-          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Water_Gold_ui_L.webp",
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Water_Gold_ui_L.png",
           "spawnRates": {
             "spriteChest": {
               "percent": 0.7,
@@ -51,12 +52,12 @@
         },
         {
           "id": 2,
-          "name": "Gummy Water Sprite",
+          "name": "Gummy Water",
           "rarity": "special",
           "chancePercent": 0.28,
           "chanceLabel": "0.28%",
           "starter": false,
-          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Water_Candy_ui_L.webp",
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Water_Candy_ui_L.png",
           "spawnRates": {
             "spriteChest": {
               "percent": 0.28,
@@ -71,12 +72,12 @@
         },
         {
           "id": 3,
-          "name": "Galaxy Water Sprite",
+          "name": "Galaxy Water",
           "rarity": "special",
           "chancePercent": 0.28,
           "chanceLabel": "0.28%",
           "starter": false,
-          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Water_Galaxy_ui_L.webp",
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Water_Galaxy_ui_L.png",
           "spawnRates": {
             "spriteChest": {
               "percent": 0.28,
@@ -86,26 +87,104 @@
           "variant": "Galaxy",
           "summonCost": 4000,
           "effectText": "Replenish shields while standing in water!",
-          "specialEffectText": "Gain 30% more Ammunition when looting",
+          "specialEffectText": "Gain 30% more Ammo whenever picked up in the world",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 43,
+          "name": "Holofoil Water",
+          "rarity": "special",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Water_Holofoil_ui_L.png",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Holofoil",
+          "summonCost": 0,
+          "effectText": "Replenish shields while standing in water!",
+          "specialEffectText": "5% chance for your squad to find rare Sprite Variants from looting chests",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 76,
+          "name": "Gem Water",
+          "rarity": "special",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Water_Gem_ui_L.png",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Gem",
+          "summonCost": 0,
+          "effectText": "Replenish shields while standing in water!",
+          "specialEffectText": "Take 30% less Fall damage",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 83,
+          "name": "Cube Water",
+          "rarity": "special",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/tmp_water_cube.png",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Cube",
+          "summonCost": 0,
+          "effectText": "Replenish shields while standing in water!",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 84,
+          "name": "Quack Water",
+          "rarity": "special",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/tmp_water_quack.png",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Quack",
+          "summonCost": 0,
+          "effectText": "Replenish shields while standing in water!",
           "detailStatus": "complete"
         }
       ]
     },
     {
       "key": "earth",
-      "displayName": "Earth Sprite",
+      "displayName": "Earth",
       "effectSummary": "You have a chance to find additional rare items when opening chests.",
       "levelScaling": "Chance increases at each Level Up: 10% -> 12.5% -> 15% -> 17.5% -> 20% chance to find additional rare loot",
       "location": "Found wandering around forests and wooded regions",
       "variants": [
         {
           "id": 5,
-          "name": "Earth Sprite",
+          "name": "Earth",
           "rarity": "rare",
           "chancePercent": 12.83,
           "chanceLabel": "12.83%",
-          "starter": true,
-          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Earth_Ch7S3_UI_L.webp",
+          "starter": false,
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Earth_Ch7S3_UI_L.png",
           "spawnRates": {
             "spriteChest": {
               "percent": 12.83,
@@ -119,12 +198,12 @@
         },
         {
           "id": 8,
-          "name": "Gold Earth Sprite",
+          "name": "Gold Earth",
           "rarity": "special",
           "chancePercent": 0.7,
           "chanceLabel": "0.7%",
           "starter": false,
-          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Earth_Gold_ui_L.webp",
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Earth_Gold_ui_L.png",
           "spawnRates": {
             "spriteChest": {
               "percent": 0.7,
@@ -139,12 +218,12 @@
         },
         {
           "id": 6,
-          "name": "Gummy Earth Sprite",
+          "name": "Gummy Earth",
           "rarity": "special",
           "chancePercent": 0.28,
           "chanceLabel": "0.28%",
           "starter": false,
-          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Earth_Candy_ui_L.webp",
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Earth_Candy_ui_L.png",
           "spawnRates": {
             "spriteChest": {
               "percent": 0.28,
@@ -159,12 +238,12 @@
         },
         {
           "id": 7,
-          "name": "Galaxy Earth Sprite",
+          "name": "Galaxy Earth",
           "rarity": "special",
           "chancePercent": 0.28,
           "chanceLabel": "0.28%",
           "starter": false,
-          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Earth_Galaxy_ui_L.webp",
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Earth_Galaxy_ui_L.png",
           "spawnRates": {
             "spriteChest": {
               "percent": 0.28,
@@ -174,26 +253,104 @@
           "variant": "Galaxy",
           "summonCost": 4000,
           "effectText": "You have a chance to find additional rare items when opening chests.",
-          "specialEffectText": "Gain 30% more Ammunition when looting",
+          "specialEffectText": "Gain 30% more Ammo whenever picked up in the world",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 45,
+          "name": "Gem Earth",
+          "rarity": "special",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Earth_Gem_ui_L.png",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Gem",
+          "summonCost": 0,
+          "effectText": "You have a chance to find additional rare items when opening chests.",
+          "specialEffectText": "Take 30% less Fall damage",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 85,
+          "name": "Holofoil Earth",
+          "rarity": "special",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/tmp_earth_holofoil.png",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Holofoil",
+          "summonCost": 0,
+          "effectText": "You have a chance to find additional rare items when opening chests.",
+          "specialEffectText": "5% chance for your squad to find rare Sprite Variants from looting chests",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 86,
+          "name": "Cube Earth",
+          "rarity": "special",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/tmp_earth_cube.png",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Cube",
+          "summonCost": 0,
+          "effectText": "You have a chance to find additional rare items when opening chests.",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 87,
+          "name": "Quack Earth",
+          "rarity": "special",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/tmp_earth_quack.png",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Quack",
+          "summonCost": 0,
+          "effectText": "You have a chance to find additional rare items when opening chests.",
           "detailStatus": "complete"
         }
       ]
     },
     {
       "key": "fire",
-      "displayName": "Fire Sprite",
+      "displayName": "Fire",
       "effectSummary": "Creates a fiery burst when you deal enough damage to an enemy!",
       "levelScaling": "Required damage decreases at each Level Up: 150 Damage -> 125 Damage -> 100 Damage -> 75 Damage -> 50 Damage to trigger",
       "location": "Located near urban areas",
       "variants": [
         {
           "id": 9,
-          "name": "Fire Sprite",
+          "name": "Fire",
           "rarity": "rare",
           "chancePercent": 12.45,
           "chanceLabel": "12.45%",
-          "starter": true,
-          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Fire_Unvault_Ch7S3_ui_L.webp",
+          "starter": false,
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Fire_Unvault_Ch7S3_ui_L.png",
           "spawnRates": {
             "spriteChest": {
               "percent": 12.45,
@@ -207,12 +364,12 @@
         },
         {
           "id": 10,
-          "name": "Gummy Fire Sprite",
+          "name": "Gummy Fire",
           "rarity": "special",
           "chancePercent": 0.68,
           "chanceLabel": "0.68%",
           "starter": false,
-          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Fire_Candy_ui_L.webp",
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Fire_Candy_ui_L.png",
           "spawnRates": {
             "spriteChest": {
               "percent": 0.68,
@@ -227,12 +384,12 @@
         },
         {
           "id": 12,
-          "name": "Gold Fire Sprite",
+          "name": "Gold Fire",
           "rarity": "special",
           "chancePercent": 0.68,
           "chanceLabel": "0.68%",
           "starter": false,
-          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Fire_Gold_ui_L.webp",
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Fire_Gold_ui_L.png",
           "spawnRates": {
             "spriteChest": {
               "percent": 0.68,
@@ -247,12 +404,12 @@
         },
         {
           "id": 11,
-          "name": "Galaxy Fire Sprite",
+          "name": "Galaxy Fire",
           "rarity": "special",
           "chancePercent": 0.27,
           "chanceLabel": "0.27%",
           "starter": false,
-          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Fire_Galaxy_ui_L.webp",
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Fire_Galaxy_ui_L.png",
           "spawnRates": {
             "spriteChest": {
               "percent": 0.27,
@@ -262,26 +419,104 @@
           "variant": "Galaxy",
           "summonCost": 4000,
           "effectText": "Creates a fiery burst when you deal enough damage to an enemy!",
-          "specialEffectText": "Gain 30% more Ammunition when looting",
+          "specialEffectText": "Gain 30% more Ammo whenever picked up in the world",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 46,
+          "name": "Holofoil Fire",
+          "rarity": "special",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Fire_Holofoil_ui_L.png",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Holofoil",
+          "summonCost": 0,
+          "effectText": "Creates a fiery burst when you deal enough damage to an enemy!",
+          "specialEffectText": "5% chance for your squad to find rare Sprite Variants from looting chests",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 88,
+          "name": "Gem Fire",
+          "rarity": "special",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/tmp_fire_gem.png",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Gem",
+          "summonCost": 0,
+          "effectText": "Creates a fiery burst when you deal enough damage to an enemy!",
+          "specialEffectText": "Take 30% less Fall damage",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 89,
+          "name": "Cube Fire",
+          "rarity": "special",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/tmp_fire_cube.png",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Cube",
+          "summonCost": 0,
+          "effectText": "Creates a fiery burst when you deal enough damage to an enemy!",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 90,
+          "name": "Quack Fire",
+          "rarity": "special",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/tmp_fire_quack.png",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Quack",
+          "summonCost": 0,
+          "effectText": "Creates a fiery burst when you deal enough damage to an enemy!",
           "detailStatus": "complete"
         }
       ]
     },
     {
       "key": "duck",
-      "displayName": "Duck Sprite",
+      "displayName": "Duck",
       "effectSummary": "Emoting or Jamming replenishes shields.",
       "levelScaling": "Increases in power at each Level Up: 2 Shield -> 3 Shield -> 4 Shield -> 6 Shield -> 8 Shield per tick",
       "location": "Found in the vault of a certain business mogul",
       "variants": [
         {
           "id": 13,
-          "name": "Duck Sprite",
+          "name": "Duck",
           "rarity": "epic",
           "chancePercent": 5.74,
           "chanceLabel": "5.74%",
           "starter": false,
-          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Duck_Default_L.webp",
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Duck_Default_L.png",
           "spawnRates": {
             "spriteChest": {
               "percent": 5.74,
@@ -295,12 +530,12 @@
         },
         {
           "id": 16,
-          "name": "Gold Duck Sprite",
+          "name": "Gold Duck",
           "rarity": "special",
           "chancePercent": 0.07,
           "chanceLabel": "0.07%",
           "starter": false,
-          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Duck_Gold_L.webp",
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Duck_Gold_L.png",
           "spawnRates": {
             "spriteChest": {
               "percent": 0.07,
@@ -315,12 +550,12 @@
         },
         {
           "id": 14,
-          "name": "Gummy Duck Sprite",
+          "name": "Gummy Duck",
           "rarity": "special",
           "chancePercent": 0.04,
           "chanceLabel": "0.04%",
           "starter": false,
-          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Duck_Candy_L.webp",
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Duck_Candy_L.png",
           "spawnRates": {
             "spriteChest": {
               "percent": 0.04,
@@ -335,12 +570,12 @@
         },
         {
           "id": 15,
-          "name": "Galaxy Duck Sprite",
+          "name": "Galaxy Duck",
           "rarity": "special",
           "chancePercent": 0.02,
           "chanceLabel": "0.02%",
           "starter": false,
-          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Duck_Galaxy_L.webp",
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Duck_Galaxy_L.png",
           "spawnRates": {
             "spriteChest": {
               "percent": 0.02,
@@ -350,26 +585,104 @@
           "variant": "Galaxy",
           "summonCost": 6000,
           "effectText": "Emoting or Jamming replenishes shields.",
-          "specialEffectText": "Gain 30% more Ammunition when looting",
+          "specialEffectText": "Gain 30% more Ammo whenever picked up in the world",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 44,
+          "name": "Gem Duck",
+          "rarity": "special",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Duck_Gem_L.png",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Gem",
+          "summonCost": 0,
+          "effectText": "Emoting or Jamming replenishes shields.",
+          "specialEffectText": "Take 30% less Fall damage",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 91,
+          "name": "Holofoil Duck",
+          "rarity": "special",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/tmp_duck_holofoil.png",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Holofoil",
+          "summonCost": 0,
+          "effectText": "Emoting or Jamming replenishes shields.",
+          "specialEffectText": "5% chance for your squad to find rare Sprite Variants from looting chests",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 92,
+          "name": "Cube Duck",
+          "rarity": "special",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/tmp_duck_cube.png",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Cube",
+          "summonCost": 0,
+          "effectText": "Emoting or Jamming replenishes shields.",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 93,
+          "name": "Quack Duck",
+          "rarity": "special",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/tmp_duck_quack.png",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Quack",
+          "summonCost": 0,
+          "effectText": "Emoting or Jamming replenishes shields.",
           "detailStatus": "complete"
         }
       ]
     },
     {
       "key": "ghost",
-      "displayName": "Ghost Sprite",
+      "displayName": "Ghost",
       "effectSummary": "Grants cloak for a duration upon reloading.",
       "levelScaling": "Increases in duration at each Level Up: 3 Seconds -> 3.5 Seconds -> 4 Seconds -> 4.5 Seconds -> 5 Seconds",
       "location": "Found in the world at nighttime",
       "variants": [
         {
           "id": 17,
-          "name": "Ghost Sprite",
+          "name": "Ghost",
           "rarity": "epic",
           "chancePercent": 5.74,
           "chanceLabel": "5.74%",
           "starter": false,
-          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Ghost_Unvault_L.webp",
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Ghost_Unvault_L.png",
           "spawnRates": {
             "spriteChest": {
               "percent": 5.74,
@@ -383,12 +696,12 @@
         },
         {
           "id": 20,
-          "name": "Gold Ghost Sprite",
+          "name": "Gold Ghost",
           "rarity": "special",
           "chancePercent": 0.07,
           "chanceLabel": "0.07%",
           "starter": false,
-          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Ghost_Gold_L.webp",
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Ghost_Gold_L.png",
           "spawnRates": {
             "spriteChest": {
               "percent": 0.07,
@@ -403,12 +716,12 @@
         },
         {
           "id": 18,
-          "name": "Gummy Ghost Sprite",
+          "name": "Gummy Ghost",
           "rarity": "special",
           "chancePercent": 0.04,
           "chanceLabel": "0.04%",
           "starter": false,
-          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Ghost_Candy_L.webp",
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Ghost_Candy_L.png",
           "spawnRates": {
             "spriteChest": {
               "percent": 0.04,
@@ -423,12 +736,12 @@
         },
         {
           "id": 19,
-          "name": "Galaxy Ghost Sprite",
+          "name": "Galaxy Ghost",
           "rarity": "special",
           "chancePercent": 0.02,
           "chanceLabel": "0.02%",
           "starter": false,
-          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Ghost_Galaxy_L.webp",
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Ghost_Galaxy_L.png",
           "spawnRates": {
             "spriteChest": {
               "percent": 0.02,
@@ -438,26 +751,104 @@
           "variant": "Galaxy",
           "summonCost": 6000,
           "effectText": "Grants cloak for a duration upon reloading.",
-          "specialEffectText": "Gain 30% more Ammunition when looting",
+          "specialEffectText": "Gain 30% more Ammo whenever picked up in the world",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 48,
+          "name": "Holofoil Ghost",
+          "rarity": "special",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Ghost_Holo_L.png",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Holofoil",
+          "summonCost": 0,
+          "effectText": "Grants cloak for a duration upon reloading.",
+          "specialEffectText": "5% chance for your squad to find rare Sprite Variants from looting chests",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 94,
+          "name": "Gem Ghost",
+          "rarity": "special",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/tmp_ghost_gem.png",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Gem",
+          "summonCost": 0,
+          "effectText": "Grants cloak for a duration upon reloading.",
+          "specialEffectText": "Take 30% less Fall damage",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 95,
+          "name": "Cube Ghost",
+          "rarity": "special",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/tmp_ghost_cube.png",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Cube",
+          "summonCost": 0,
+          "effectText": "Grants cloak for a duration upon reloading.",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 96,
+          "name": "Quack Ghost",
+          "rarity": "special",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/tmp_ghost_quack.png",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Quack",
+          "summonCost": 0,
+          "effectText": "Grants cloak for a duration upon reloading.",
           "detailStatus": "complete"
         }
       ]
     },
     {
       "key": "dream",
-      "displayName": "Dream Sprite",
+      "displayName": "Dream",
       "effectSummary": "Grants a random item at each level, exploding with legendary loot at Max Level.",
       "levelScaling": "Loot value increases at each Level Up!",
       "location": "Sometimes found sleeping in the storage crates",
       "variants": [
         {
           "id": 21,
-          "name": "Dream Sprite",
+          "name": "Dream",
           "rarity": "legendary",
           "chancePercent": 2.63,
           "chanceLabel": "2.63%",
           "starter": false,
-          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Sleepy_ui_L.webp",
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Sleepy_ui_L.png",
           "spawnRates": {
             "spriteChest": {
               "percent": 2.63,
@@ -471,12 +862,12 @@
         },
         {
           "id": 24,
-          "name": "Gold Dream Sprite",
+          "name": "Gold Dream",
           "rarity": "special",
           "chancePercent": 0.03,
           "chanceLabel": "0.03%",
           "starter": false,
-          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Sleepy_Gold_ui_L.webp",
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Sleepy_Gold_ui_L.png",
           "spawnRates": {
             "spriteChest": {
               "percent": 0.03,
@@ -491,12 +882,12 @@
         },
         {
           "id": 22,
-          "name": "Gummy Dream Sprite",
+          "name": "Gummy Dream",
           "rarity": "special",
           "chancePercent": 0.02,
           "chanceLabel": "0.02%",
           "starter": false,
-          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Sleepy_Candy_ui_L.webp",
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Sleepy_Candy_ui_L.png",
           "spawnRates": {
             "spriteChest": {
               "percent": 0.02,
@@ -511,12 +902,12 @@
         },
         {
           "id": 23,
-          "name": "Galaxy Dream Sprite",
+          "name": "Galaxy Dream",
           "rarity": "special",
           "chancePercent": 0.01,
           "chanceLabel": "0.01%",
           "starter": false,
-          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Sleepy_Galaxy_ui_L.webp",
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Sleepy_Galaxy_ui_L.png",
           "spawnRates": {
             "spriteChest": {
               "percent": 0.01,
@@ -526,26 +917,104 @@
           "variant": "Galaxy",
           "summonCost": 10000,
           "effectText": "Grants a random item at each level, exploding with legendary loot at Max Level.",
-          "specialEffectText": "Gain 30% more Ammunition when looting",
+          "specialEffectText": "Gain 30% more Ammo whenever picked up in the world",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 97,
+          "name": "Gem Dream",
+          "rarity": "special",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/tmp_sleepy_gem.png",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Gem",
+          "summonCost": 0,
+          "effectText": "Grants a random item at each level, exploding with legendary loot at Max Level.",
+          "specialEffectText": "Take 30% less Fall damage",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 98,
+          "name": "Holofoil Dream",
+          "rarity": "special",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/tmp_sleepy_holofoil.png",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Holofoil",
+          "summonCost": 0,
+          "effectText": "Grants a random item at each level, exploding with legendary loot at Max Level.",
+          "specialEffectText": "5% chance for your squad to find rare Sprite Variants from looting chests",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 99,
+          "name": "Cube Dream",
+          "rarity": "special",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/tmp_sleepy_cube.png",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Cube",
+          "summonCost": 0,
+          "effectText": "Grants a random item at each level, exploding with legendary loot at Max Level.",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 100,
+          "name": "Quack Dream",
+          "rarity": "special",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/tmp_sleepy_quack.png",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Quack",
+          "summonCost": 0,
+          "effectText": "Grants a random item at each level, exploding with legendary loot at Max Level.",
           "detailStatus": "complete"
         }
       ]
     },
     {
       "key": "punk",
-      "displayName": "Punk Sprite",
+      "displayName": "Punk",
       "effectSummary": "Possibly nothing... or infinitely something",
       "levelScaling": "No level scaling available.",
       "location": "Found rarely in Sprite Chests",
       "variants": [
         {
           "id": 25,
-          "name": "Punk Sprite",
+          "name": "Punk",
           "rarity": "legendary",
           "chancePercent": 1.98,
           "chanceLabel": "1.98%",
           "starter": false,
-          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Punk_ui_L.webp",
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Punk_ui_L.png",
           "spawnRates": {
             "spriteChest": {
               "percent": 1.98,
@@ -559,12 +1028,12 @@
         },
         {
           "id": 28,
-          "name": "Gold Punk Sprite",
+          "name": "Gold Punk",
           "rarity": "special",
           "chancePercent": 0.02,
           "chanceLabel": "0.02%",
           "starter": false,
-          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Punk_Gold_ui_L.webp",
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Punk_Gold_ui_L.png",
           "spawnRates": {
             "spriteChest": {
               "percent": 0.02,
@@ -579,12 +1048,12 @@
         },
         {
           "id": 26,
-          "name": "Gummy Punk Sprite",
+          "name": "Gummy Punk",
           "rarity": "special",
           "chancePercent": 0.01,
           "chanceLabel": "0.01%",
           "starter": false,
-          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Punk_Candy_ui_L.webp",
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Punk_Candy_ui_L.png",
           "spawnRates": {
             "spriteChest": {
               "percent": 0.01,
@@ -599,41 +1068,119 @@
         },
         {
           "id": 27,
-          "name": "Galaxy Punk Sprite",
+          "name": "Galaxy Punk",
+          "rarity": "special",
+          "chancePercent": 0.01,
+          "chanceLabel": "0.01%",
+          "starter": false,
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Punk_Galaxy_ui_L.png",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0.01,
+              "label": "0.01%"
+            }
+          },
+          "variant": "Galaxy",
+          "summonCost": 10000,
+          "effectText": "Possibly nothing... or infinitely something",
+          "specialEffectText": "Gain 30% more Ammo whenever picked up in the world",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 104,
+          "name": "Gem Punk",
           "rarity": "special",
           "chancePercent": 0,
           "chanceLabel": "0%",
           "starter": false,
-          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Punk_Galaxy_ui_L.webp",
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/tmp_punk_gem.png",
           "spawnRates": {
             "spriteChest": {
               "percent": 0,
               "label": "0%"
             }
           },
-          "variant": "Galaxy",
-          "summonCost": 10000,
+          "variant": "Gem",
+          "summonCost": 0,
           "effectText": "Possibly nothing... or infinitely something",
-          "specialEffectText": "Gain 30% more Ammunition when looting",
+          "specialEffectText": "Take 30% less Fall damage",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 105,
+          "name": "Holofoil Punk",
+          "rarity": "special",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/tmp_punk_holofoil.png",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Holofoil",
+          "summonCost": 0,
+          "effectText": "Possibly nothing... or infinitely something",
+          "specialEffectText": "5% chance for your squad to find rare Sprite Variants from looting chests",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 106,
+          "name": "Cube Punk",
+          "rarity": "special",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/tmp_punk_cube.png",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Cube",
+          "summonCost": 0,
+          "effectText": "Possibly nothing... or infinitely something",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 107,
+          "name": "Quack Punk",
+          "rarity": "special",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/tmp_punk_quack.png",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Quack",
+          "summonCost": 0,
+          "effectText": "Possibly nothing... or infinitely something",
           "detailStatus": "complete"
         }
       ]
     },
     {
       "key": "king",
-      "displayName": "King Sprite",
+      "displayName": "King",
       "effectSummary": "Your Pickaxe deals more damage.",
       "levelScaling": "Increases in damage at each Level Up: 30 -> 40 -> 60 -> 80 -> 120 bonus damage",
       "location": "Found rarely in Sprite Chests",
       "variants": [
         {
           "id": 29,
-          "name": "King Sprite",
+          "name": "King",
           "rarity": "epic",
           "chancePercent": 5.74,
           "chanceLabel": "5.74%",
           "starter": false,
-          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_King_ui_L.webp",
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_King_ui_L.png",
           "spawnRates": {
             "spriteChest": {
               "percent": 5.74,
@@ -647,12 +1194,12 @@
         },
         {
           "id": 32,
-          "name": "Gold King Sprite",
+          "name": "Gold King",
           "rarity": "special",
           "chancePercent": 0.07,
           "chanceLabel": "0.07%",
           "starter": false,
-          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_King_Gold_ui_L.webp",
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_King_Gold_ui_L.png",
           "spawnRates": {
             "spriteChest": {
               "percent": 0.07,
@@ -667,12 +1214,12 @@
         },
         {
           "id": 30,
-          "name": "Gummy King Sprite",
+          "name": "Gummy King",
           "rarity": "special",
           "chancePercent": 0.04,
           "chanceLabel": "0.04%",
           "starter": false,
-          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_King_Candy_ui_L.webp",
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_King_Candy_ui_L.png",
           "spawnRates": {
             "spriteChest": {
               "percent": 0.04,
@@ -687,12 +1234,12 @@
         },
         {
           "id": 31,
-          "name": "Galaxy King Sprite",
+          "name": "Galaxy King",
           "rarity": "special",
           "chancePercent": 0.02,
           "chanceLabel": "0.02%",
           "starter": false,
-          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_King_Galaxy_ui_L.webp",
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_King_Galaxy_ui_L.png",
           "spawnRates": {
             "spriteChest": {
               "percent": 0.02,
@@ -702,26 +1249,104 @@
           "variant": "Galaxy",
           "summonCost": 6000,
           "effectText": "Your Pickaxe deals more damage.",
-          "specialEffectText": "Gain 30% more Ammunition when looting",
+          "specialEffectText": "Gain 30% more Ammo whenever picked up in the world",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 73,
+          "name": "Holofoil King",
+          "rarity": "special",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_King_Holofoil_ui_L.png",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Holofoil",
+          "summonCost": 0,
+          "effectText": "Your Pickaxe deals more damage.",
+          "specialEffectText": "5% chance for your squad to find rare Sprite Variants from looting chests",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 108,
+          "name": "Gem King",
+          "rarity": "special",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/tmp_king_gem.png",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Gem",
+          "summonCost": 0,
+          "effectText": "Your Pickaxe deals more damage.",
+          "specialEffectText": "Take 30% less Fall damage",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 109,
+          "name": "Cube King",
+          "rarity": "special",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/tmp_king_cube.png",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Cube",
+          "summonCost": 0,
+          "effectText": "Your Pickaxe deals more damage.",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 110,
+          "name": "Quack King",
+          "rarity": "special",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/tmp_king_quack.png",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Quack",
+          "summonCost": 0,
+          "effectText": "Your Pickaxe deals more damage.",
           "detailStatus": "complete"
         }
       ]
     },
     {
       "key": "zero-point",
-      "displayName": "Zero Point Sprite",
+      "displayName": "Zero Point",
       "effectSummary": "Spawn a Shield Bubble Jr. when you use a healing item on yourself (excluding splashes and grenades).",
       "levelScaling": "Increases in duration at each Level Up: 6 Seconds -> 7 Seconds -> 8 Seconds -> 9 Seconds -> 10 Seconds",
       "location": "Found rarely in Sprite Chests",
       "variants": [
         {
           "id": 33,
-          "name": "Zero Point Sprite",
+          "name": "Zero Point",
           "rarity": "mythic",
           "chancePercent": 0.000098,
           "chanceLabel": "0.000098%",
           "starter": false,
-          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_ZeroPoint_ui_L.webp",
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_ZeroPoint_ui_L.png",
           "spawnRates": {
             "spriteChest": {
               "percent": 0.000098,
@@ -735,12 +1360,12 @@
         },
         {
           "id": 36,
-          "name": "Gold Zero Point Sprite",
+          "name": "Gold Zero Point",
           "rarity": "special",
           "chancePercent": 0.0000012,
           "chanceLabel": "0.0000012%",
           "starter": false,
-          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_ZeroPoint_Gold_ui_L.webp",
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_ZeroPoint_Gold_ui_L.png",
           "spawnRates": {
             "spriteChest": {
               "percent": 0.0000012,
@@ -755,12 +1380,12 @@
         },
         {
           "id": 34,
-          "name": "Gummy Zero Point Sprite",
+          "name": "Gummy Zero Point",
           "rarity": "special",
           "chancePercent": 6e-7,
           "chanceLabel": "0.0000006%",
           "starter": false,
-          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_ZeroPoint_Candy_ui_L.webp",
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_ZeroPoint_Candy_ui_L.png",
           "spawnRates": {
             "spriteChest": {
               "percent": 6e-7,
@@ -775,12 +1400,12 @@
         },
         {
           "id": 35,
-          "name": "Galaxy Zero Point Sprite",
+          "name": "Galaxy Zero Point",
           "rarity": "special",
           "chancePercent": 4e-7,
           "chanceLabel": "0.0000004%",
           "starter": false,
-          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_ZeroPoint_Galaxy_ui_L.webp",
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_ZeroPoint_Galaxy_ui_L.png",
           "spawnRates": {
             "spriteChest": {
               "percent": 4e-7,
@@ -790,26 +1415,104 @@
           "variant": "Galaxy",
           "summonCost": 15000,
           "effectText": "Spawn a Shield Bubble Jr. when you use a healing item on yourself (excluding splashes and grenades).",
-          "specialEffectText": "Gain 30% more Ammunition when looting",
+          "specialEffectText": "Gain 30% more Ammo whenever picked up in the world",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 82,
+          "name": "Gem Zero Point",
+          "rarity": "special",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_ZeroPoint_Gem_ui_L.png",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Gem",
+          "summonCost": 0,
+          "effectText": "Spawn a Shield Bubble Jr. when you use a healing item on yourself (excluding splashes and grenades).",
+          "specialEffectText": "Take 30% less Fall damage",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 111,
+          "name": "Holofoil Zero Point",
+          "rarity": "special",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/tmp_zero_point_holofoil.png",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Holofoil",
+          "summonCost": 0,
+          "effectText": "Spawn a Shield Bubble Jr. when you use a healing item on yourself (excluding splashes and grenades).",
+          "specialEffectText": "5% chance for your squad to find rare Sprite Variants from looting chests",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 112,
+          "name": "Cube Zero Point",
+          "rarity": "special",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/tmp_zero_point_cube.png",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Cube",
+          "summonCost": 0,
+          "effectText": "Spawn a Shield Bubble Jr. when you use a healing item on yourself (excluding splashes and grenades).",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 113,
+          "name": "Quack Zero Point",
+          "rarity": "special",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_ZeroPoint_Quack_ui_L.png",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Quack",
+          "summonCost": 0,
+          "effectText": "Spawn a Shield Bubble Jr. when you use a healing item on yourself (excluding splashes and grenades).",
           "detailStatus": "complete"
         }
       ]
     },
     {
       "key": "demon",
-      "displayName": "Demon Sprite",
+      "displayName": "Demon",
       "effectSummary": "Siphon some health and shields when you eliminate an opponent.",
       "levelScaling": "Increases in power at each Level Up: 10 Healing -> 15 Healing -> 20 Healing -> 25 Healing -> 30 Healing per elimination",
       "location": "Found rarely in Sprite Chests",
       "variants": [
         {
           "id": 37,
-          "name": "Demon Sprite",
+          "name": "Demon",
           "rarity": "epic",
           "chancePercent": 5.76,
           "chanceLabel": "5.76%",
           "starter": false,
-          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_RedDemon_Default_L.webp",
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_RedDemon_Default_L.png",
           "spawnRates": {
             "spriteChest": {
               "percent": 5.76,
@@ -823,12 +1526,12 @@
         },
         {
           "id": 40,
-          "name": "Gold Demon Sprite",
+          "name": "Gold Demon",
           "rarity": "special",
           "chancePercent": 0.07,
           "chanceLabel": "0.07%",
           "starter": false,
-          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_RedDemon_Gold_L.webp",
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_RedDemon_Gold_L.png",
           "spawnRates": {
             "spriteChest": {
               "percent": 0.07,
@@ -843,12 +1546,12 @@
         },
         {
           "id": 38,
-          "name": "Gummy Demon Sprite",
+          "name": "Gummy Demon",
           "rarity": "special",
           "chancePercent": 0.04,
           "chanceLabel": "0.04%",
           "starter": false,
-          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_RedDemon_Candy_L.webp",
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_RedDemon_Candy_L.png",
           "spawnRates": {
             "spriteChest": {
               "percent": 0.04,
@@ -863,22 +1566,100 @@
         },
         {
           "id": 39,
-          "name": "Galaxy Demon Sprite",
+          "name": "Galaxy Demon",
+          "rarity": "special",
+          "chancePercent": 0.02,
+          "chanceLabel": "0.02%",
+          "starter": false,
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_RedDemon_Galaxy_L.png",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0.02,
+              "label": "0.02%"
+            }
+          },
+          "variant": "Galaxy",
+          "summonCost": 6000,
+          "effectText": "Siphon some health and shields when you eliminate an opponent.",
+          "specialEffectText": "Gain 30% more Ammo whenever picked up in the world",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 47,
+          "name": "Gem Demon",
           "rarity": "special",
           "chancePercent": 0,
           "chanceLabel": "0%",
           "starter": false,
-          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_RedDemon_Galaxy_L.webp",
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_RedDemon_Gem_L.png",
           "spawnRates": {
             "spriteChest": {
               "percent": 0,
               "label": "0%"
             }
           },
-          "variant": "Galaxy",
-          "summonCost": 6000,
+          "variant": "Gem",
+          "summonCost": 0,
           "effectText": "Siphon some health and shields when you eliminate an opponent.",
-          "specialEffectText": "Gain 30% more Ammunition when looting",
+          "specialEffectText": "Take 30% less Fall damage",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 101,
+          "name": "Holofoil Demon",
+          "rarity": "special",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/tmp_demon_holofoil.png",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Holofoil",
+          "summonCost": 0,
+          "effectText": "Siphon some health and shields when you eliminate an opponent.",
+          "specialEffectText": "5% chance for your squad to find rare Sprite Variants from looting chests",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 102,
+          "name": "Cube Demon",
+          "rarity": "special",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/tmp_demon_cube.png",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Cube",
+          "summonCost": 0,
+          "effectText": "Siphon some health and shields when you eliminate an opponent.",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 103,
+          "name": "Quack Demon",
+          "rarity": "special",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/tmp_demon_quack.png",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Quack",
+          "summonCost": 0,
+          "effectText": "Siphon some health and shields when you eliminate an opponent.",
           "detailStatus": "complete"
         }
       ]
@@ -897,7 +1678,7 @@
           "chancePercent": 1.01,
           "chanceLabel": "1.01%",
           "starter": false,
-          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_BurntPeanut_ui_L.webp",
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_BurntPeanut_ui_L.png",
           "spawnRates": {
             "spriteChest": {
               "percent": 1.01,
@@ -913,19 +1694,19 @@
     },
     {
       "key": "boss",
-      "displayName": "Boss Sprite",
+      "displayName": "Boss",
       "effectSummary": "Grants an increase to your max HP and Shield.",
       "levelScaling": "Increases at each Level Up: 5 HP/Shield -> 10 HP/Shield -> 15 HP/Shield -> 20 HP/Shield -> 25 HP/Shield",
       "location": "Claimed from defeating a powerful adversary",
       "variants": [
         {
           "id": 49,
-          "name": "Boss Sprite",
+          "name": "Boss",
           "rarity": "legendary",
           "chancePercent": 2.63,
           "chanceLabel": "2.63%",
           "starter": false,
-          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Boss_ui_L.webp",
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Boss_ui_L.png",
           "spawnRates": {
             "spriteChest": {
               "percent": 2.63,
@@ -939,12 +1720,12 @@
         },
         {
           "id": 50,
-          "name": "Gold Boss Sprite",
+          "name": "Gold Boss",
           "rarity": "special",
           "chancePercent": 0.03,
           "chanceLabel": "0.03%",
           "starter": false,
-          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Boss_Gold_ui_L.webp",
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Boss_Gold_ui_L.png",
           "spawnRates": {
             "spriteChest": {
               "percent": 0.03,
@@ -959,12 +1740,12 @@
         },
         {
           "id": 51,
-          "name": "Gummy Boss Sprite",
+          "name": "Gummy Boss",
           "rarity": "special",
           "chancePercent": 0.02,
           "chanceLabel": "0.02%",
           "starter": false,
-          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Boss_Candy_ui_L.webp",
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Boss_Candy_ui_L.png",
           "spawnRates": {
             "spriteChest": {
               "percent": 0.02,
@@ -979,12 +1760,12 @@
         },
         {
           "id": 52,
-          "name": "Galaxy Boss Sprite",
+          "name": "Galaxy Boss",
           "rarity": "special",
           "chancePercent": 0.01,
           "chanceLabel": "0.01%",
           "starter": false,
-          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Boss_Galaxy_ui_L.webp",
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Boss_Galaxy_ui_L.png",
           "spawnRates": {
             "spriteChest": {
               "percent": 0.01,
@@ -994,26 +1775,270 @@
           "variant": "Galaxy",
           "summonCost": 0,
           "effectText": "Grants an increase to your max HP and Shield.",
-          "specialEffectText": "Gain 30% more Ammunition when looting",
+          "specialEffectText": "Gain 30% more Ammo whenever picked up in the world",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 124,
+          "name": "Gem Boss",
+          "rarity": "special",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/tmp_boss_gem.png",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Gem",
+          "summonCost": 0,
+          "effectText": "Grants an increase to your max HP and Shield.",
+          "specialEffectText": "Take 30% less Fall damage",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 125,
+          "name": "Holofoil Boss",
+          "rarity": "special",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/tmp_boss_holofoil.png",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Holofoil",
+          "summonCost": 0,
+          "effectText": "Grants an increase to your max HP and Shield.",
+          "specialEffectText": "5% chance for your squad to find rare Sprite Variants from looting chests",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 126,
+          "name": "Cube Boss",
+          "rarity": "special",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/tmp_boss_cube.png",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Cube",
+          "summonCost": 0,
+          "effectText": "Grants an increase to your max HP and Shield.",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 127,
+          "name": "Quack Boss",
+          "rarity": "special",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/tmp_boss_quack.png",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Quack",
+          "summonCost": 0,
+          "effectText": "Grants an increase to your max HP and Shield.",
+          "detailStatus": "complete"
+        }
+      ]
+    },
+    {
+      "key": "seven",
+      "displayName": "Seven",
+      "effectSummary": "Enemy player foot trails are visible in the world for your Squad.",
+      "levelScaling": "Duration increases at each Level Up: 10 Seconds -> 15 Seconds -> 20 Seconds -> 25 Seconds -> 30 Second foot trails",
+      "location": "Spotted near high and mountainous areas",
+      "variants": [
+        {
+          "id": 53,
+          "name": "Seven",
+          "rarity": "legendary",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Seven_ui_L.png",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Base",
+          "summonCost": 0,
+          "effectText": "Enemy player foot trails are visible in the world for your Squad.",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 54,
+          "name": "Gummy Seven",
+          "rarity": "special",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Seven_Candy_ui_L.png",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Candy",
+          "summonCost": 0,
+          "effectText": "Enemy player foot trails are visible in the world for your Squad.",
+          "specialEffectText": "Gain 20% more Sprite Dust upon Extraction",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 55,
+          "name": "Galaxy Seven",
+          "rarity": "special",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Seven_Galaxy_ui_L.png",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Galaxy",
+          "summonCost": 0,
+          "effectText": "Enemy player foot trails are visible in the world for your Squad.",
+          "specialEffectText": "Gain 30% more Ammo whenever picked up in the world",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 56,
+          "name": "Gold Seven",
+          "rarity": "special",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Seven_Gold_ui_L.png",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Gold",
+          "summonCost": 0,
+          "effectText": "Enemy player foot trails are visible in the world for your Squad.",
+          "specialEffectText": "Gain 3x bonus XP from eliminations",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 57,
+          "name": "Holofoil Seven",
+          "rarity": "special",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Seven_Holofoil_ui_L.png",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Holofoil",
+          "summonCost": 0,
+          "effectText": "Enemy player foot trails are visible in the world for your Squad.",
+          "specialEffectText": "5% chance for your squad to find rare Sprite Variants from looting chests",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 135,
+          "name": "Gem Seven",
+          "rarity": "special",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/tmp_seven_gem.png",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Gem",
+          "summonCost": 0,
+          "effectText": "Enemy player foot trails are visible in the world for your Squad.",
+          "specialEffectText": "Take 30% less Fall damage",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 136,
+          "name": "Cube Seven",
+          "rarity": "special",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/tmp_seven_cube.png",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Cube",
+          "summonCost": 0,
+          "effectText": "Enemy player foot trails are visible in the world for your Squad.",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 137,
+          "name": "Quack Seven",
+          "rarity": "special",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/tmp_seven_quack.png",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Quack",
+          "summonCost": 0,
+          "effectText": "Enemy player foot trails are visible in the world for your Squad.",
           "detailStatus": "complete"
         }
       ]
     },
     {
       "key": "fishy",
-      "displayName": "Fishy Sprite",
+      "displayName": "Fishy",
       "effectSummary": "Swim speed greatly increased. Taking damage also briefly increases movement speed.",
       "levelScaling": "Increases in power at each Level Up: 25% Swim Speed / 10% Movement Speed -> 50% Swim Speed / 20% Movement Speed -> 100% Swim Speed / 30% Movement Speed -> 150% Swim Speed / 40% Movement Speed -> 200% Swim Speed / 50% Movement Speed Bonuses",
       "location": "Spotted near high and mountainous areas",
       "variants": [
         {
           "id": 58,
-          "name": "Fishy Sprite",
+          "name": "Fishy",
           "rarity": "rare",
           "chancePercent": 13.79,
           "chanceLabel": "13.79%",
           "starter": false,
-          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Fishy_ui_L.webp",
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Fishy_ui_L.png",
           "spawnRates": {
             "spriteChest": {
               "percent": 13.79,
@@ -1027,12 +2052,12 @@
         },
         {
           "id": 61,
-          "name": "Gold Fishy Sprite",
+          "name": "Gold Fishy",
           "rarity": "special",
           "chancePercent": 0.17,
           "chanceLabel": "0.17%",
           "starter": false,
-          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Fishy_Gold_ui_L.webp",
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Fishy_Gold_ui_L.png",
           "spawnRates": {
             "spriteChest": {
               "percent": 0.17,
@@ -1047,12 +2072,12 @@
         },
         {
           "id": 59,
-          "name": "Gummy Fishy Sprite",
+          "name": "Gummy Fishy",
           "rarity": "special",
           "chancePercent": 0.08,
           "chanceLabel": "0.08%",
           "starter": false,
-          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Fishy_Candy_ui_L.webp",
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Fishy_Candy_ui_L.png",
           "spawnRates": {
             "spriteChest": {
               "percent": 0.08,
@@ -1067,12 +2092,12 @@
         },
         {
           "id": 60,
-          "name": "Galaxy Fishy Sprite",
+          "name": "Galaxy Fishy",
           "rarity": "special",
           "chancePercent": 0.06,
           "chanceLabel": "0.06%",
           "starter": false,
-          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Fishy_Galaxy_ui_L.webp",
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Fishy_Galaxy_ui_L.png",
           "spawnRates": {
             "spriteChest": {
               "percent": 0.06,
@@ -1082,26 +2107,104 @@
           "variant": "Galaxy",
           "summonCost": 0,
           "effectText": "Swim speed greatly increased. Taking damage also briefly increases movement speed.",
-          "specialEffectText": "Gain 30% more Ammunition when looting",
+          "specialEffectText": "Gain 30% more Ammo whenever picked up in the world",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 114,
+          "name": "Gem Fishy",
+          "rarity": "special",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/tmp_fishy_gem.png",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Gem",
+          "summonCost": 0,
+          "effectText": "Swim speed greatly increased. Taking damage also briefly increases movement speed.",
+          "specialEffectText": "Take 30% less Fall damage",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 115,
+          "name": "Holofoil Fishy",
+          "rarity": "special",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/tmp_fishy_holofoil.png",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Holofoil",
+          "summonCost": 0,
+          "effectText": "Swim speed greatly increased. Taking damage also briefly increases movement speed.",
+          "specialEffectText": "5% chance for your squad to find rare Sprite Variants from looting chests",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 116,
+          "name": "Cube Fishy",
+          "rarity": "special",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/tmp_fishy_cube.png",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Cube",
+          "summonCost": 0,
+          "effectText": "Swim speed greatly increased. Taking damage also briefly increases movement speed.",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 117,
+          "name": "Quack Fishy",
+          "rarity": "special",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/tmp_fishy_quack.png",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Quack",
+          "summonCost": 0,
+          "effectText": "Swim speed greatly increased. Taking damage also briefly increases movement speed.",
           "detailStatus": "complete"
         }
       ]
     },
     {
       "key": "striker",
-      "displayName": "Striker Sprite",
-      "effectSummary": "Gain the Overdrive effect when you Mantle, Hurdle, or Wall Scramble. Duration increases at each Level Up: 6 Seconds -> 7 Seconds -> 8 Seconds -> 9 Seconds -> 10 Seconds of Overdrive",
-      "levelScaling": "No level scaling available.",
+      "displayName": "Striker",
+      "effectSummary": "Gain the Overdrive effect when you Mantle, Hurdle, or Wall Scramble.",
+      "levelScaling": "Duration increases at each Level Up: 6 Seconds -> 7 Seconds -> 8 Seconds -> 9 Seconds -> 10 Seconds of Overdrive",
       "location": "Spotted near high and mountainous areas",
       "variants": [
         {
           "id": 62,
-          "name": "Striker Sprite",
+          "name": "Striker",
           "rarity": "epic",
           "chancePercent": 5.74,
           "chanceLabel": "5.74%",
           "starter": false,
-          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Soccer_ui_L.webp",
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Soccer_ui_L.png",
           "spawnRates": {
             "spriteChest": {
               "percent": 5.74,
@@ -1110,17 +2213,17 @@
           },
           "variant": "Base",
           "summonCost": 0,
-          "effectText": "Gain the Overdrive effect when you Mantle, Hurdle, or Wall Scramble. Duration increases at each Level Up: 6 Seconds -> 7 Seconds -> 8 Seconds -> 9 Seconds -> 10 Seconds of Overdrive",
+          "effectText": "Gain the Overdrive effect when you Mantle, Hurdle, or Wall Scramble.",
           "detailStatus": "complete"
         },
         {
           "id": 65,
-          "name": "Gold Striker Sprite",
+          "name": "Gold Striker",
           "rarity": "special",
           "chancePercent": 0.07,
           "chanceLabel": "0.07%",
           "starter": false,
-          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Soccer_Gold_L.webp",
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Soccer_Gold_L.png",
           "spawnRates": {
             "spriteChest": {
               "percent": 0.07,
@@ -1129,18 +2232,18 @@
           },
           "variant": "Gold",
           "summonCost": 0,
-          "effectText": "Gain the Overdrive effect when you Mantle, Hurdle, or Wall Scramble. Duration increases at each Level Up: 6 Seconds -> 7 Seconds -> 8 Seconds -> 9 Seconds -> 10 Seconds of Overdrive",
+          "effectText": "Gain the Overdrive effect when you Mantle, Hurdle, or Wall Scramble.",
           "specialEffectText": "Gain 3x bonus XP from eliminations",
           "detailStatus": "complete"
         },
         {
           "id": 63,
-          "name": "Gummy Striker Sprite",
+          "name": "Gummy Striker",
           "rarity": "special",
           "chancePercent": 0.04,
           "chanceLabel": "0.04%",
           "starter": false,
-          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Soccer_Candy_L.webp",
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Soccer_Candy_L.png",
           "spawnRates": {
             "spriteChest": {
               "percent": 0.04,
@@ -1149,18 +2252,18 @@
           },
           "variant": "Candy",
           "summonCost": 0,
-          "effectText": "Gain the Overdrive effect when you Mantle, Hurdle, or Wall Scramble. Duration increases at each Level Up: 6 Seconds -> 7 Seconds -> 8 Seconds -> 9 Seconds -> 10 Seconds of Overdrive",
+          "effectText": "Gain the Overdrive effect when you Mantle, Hurdle, or Wall Scramble.",
           "specialEffectText": "Gain 20% more Sprite Dust upon Extraction",
           "detailStatus": "complete"
         },
         {
           "id": 64,
-          "name": "Galaxy Striker Sprite",
+          "name": "Galaxy Striker",
           "rarity": "special",
           "chancePercent": 0.02,
           "chanceLabel": "0.02%",
           "starter": false,
-          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Soccer_Galaxy_L.webp",
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Soccer_Galaxy_L.png",
           "spawnRates": {
             "spriteChest": {
               "percent": 0.02,
@@ -1169,27 +2272,105 @@
           },
           "variant": "Galaxy",
           "summonCost": 0,
-          "effectText": "Gain the Overdrive effect when you Mantle, Hurdle, or Wall Scramble. Duration increases at each Level Up: 6 Seconds -> 7 Seconds -> 8 Seconds -> 9 Seconds -> 10 Seconds of Overdrive",
-          "specialEffectText": "Gain 30% more Ammunition when looting",
+          "effectText": "Gain the Overdrive effect when you Mantle, Hurdle, or Wall Scramble.",
+          "specialEffectText": "Gain 30% more Ammo whenever picked up in the world",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 66,
+          "name": "Holofoil Striker",
+          "rarity": "special",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Soccer_Holofoil_L.png",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Holofoil",
+          "summonCost": 0,
+          "effectText": "Gain the Overdrive effect when you Mantle, Hurdle, or Wall Scramble.",
+          "specialEffectText": "5% chance for your squad to find rare Sprite Variants from looting chests",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 118,
+          "name": "Gem Striker",
+          "rarity": "special",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/tmp_soccer_gem.png",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Gem",
+          "summonCost": 0,
+          "effectText": "Gain the Overdrive effect when you Mantle, Hurdle, or Wall Scramble.",
+          "specialEffectText": "Take 30% less Fall damage",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 119,
+          "name": "Cube Striker",
+          "rarity": "special",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/tmp_soccer_cube.png",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Cube",
+          "summonCost": 0,
+          "effectText": "Gain the Overdrive effect when you Mantle, Hurdle, or Wall Scramble.",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 120,
+          "name": "Quack Striker",
+          "rarity": "special",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/tmp_soccer_quack.png",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Quack",
+          "summonCost": 0,
+          "effectText": "Gain the Overdrive effect when you Mantle, Hurdle, or Wall Scramble.",
           "detailStatus": "complete"
         }
       ]
     },
     {
       "key": "aura",
-      "displayName": "Aura Sprite",
+      "displayName": "Aura",
       "effectSummary": "Gain a Shock Rock charge when you deal enough damage to enemies!",
       "levelScaling": "Required damage decreases at each Level Up: 175 Damage -> 150 Damage -> 125 Damage -> 100 Damage -> 75 Damage to trigger",
       "location": "Spotted near high and mountainous areas",
       "variants": [
         {
           "id": 67,
-          "name": "Aura Sprite",
+          "name": "Aura",
           "rarity": "epic",
           "chancePercent": 5.74,
           "chanceLabel": "5.74%",
           "starter": false,
-          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Drifter_ui_L.webp",
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Drifter_ui_L.png",
           "spawnRates": {
             "spriteChest": {
               "percent": 5.74,
@@ -1203,12 +2384,12 @@
         },
         {
           "id": 71,
-          "name": "Gold Aura Sprite",
+          "name": "Gold Aura",
           "rarity": "special",
           "chancePercent": 0.07,
           "chanceLabel": "0.07%",
           "starter": false,
-          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Drifter_Gold_ui_L.webp",
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Drifter_Gold_ui_L.png",
           "spawnRates": {
             "spriteChest": {
               "percent": 0.07,
@@ -1223,12 +2404,12 @@
         },
         {
           "id": 68,
-          "name": "Gummy Aura Sprite",
+          "name": "Gummy Aura",
           "rarity": "special",
           "chancePercent": 0.04,
           "chanceLabel": "0.04%",
           "starter": false,
-          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Drifter_Candy_ui_L.webp",
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Drifter_Candy_ui_L.png",
           "spawnRates": {
             "spriteChest": {
               "percent": 0.04,
@@ -1243,12 +2424,12 @@
         },
         {
           "id": 69,
-          "name": "Galaxy Aura Sprite",
+          "name": "Galaxy Aura",
           "rarity": "special",
           "chancePercent": 0.02,
           "chanceLabel": "0.02%",
           "starter": false,
-          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Drifter_Galaxy_ui_L.webp",
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Drifter_Galaxy_ui_L.png",
           "spawnRates": {
             "spriteChest": {
               "percent": 0.02,
@@ -1258,26 +2439,270 @@
           "variant": "Galaxy",
           "summonCost": 0,
           "effectText": "Gain a Shock Rock charge when you deal enough damage to enemies!",
-          "specialEffectText": "Gain 30% more Ammunition when looting",
+          "specialEffectText": "Gain 30% more Ammo whenever picked up in the world",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 70,
+          "name": "Gem Aura",
+          "rarity": "special",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Drifter_Gem_ui_L.png",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Gem",
+          "summonCost": 0,
+          "effectText": "Gain a Shock Rock charge when you deal enough damage to enemies!",
+          "specialEffectText": "Take 30% less Fall damage",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 121,
+          "name": "Holofoil Aura",
+          "rarity": "special",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/tmp_drifter_holofoil.png",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Holofoil",
+          "summonCost": 0,
+          "effectText": "Gain a Shock Rock charge when you deal enough damage to enemies!",
+          "specialEffectText": "5% chance for your squad to find rare Sprite Variants from looting chests",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 122,
+          "name": "Cube Aura",
+          "rarity": "special",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/tmp_drifter_cube.png",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Cube",
+          "summonCost": 0,
+          "effectText": "Gain a Shock Rock charge when you deal enough damage to enemies!",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 123,
+          "name": "Quack Aura",
+          "rarity": "special",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/tmp_drifter_quack.png",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Quack",
+          "summonCost": 0,
+          "effectText": "Gain a Shock Rock charge when you deal enough damage to enemies!",
+          "detailStatus": "complete"
+        }
+      ]
+    },
+    {
+      "key": "air",
+      "displayName": "Air",
+      "effectSummary": "Increases sprinting speed and jump height.",
+      "levelScaling": "Also nullifies fall damage.",
+      "location": "Spotted near high and mountainous areas",
+      "variants": [
+        {
+          "id": 74,
+          "name": "Air",
+          "rarity": "rare",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Air_Default_L.png",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Base",
+          "summonCost": 0,
+          "effectText": "Increases sprinting speed and jump height.",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 42,
+          "name": "Gold Air",
+          "rarity": "special",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Air_Gold_L.png",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Gold",
+          "summonCost": 0,
+          "effectText": "Increases sprinting speed and jump height.",
+          "specialEffectText": "Gain 3x bonus XP from eliminations",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 72,
+          "name": "Gummy Air",
+          "rarity": "special",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Air_Candy_L.png",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Candy",
+          "summonCost": 0,
+          "effectText": "Increases sprinting speed and jump height.",
+          "specialEffectText": "Gain 20% more Sprite Dust upon Extraction",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 75,
+          "name": "Galaxy Air",
+          "rarity": "special",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Air_Galaxy_L.png",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Galaxy",
+          "summonCost": 0,
+          "effectText": "Increases sprinting speed and jump height.",
+          "specialEffectText": "Gain 30% more Ammo whenever picked up in the world",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 77,
+          "name": "Holofoil Air",
+          "rarity": "special",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Air_Holo_L.png",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Holofoil",
+          "summonCost": 0,
+          "effectText": "Increases sprinting speed and jump height.",
+          "specialEffectText": "5% chance for your squad to find rare Sprite Variants from looting chests",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 132,
+          "name": "Gem Air",
+          "rarity": "special",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/tmp_air_gem.png",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Gem",
+          "summonCost": 0,
+          "effectText": "Increases sprinting speed and jump height.",
+          "specialEffectText": "Take 30% less Fall damage",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 133,
+          "name": "Cube Air",
+          "rarity": "special",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/tmp_air_cube.png",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Cube",
+          "summonCost": 0,
+          "effectText": "Increases sprinting speed and jump height.",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 134,
+          "name": "Quack Air",
+          "rarity": "special",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/tmp_air_quack.png",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Quack",
+          "summonCost": 0,
+          "effectText": "Increases sprinting speed and jump height.",
           "detailStatus": "complete"
         }
       ]
     },
     {
       "key": "grim",
-      "displayName": "Grim Sprite",
+      "displayName": "Grim",
       "effectSummary": "Players who attack you are marked for a duration.",
       "levelScaling": "Increases in duration at each Level Up: 3 Seconds -> 3.5 Seconds -> 4 Seconds -> 4.5 Seconds -> 5 Seconds",
       "location": "Found rarely in Sprite Chests",
       "variants": [
         {
           "id": 78,
-          "name": "Grim Sprite",
+          "name": "Grim",
           "rarity": "mythic",
           "chancePercent": 0.000098,
           "chanceLabel": "0.000098%",
           "starter": false,
-          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_GrimReaper_Default_L.webp",
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_GrimReaper_Default_L.png",
           "spawnRates": {
             "spriteChest": {
               "percent": 0.000098,
@@ -1291,12 +2716,12 @@
         },
         {
           "id": 81,
-          "name": "Gold Grim Sprite",
+          "name": "Gold Grim",
           "rarity": "special",
           "chancePercent": 0.0000012,
           "chanceLabel": "0.0000012%",
           "starter": false,
-          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_GrimReaper_Gold_L.webp",
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_GrimReaper_Gold_L.png",
           "spawnRates": {
             "spriteChest": {
               "percent": 0.0000012,
@@ -1311,12 +2736,12 @@
         },
         {
           "id": 79,
-          "name": "Gummy Grim Sprite",
+          "name": "Gummy Grim",
           "rarity": "special",
           "chancePercent": 6e-7,
           "chanceLabel": "0.0000006%",
           "starter": false,
-          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_GrimReaper_Candy_L.webp",
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_GrimReaper_Candy_L.png",
           "spawnRates": {
             "spriteChest": {
               "percent": 6e-7,
@@ -1331,12 +2756,12 @@
         },
         {
           "id": 80,
-          "name": "Galaxy Grim Sprite",
+          "name": "Galaxy Grim",
           "rarity": "special",
           "chancePercent": 4e-7,
           "chanceLabel": "0.0000004%",
           "starter": false,
-          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_GrimReaper_Galaxy_L.webp",
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_GrimReaper_Galaxy_L.png",
           "spawnRates": {
             "spriteChest": {
               "percent": 4e-7,
@@ -1346,11 +2771,283 @@
           "variant": "Galaxy",
           "summonCost": 0,
           "effectText": "Players who attack you are marked for a duration.",
-          "specialEffectText": "Gain 30% more Ammunition when looting",
+          "specialEffectText": "Gain 30% more Ammo whenever picked up in the world",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 128,
+          "name": "Gem Grim",
+          "rarity": "special",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/tmp_grim_gem.png",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Gem",
+          "summonCost": 0,
+          "effectText": "Players who attack you are marked for a duration.",
+          "specialEffectText": "Take 30% less Fall damage",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 129,
+          "name": "Holofoil Grim",
+          "rarity": "special",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/tmp_grim_holofoil.png",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Holofoil",
+          "summonCost": 0,
+          "effectText": "Players who attack you are marked for a duration.",
+          "specialEffectText": "5% chance for your squad to find rare Sprite Variants from looting chests",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 130,
+          "name": "Cube Grim",
+          "rarity": "special",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/tmp_grim_cube.png",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Cube",
+          "summonCost": 0,
+          "effectText": "Players who attack you are marked for a duration.",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 131,
+          "name": "Quack Grim",
+          "rarity": "special",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/tmp_grim_quack.png",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Quack",
+          "summonCost": 0,
+          "effectText": "Players who attack you are marked for a duration.",
+          "detailStatus": "complete"
+        }
+      ]
+    },
+    {
+      "key": "john-wick",
+      "displayName": "John Wick",
+      "effectSummary": "No effect description available.",
+      "levelScaling": "No level scaling available.",
+      "location": "Unknown",
+      "variants": [
+        {
+          "id": 138,
+          "name": "John Wick",
+          "rarity": "mythic",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/tmp_john_wick.png",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Base",
+          "summonCost": 0,
+          "effectText": "",
+          "detailStatus": "complete"
+        }
+      ]
+    },
+    {
+      "key": "batman",
+      "displayName": "Batman",
+      "effectSummary": "No effect description available.",
+      "levelScaling": "No level scaling available.",
+      "location": "Unknown",
+      "variants": [
+        {
+          "id": 139,
+          "name": "Batman",
+          "rarity": "mythic",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/tmp_batman.png",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Base",
+          "summonCost": 0,
+          "effectText": "",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 140,
+          "name": "Gold Batman",
+          "rarity": "special",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/tmp_batman_gold.png",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Gold",
+          "summonCost": 0,
+          "effectText": "",
+          "specialEffectText": "Gain 3x bonus XP from eliminations",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 141,
+          "name": "Gummy Batman",
+          "rarity": "special",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/tmp_batman_candy.png",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Candy",
+          "summonCost": 0,
+          "effectText": "",
+          "specialEffectText": "Gain 20% more Sprite Dust upon Extraction",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 142,
+          "name": "Galaxy Batman",
+          "rarity": "special",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/tmp_batman_galaxy.png",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Galaxy",
+          "summonCost": 0,
+          "effectText": "",
+          "specialEffectText": "Gain 30% more Ammo whenever picked up in the world",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 143,
+          "name": "Gem Batman",
+          "rarity": "special",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/tmp_batman_gem.png",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Gem",
+          "summonCost": 0,
+          "effectText": "",
+          "specialEffectText": "Take 30% less Fall damage",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 145,
+          "name": "Holofoil Batman",
+          "rarity": "special",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/tmp_batman_holofoil.png",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Holofoil",
+          "summonCost": 0,
+          "effectText": "",
+          "specialEffectText": "5% chance for your squad to find rare Sprite Variants from looting chests",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 146,
+          "name": "Cube Batman",
+          "rarity": "special",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/tmp_batman_cube.png",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Cube",
+          "summonCost": 0,
+          "effectText": "",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 147,
+          "name": "Quack Batman",
+          "rarity": "special",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/tmp_batman_quack.png",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Quack",
+          "summonCost": 0,
+          "effectText": "",
           "detailStatus": "complete"
         }
       ]
     }
   ],
-  "contentFingerprint": "e6a39543702e47eed1effdbb9c59cf41f3a6d5c7bd330186587d225a5841ed53"
+  "contentFingerprint": "f2aa9dd93a588dc8371884b37c1ed232efd857d28a2e210fd2eef696d7993b88"
 }

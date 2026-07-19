@@ -48,6 +48,8 @@ export type SpriteDataFile = {
     contentFingerprint?: string;
     totalSprites: number;
     totalLevels: number;
+    /** IDs that are present in the base /sprites listing, not merely known variants. */
+    listedVariantIds?: number[];
     families: SpriteFamily[];
 };
 
@@ -377,6 +379,7 @@ export async function fetchSpriteData(delayMs = 150): Promise<SpriteDataFile> {
         fetchedAt: new Date().toISOString(),
         totalSprites: list.totalSprites,
         totalLevels: list.totalLevels,
+        listedVariantIds: list.items.map(item => item.id),
         families: buildFamilies(details)
     };
 
@@ -390,6 +393,7 @@ export function spriteDataContentFingerprint(data: SpriteDataFile): string {
         .update(JSON.stringify({
             totalSprites: data.totalSprites,
             totalLevels: data.totalLevels,
+            listedVariantIds: data.listedVariantIds,
             families: data.families
         }))
         .digest("hex");
