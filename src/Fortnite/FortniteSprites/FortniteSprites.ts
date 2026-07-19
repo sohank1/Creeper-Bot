@@ -854,11 +854,21 @@ export class FortniteSprites {
         return this._data?.families.flatMap(f => f.variants) || [];
     }
 
+    private hasReleasedArtwork(variant: SpriteVariant) {
+        // The detail dataset includes future variants with temporary black placeholder
+        // assets. A real image asset is sufficient to show a variant even when the
+        // base /sprites listing has not started listing it yet.
+        return !!variant.imageUrl && !/(?:^|\/)tmp_[^/]+(?:\.[^/]*)?$/i.test(variant.imageUrl);
+    }
+
     private getDisplayFamilies(families: SpriteFamily[]) {
+        // Match the main sprites page: visibility comes from having released artwork,
+        // not from spawn chance or a second variant-ID list. This preserves valid assets
+        // such as Zero Point Gem and Quack while excluding temporary black placeholders.
         return families
             .map(family => ({
                 ...family,
-                variants: family.variants
+                variants: family.variants.filter(variant => this.hasReleasedArtwork(variant))
             }))
             .filter(family => family.variants.length > 0);
     }
@@ -1084,7 +1094,7 @@ export class FortniteSprites {
         const variantFilter = state.variantFilter || "all";
         const rarityFilter = state.rarityFilter || "all";
 
-        return this._data.families
+        return this.getDisplayFamilies(this._data.families)
             .map(family => ({
                 ...family,
                 variants: family.variants.filter(variant => {
@@ -1304,6 +1314,11 @@ export class FortniteSprites {
             // Using Function bypasses TypeScript's CommonJS transform,
             // allowing us to properly load Puppeteer's ESM module in Node.
             const { default: puppeteerModule } = await Function('return import("puppeteer")')();
+            const configuredExecutable = process.env.GOOGLE_CHROME_BIN || process.env.PUPPETEER_EXECUTABLE_PATH;
+            const executablePath = configuredExecutable
+                || (process.platform === "linux" && fs.existsSync("/usr/bin/chromium") ? "/usr/bin/chromium" : undefined)
+                || (process.platform === "linux" && fs.existsSync("/usr/bin/chromium-browser") ? "/usr/bin/chromium-browser" : undefined)
+                || undefined;
             const browser = await puppeteerModule.launch({
                 headless: true,
                 executablePath: this.getChromiumExecutablePath(),
@@ -2555,7 +2570,6 @@ export class FortniteSprites {
         const cacheKey = `family:${this.renderUiFingerprint}:${this._data?.fetchedAt}:${family.key}`;
         return this.getOrRenderImage(cacheKey, async () => {
             const width = 1200;
-            const height = 800;
             await this.prewarmSpriteImages(family.variants.map(variant => variant.imageUrl));
             const renderVariants = family.variants.filter(variant => this.spriteAssetCache.has(variant.imageUrl));
             const sortedVariants = [...renderVariants].sort((a, b) => {
@@ -2563,6 +2577,9 @@ export class FortniteSprites {
                 if (a.variant !== "Base" && b.variant === "Base") return 1;
                 return b.chancePercent - a.chancePercent || a.id - b.id;
             });
+            // The collection is a full list. Reserve space for the header, panel chrome, and
+            // every row so the shell's overflow clipping cannot hide the last variant.
+            const height = Math.max(800, 560 + sortedVariants.length * 124);
             const baseVariant = sortedVariants.find(variant => variant.variant === "Base") || sortedVariants[0];
 
             const html = this.buildRenderDocument(`

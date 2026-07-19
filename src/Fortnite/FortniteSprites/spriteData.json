@@ -2,6 +2,7 @@
   "fetchedAt": "2026-07-09T13:24:12.204Z",
   "totalSprites": 146,
   "totalLevels": 66,
+  "listedVariantIds": [1, 4, 2, 3, 5, 8, 6, 7, 9, 10, 12, 11, 13, 16, 14, 15, 17, 20, 18, 19, 21, 24, 22, 23, 25, 28, 26, 27, 29, 32, 30, 31, 33, 36, 34, 35, 37, 40, 38, 39, 41, 49, 50, 51, 52, 58, 61, 59, 60, 62, 65, 63, 64, 67, 71, 68, 69, 78, 81, 79, 80],
   "families": [
     {
       "key": "water",
@@ -3048,5 +3049,5 @@
       ]
     }
   ],
-  "contentFingerprint": "0a73edd46854d146aa5dd0c4fe63ccce82056ecf3f002753edbcb2fe8c1395c4"
+  "contentFingerprint": "f2aa9dd93a588dc8371884b37c1ed232efd857d28a2e210fd2eef696d7993b88"
 }
