@@ -1,0 +1,37 @@
+services:
+  creeper-bot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    pid: host
+    init: true
+    restart: unless-stopped
+    expose:
+      - "3001"
+    environment:
+      NODE_ENV: ${NODE_ENV:-production}
+      HOST_TYPE: ${HOST_TYPE:-oracle}
+      COOLIFY_BRANCH: ${COOLIFY_BRANCH:-}
+      PORT: ${PORT:-3001}
+      BOT_TOKEN: ${BOT_TOKEN:?}
+      DEV_BOT_TOKEN: ${DEV_BOT_TOKEN:-}
+      MONGO_URI: ${MONGO_URI:?}
+      REDIS_URI: ${REDIS_URI:-}
+      FORTNITE_API_KEY: ${FORTNITE_API_KEY:-}
+      FORTNITE_MAP_API_KEY: ${FORTNITE_MAP_API_KEY:-}
+      SCRAPER_API_KEY: ${SCRAPER_API_KEY:-}
+      TWITTER_BEARER_TOKEN: ${TWITTER_BEARER_TOKEN:-}
+      GOOGLE_CHROME_BIN: ${GOOGLE_CHROME_BIN:-/usr/bin/chromium}
+      PUPPETEER_EXECUTABLE_PATH: ${PUPPETEER_EXECUTABLE_PATH:-/usr/bin/chromium}
+      PUPPETEER_SKIP_DOWNLOAD: ${PUPPETEER_SKIP_DOWNLOAD:-true}
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:' + (process.env.PORT || 3001) + '/').then(response => process.exit(response.ok ? 0 : 1)).catch(() => process.exit(1))"
+      interval: 30s
+      timeout: 10s
+      start_period: 30s
+      retries: 3
+    stop_grace_period: 30s
