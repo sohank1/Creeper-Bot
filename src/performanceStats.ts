@@ -157,6 +157,8 @@ function describeProcessPurpose(processInfo: SystemProcessStats): string {
     const args = commandArguments(processInfo.command);
     const executable = (processInfo.name || args[0] || "process").replace(/\.exe$/i, "");
     const lowerExecutable = executable.toLowerCase();
+    const containerLabel = processInfo.containerService || processInfo.containerName;
+    if (containerLabel) return `Container · ${cleanDiscordText(containerLabel, 32)}`;
     const project = processInfo.projectName ? cleanDiscordText(processInfo.projectName, 36) : "";
     const moduleIndex = args.indexOf("-m");
     if (moduleIndex >= 0 && args[moduleIndex + 1]) return `${executable} module · ${cleanDiscordText(args[moduleIndex + 1], 34)}`;
@@ -185,28 +187,43 @@ function explainProcess(processInfo: SystemProcessStats): string {
     const name = processInfo.name.toLowerCase().replace(/\.exe$/, "");
     const args = commandArguments(processInfo.command);
     const moduleIndex = args.indexOf("-m");
+    const containerContext = processInfo.containerId
+        ? ` Container: ${processInfo.containerName || processInfo.containerService || processInfo.containerId.slice(0, 12)}${processInfo.containerImage ? ` (${processInfo.containerImage})` : ""}.`
+        : "";
+    const finish = (text: string) => `${text}${containerContext}`;
     const knownRoles: Record<string, string> = {
         containerd: "Container runtime that creates and supervises containers, usually for Docker.",
         dockerd: "Docker engine that manages containers, images, networks, and volumes.",
+        "containerd-shim": "Per-container supervisor that keeps one Docker container running and reports its exit status.",
         "redis-server": "In-memory data service commonly used for caching, queues, and pub/sub.",
         mongod: "MongoDB database server that stores and queries application data.",
         postgres: "PostgreSQL database server process.",
         nginx: "Web server and reverse proxy handling incoming HTTP traffic.",
         sshd: "SSH server handling remote shell and file-transfer connections.",
+        sentinel: "Coolify Sentinel agent that monitors host and container CPU/RAM metrics.",
+        "soketi-server": "WebSocket server used for Coolify’s live dashboard and real-time events.",
+        "php-fpm": "PHP-FPM worker serving web requests; on this host these workers serve Coolify’s main web application.",
+        traefik: "Reverse proxy used by Coolify to route domains and HTTPS traffic to the correct container.",
+        cloudflared: "Cloudflare Tunnel client providing an outbound tunnel to Cloudflare’s network.",
+        "systemd-journald": "Linux logging service that collects system and application journal messages.",
     };
-    if (knownRoles[name]) return knownRoles[name];
-    if (moduleIndex >= 0 && args[moduleIndex + 1]) return `Runs the ${args[moduleIndex + 1]} module${/agent/i.test(args[moduleIndex + 1]) ? " as an automation agent" : ""}.`;
-    if ((name === "node" || name.startsWith("python")) && args.includes("-e")) return `Runs a temporary inline ${name} command rather than a persistent application script.`;
+    if (name.startsWith("containerd-shim")) return finish(knownRoles["containerd-shim"]);
+    if (knownRoles[name]) return finish(knownRoles[name]);
+    if (name === "php" && args.includes("artisan") && args.some((arg) => arg.startsWith("horizon"))) return finish("Laravel Horizon queue worker processing Coolify’s background deployment and maintenance jobs.");
+    if (name === "php" && args.includes("artisan") && args.includes("schedule:work")) return finish("Laravel scheduler executing Coolify’s recurring maintenance and monitoring tasks.");
+    if (name === "php" && args.includes("artisan")) return finish(`Laravel command worker running ${args.slice(args.indexOf("artisan") + 1).join(" ") || "an application task"}.`);
+    if (moduleIndex >= 0 && args[moduleIndex + 1]) return finish(`Runs the ${args[moduleIndex + 1]} module${/agent/i.test(args[moduleIndex + 1]) ? " as an automation agent" : ""}.`);
+    if ((name === "node" || name.startsWith("python")) && args.includes("-e")) return finish(`Runs a temporary inline ${name} command rather than a persistent application script.`);
     const script = args.slice(1).find((arg) => /\.(?:[cm]?[jt]s|py|php|rb|go|jar)$/i.test(arg));
-    if (script) return processInfo.projectName
+    if (script) return finish(processInfo.projectName
         ? `Runs ${script} for project “${processInfo.projectName}”.`
-        : `Runs application script ${script}.`;
+        : `Runs application script ${script}.`);
     const isProjectRuntime = /^(?:node|ts-node|tsx|npm|yarn|pnpm|bun|deno|python\d*(?:\.\d+)?|php|ruby|java)$/i.test(name);
-    if (processInfo.projectName && isProjectRuntime) return `Application process for project “${processInfo.projectName}”.`;
-    if (processInfo.serviceName && !/^user@/i.test(processInfo.serviceName)) return `Background service registered as ${processInfo.serviceName}.`;
+    if (processInfo.projectName && isProjectRuntime) return finish(`Application process for project “${processInfo.projectName}”.`);
+    if (processInfo.serviceName && !/^user@/i.test(processInfo.serviceName)) return finish(`Background service registered as ${processInfo.serviceName}.`);
     const location = processInfo.executablePath || args[0] || processInfo.name;
     const parent = processInfo.parentName ? `${processInfo.parentName} (PID ${processInfo.parentPid})` : `PID ${processInfo.parentPid ?? "unknown"}`;
-    return `Executable ${location}; launched by ${parent}${processInfo.workingDirectory ? ` from ${processInfo.workingDirectory}` : ""}.`;
+    return finish(`Executable ${location}; launched by ${parent}${processInfo.workingDirectory ? ` from ${processInfo.workingDirectory}` : ""}.`);
 }
 
 function discoverLinuxProcessIdentity(pid: number): Pick<SystemProcessStats, "workingDirectory" | "projectName" | "serviceName" | "executablePath" | "fileDescriptorCount" | "swapBytes" | "ioReadBytes" | "ioWriteBytes" | "containerId"> {
@@ -259,7 +276,7 @@ function discoverLinuxProcessIdentity(pid: number): Pick<SystemProcessStats, "wo
     try {
         const cgroup = fs.readFileSync(`/proc/${pid}/cgroup`, "utf8");
         const unit = cgroup.match(/\/([^/\n]+\.(?:service|scope))(?:\/|$)/)?.[1];
-        const container = cgroup.match(/\/(?:docker|containerd)(?:[-/])([a-f0-9]{12,64})(?:\.scope)?(?:\/|$)/i)?.[1];
+        const container = cgroup.match(/\/(?:docker|containerd)(?:[-/])([a-f0-9]{12,64})(?:\.scope)?(?:\/|\s|$)/i)?.[1];
         containerId = container || "";
         serviceName = unit || (container ? `container ${container.slice(0, 12)}` : "");
     } catch { /* cgroup metadata is optional. */ }
@@ -434,11 +451,11 @@ function buildProcessView(processes: SystemProcessStats[], sort: ProcessSort, pa
         new MessageButton().setCustomId("cpu_process_overview").setLabel("Overview").setEmoji("↩️").setStyle("SECONDARY"),
     );
     const pageRow = new MessageActionRow().addComponents(
-        new MessageButton().setCustomId("cpu_process_first").setLabel("First").setStyle("SECONDARY").setDisabled(safePage === 0),
-        new MessageButton().setCustomId("cpu_process_previous").setLabel("Previous").setStyle("SECONDARY").setDisabled(safePage === 0),
-        new MessageButton().setCustomId("cpu_process_page").setLabel(`${safePage + 1} / ${pageCount}`).setStyle("SECONDARY").setDisabled(true),
-        new MessageButton().setCustomId("cpu_process_next").setLabel("Next").setStyle("SECONDARY").setDisabled(safePage >= pageCount - 1),
-        new MessageButton().setCustomId("cpu_process_last").setLabel("Last").setStyle("SECONDARY").setDisabled(safePage >= pageCount - 1),
+        new MessageButton().setCustomId("cpu_process_first").setLabel("First").setEmoji("⏮️").setStyle("SECONDARY").setDisabled(safePage === 0),
+        new MessageButton().setCustomId("cpu_process_previous").setLabel("Previous 30").setEmoji("◀️").setStyle("SECONDARY").setDisabled(safePage === 0),
+        new MessageButton().setCustomId("cpu_process_page").setLabel(`Page ${safePage + 1} / ${pageCount}`).setStyle("SECONDARY").setDisabled(true),
+        new MessageButton().setCustomId("cpu_process_next").setLabel("Next 30").setEmoji("▶️").setStyle("PRIMARY").setDisabled(safePage >= pageCount - 1),
+        new MessageButton().setCustomId("cpu_process_last").setLabel("Last").setEmoji("⏭️").setStyle("SECONDARY").setDisabled(safePage >= pageCount - 1),
     );
     return { embed, components: [sortRow, pageRow], page: safePage, pageCount };
 }
@@ -2288,7 +2305,7 @@ export async function sendPerformanceStats(message: Message, apiPing: number, ve
         await statusMsg.edit({ content: "Here is the performance report:", embeds: [performanceEmbed], files: attachments, components: [overviewRow] });
 
         let processes: SystemProcessStats[] = [];
-        let processSort: ProcessSort = "cpu";
+        let processSort: ProcessSort = "memory";
         let processPage = 0;
         let sampledAt = new Date();
 
