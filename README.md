@@ -97,7 +97,7 @@ Production uses:
 
 - Oracle Cloud VPS
 - Coolify
-- Docker
+- Docker Compose with host PID visibility
 - Chromium installed in the container
 
 The production image is defined in [Dockerfile](C:/Users/Sohan/Desktop/Creeper-Bot/Dockerfile).
@@ -114,10 +114,16 @@ Key runtime details:
 In Coolify:
 
 1. Create a Git-based application from this repository.
-2. Use the `Dockerfile` build pack.
-3. Set the branch you want to deploy.
-4. Configure environment variables from `.env.example` plus your real secrets.
-5. Deploy.
+2. Use the `Docker Compose` build pack.
+3. Set the Compose file location to `/docker-compose.yml`.
+4. Set the branch you want to deploy.
+5. Configure environment variables from `.env.example` plus your real secrets.
+6. Assign the application domain to the `creeper-bot` service on port `3001`.
+7. Deploy.
+
+The Compose service uses `pid: host` so `c!cpu` can inspect the server-wide process table rather than only processes inside the bot container. It also uses `init: true` to reap Chromium child processes. This intentionally reduces process isolation, but does not enable privileged mode, host networking, direct host port publishing, or Docker socket access.
+
+Coolify's **Custom Docker Options** field does not support `--pid=host`; use the Compose build pack for this deployment.
 
 Important runtime env values for production:
 
