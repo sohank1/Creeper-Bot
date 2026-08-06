@@ -8,22 +8,12 @@ services:
     restart: unless-stopped
     expose:
       - "3001"
-    environment:
-      NODE_ENV: ${NODE_ENV:-production}
-      HOST_TYPE: ${HOST_TYPE:-oracle}
-      COOLIFY_BRANCH: ${COOLIFY_BRANCH:-}
-      PORT: ${PORT:-3001}
-      BOT_TOKEN: ${BOT_TOKEN:?}
-      DEV_BOT_TOKEN: ${DEV_BOT_TOKEN:-}
-      MONGO_URI: ${MONGO_URI:?}
-      REDIS_URI: ${REDIS_URI:-}
-      FORTNITE_API_KEY: ${FORTNITE_API_KEY:-}
-      FORTNITE_MAP_API_KEY: ${FORTNITE_MAP_API_KEY:-}
-      SCRAPER_API_KEY: ${SCRAPER_API_KEY:-}
-      TWITTER_BEARER_TOKEN: ${TWITTER_BEARER_TOKEN:-}
-      GOOGLE_CHROME_BIN: ${GOOGLE_CHROME_BIN:-/usr/bin/chromium}
-      PUPPETEER_EXECUTABLE_PATH: ${PUPPETEER_EXECUTABLE_PATH:-/usr/bin/chromium}
-      PUPPETEER_SKIP_DOWNLOAD: ${PUPPETEER_SKIP_DOWNLOAD:-true}
+    # Coolify writes all runtime-enabled application variables to this file
+    # before starting the Compose stack. The file is optional locally so the
+    # Compose definition remains inspectable without copying production secrets.
+    env_file:
+      - path: .env
+        required: false
     healthcheck:
       test:
         - CMD
