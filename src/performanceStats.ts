@@ -8,7 +8,7 @@ try {
     currentBranch = process.env.COOLIFY_BRANCH || "Unknown";
 }
 import { promisify } from "util";
-import { Message, MessageEmbed, MessageAttachment } from "discord.js";
+import { Message, MessageEmbed, MessageAttachment, MessageActionRow, MessageButton } from "discord.js";
 import mongoose from "mongoose";
 import { getComponent, getRegisteredComponentIds, getRegisteredJobs } from "./runtimeDiagnostics";
 
@@ -31,6 +31,35 @@ type BrowserRenderStats = {
     memoryBytes: number;
     memory: string;
     label: string;
+};
+
+type ProcessSort = "cpu" | "memory";
+
+export type SystemProcessStats = {
+    pid: number;
+    parentPid: number | null;
+    name: string;
+    user: string;
+    state: string;
+    cpuPercent: number;
+    memoryPercent: number;
+    memoryBytes: number;
+    elapsedSeconds: number | null;
+    command: string;
+    workingDirectory: string;
+    projectName: string;
+    serviceName: string;
+    executablePath: string;
+    parentName: string;
+    threadCount: number;
+    fileDescriptorCount: number;
+    swapBytes: number;
+    ioReadBytes: number;
+    ioWriteBytes: number;
+    containerId: string;
+    containerName: string;
+    containerImage: string;
+    containerService: string;
 };
 
 export type PerformanceStats = {
@@ -90,6 +119,424 @@ type PerformanceVisualData = {
 };
 
 const execAsync = promisify(exec);
+
+const PROCESS_PAGE_SIZE = 30;
+const PROCESS_COLLECTOR_MS = 10 * 60 * 1000;
+
+function cleanDiscordText(value: string, maxLength: number): string {
+    const clean = (value || "Unknown").replace(/[`\r\n]/g, " ").replace(/\s+/g, " ").trim();
+    return clean.length > maxLength ? `${clean.slice(0, Math.max(0, maxLength - 1))}…` : clean;
+}
+
+function redactProcessCommand(value: string): string {
+    return value
+        .replace(/([?&](?:token|key|secret|password|passwd|pwd)=)[^&\s]+/gi, "$1[REDACTED]")
+        .replace(/(\b(?:token|api[_-]?key|secret|password|passwd|pwd)\b\s*[=:]\s*)\S+/gi, "$1[REDACTED]")
+        .replace(/(\b(?:--?(?:token|api[_-]?key|secret|password|passwd|pwd))\s+)\S+/gi, "$1[REDACTED]")
+        .replace(/(\b[a-z][a-z0-9+.-]*:\/\/[^\s:@/]+:)[^\s@/]+@/gi, "$1[REDACTED]@");
+}
+
+function processStateLabel(state: string): string {
+    const code = (state || "?").charAt(0).toUpperCase();
+    return ({
+        R: "Running",
+        S: "Sleeping",
+        D: "Waiting (I/O)",
+        T: "Stopped",
+        Z: "Zombie",
+        I: "Idle",
+        W: "Waiting",
+    } as Record<string, string>)[code] || state || "Unknown";
+}
+
+function commandArguments(command: string): string[] {
+    return (command.match(/(?:[^\s"']+|"[^"]*"|'[^']*')+/g) || []).map((part) => part.replace(/^['"]|['"]$/g, ""));
+}
+
+function describeProcessPurpose(processInfo: SystemProcessStats): string {
+    const args = commandArguments(processInfo.command);
+    const executable = (processInfo.name || args[0] || "process").replace(/\.exe$/i, "");
+    const lowerExecutable = executable.toLowerCase();
+    const project = processInfo.projectName ? cleanDiscordText(processInfo.projectName, 36) : "";
+    const moduleIndex = args.indexOf("-m");
+    if (moduleIndex >= 0 && args[moduleIndex + 1]) return `${executable} module · ${cleanDiscordText(args[moduleIndex + 1], 34)}`;
+    const script = args.slice(1).find((arg) => /\.(?:[cm]?[jt]s|py|php|rb|go|jar)$/i.test(arg));
+    if (script) {
+        const normalized = script.replace(/\\/g, "/");
+        const pieces = normalized.split("/").filter(Boolean);
+        const scriptLabel = cleanDiscordText(pieces.slice(-2).join("/"), 30);
+        const packageMatch = normalized.match(/\/node_modules\/((?:@[^/]+\/)?[^/]+)/);
+        if (packageMatch) return `${executable} · ${cleanDiscordText(packageMatch[1], 22)} / ${scriptLabel}`;
+        return project ? `${executable} · ${project} / ${scriptLabel}` : `${executable} · ${scriptLabel}`;
+    }
+    const isProjectRuntime = /^(?:node|ts-node|tsx|npm|yarn|pnpm|bun|deno|python\d*(?:\.\d+)?|php|ruby|java)$/i.test(lowerExecutable);
+    if ((lowerExecutable === "node" || lowerExecutable === "python" || lowerExecutable.startsWith("python")) && args.includes("-e")) return `${executable} · inline task`;
+    if (project && isProjectRuntime) return `${lowerExecutable.includes("python") ? "Python" : lowerExecutable === "node" ? "Node.js" : executable} · ${project}`;
+    if (processInfo.serviceName && !/^(?:user@\d+\.service|session-\d+\.scope|init\.scope)$/i.test(processInfo.serviceName)) return `Service · ${cleanDiscordText(processInfo.serviceName, 38)}`;
+    if (args[1] && !args[1].startsWith("-") && !args[1].includes("://")) return `${executable} · ${cleanDiscordText(args[1], 38)}`;
+    if (processInfo.workingDirectory) {
+        const pieces = processInfo.workingDirectory.replace(/\\/g, "/").split("/").filter(Boolean);
+        return `${executable} · ${cleanDiscordText(pieces.slice(-2).join("/"), 38)}`;
+    }
+    return executable;
+}
+
+function explainProcess(processInfo: SystemProcessStats): string {
+    const name = processInfo.name.toLowerCase().replace(/\.exe$/, "");
+    const args = commandArguments(processInfo.command);
+    const moduleIndex = args.indexOf("-m");
+    const knownRoles: Record<string, string> = {
+        containerd: "Container runtime that creates and supervises containers, usually for Docker.",
+        dockerd: "Docker engine that manages containers, images, networks, and volumes.",
+        "redis-server": "In-memory data service commonly used for caching, queues, and pub/sub.",
+        mongod: "MongoDB database server that stores and queries application data.",
+        postgres: "PostgreSQL database server process.",
+        nginx: "Web server and reverse proxy handling incoming HTTP traffic.",
+        sshd: "SSH server handling remote shell and file-transfer connections.",
+    };
+    if (knownRoles[name]) return knownRoles[name];
+    if (moduleIndex >= 0 && args[moduleIndex + 1]) return `Runs the ${args[moduleIndex + 1]} module${/agent/i.test(args[moduleIndex + 1]) ? " as an automation agent" : ""}.`;
+    if ((name === "node" || name.startsWith("python")) && args.includes("-e")) return `Runs a temporary inline ${name} command rather than a persistent application script.`;
+    const script = args.slice(1).find((arg) => /\.(?:[cm]?[jt]s|py|php|rb|go|jar)$/i.test(arg));
+    if (script) return processInfo.projectName
+        ? `Runs ${script} for project “${processInfo.projectName}”.`
+        : `Runs application script ${script}.`;
+    const isProjectRuntime = /^(?:node|ts-node|tsx|npm|yarn|pnpm|bun|deno|python\d*(?:\.\d+)?|php|ruby|java)$/i.test(name);
+    if (processInfo.projectName && isProjectRuntime) return `Application process for project “${processInfo.projectName}”.`;
+    if (processInfo.serviceName && !/^user@/i.test(processInfo.serviceName)) return `Background service registered as ${processInfo.serviceName}.`;
+    const location = processInfo.executablePath || args[0] || processInfo.name;
+    const parent = processInfo.parentName ? `${processInfo.parentName} (PID ${processInfo.parentPid})` : `PID ${processInfo.parentPid ?? "unknown"}`;
+    return `Executable ${location}; launched by ${parent}${processInfo.workingDirectory ? ` from ${processInfo.workingDirectory}` : ""}.`;
+}
+
+function discoverLinuxProcessIdentity(pid: number): Pick<SystemProcessStats, "workingDirectory" | "projectName" | "serviceName" | "executablePath" | "fileDescriptorCount" | "swapBytes" | "ioReadBytes" | "ioWriteBytes" | "containerId"> {
+    const fs = require("fs") as typeof import("fs");
+    const path = require("path") as typeof import("path");
+    let workingDirectory = "";
+    let projectName = "";
+    let serviceName = "";
+    let executablePath = "";
+    let fileDescriptorCount = 0;
+    let swapBytes = 0;
+    let ioReadBytes = 0;
+    let ioWriteBytes = 0;
+    let containerId = "";
+    try {
+        workingDirectory = fs.readlinkSync(`/proc/${pid}/cwd`);
+    } catch { /* Process may have exited or belong to another user. */ }
+    try {
+        executablePath = fs.readlinkSync(`/proc/${pid}/exe`);
+    } catch { /* Kernel threads and protected processes may not expose an executable. */ }
+    try {
+        fileDescriptorCount = fs.readdirSync(`/proc/${pid}/fd`).length;
+    } catch { /* Descriptor details may be protected. */ }
+    try {
+        const status = fs.readFileSync(`/proc/${pid}/status`, "utf8");
+        swapBytes = Number(status.match(/^VmSwap:\s+(\d+)\s+kB/im)?.[1] || 0) * 1024;
+    } catch { /* Swap details are optional. */ }
+    try {
+        const io = fs.readFileSync(`/proc/${pid}/io`, "utf8");
+        ioReadBytes = Number(io.match(/^read_bytes:\s+(\d+)/im)?.[1] || 0);
+        ioWriteBytes = Number(io.match(/^write_bytes:\s+(\d+)/im)?.[1] || 0);
+    } catch { /* I/O counters may be protected. */ }
+
+    if (workingDirectory) {
+        let directory = workingDirectory;
+        for (let depth = 0; depth < 4; depth++) {
+            try {
+                const manifest = JSON.parse(fs.readFileSync(path.join(directory, "package.json"), "utf8"));
+                if (typeof manifest?.name === "string" && manifest.name.trim()) {
+                    projectName = manifest.name.trim();
+                    break;
+                }
+            } catch { /* No readable Node project manifest at this level. */ }
+            const parent = path.dirname(directory);
+            if (parent === directory) break;
+            directory = parent;
+        }
+    }
+
+    try {
+        const cgroup = fs.readFileSync(`/proc/${pid}/cgroup`, "utf8");
+        const unit = cgroup.match(/\/([^/\n]+\.(?:service|scope))(?:\/|$)/)?.[1];
+        const container = cgroup.match(/\/(?:docker|containerd)(?:[-/])([a-f0-9]{12,64})(?:\.scope)?(?:\/|$)/i)?.[1];
+        containerId = container || "";
+        serviceName = unit || (container ? `container ${container.slice(0, 12)}` : "");
+    } catch { /* cgroup metadata is optional. */ }
+    return { workingDirectory, projectName, serviceName, executablePath, fileDescriptorCount, swapBytes, ioReadBytes, ioWriteBytes, containerId };
+}
+
+async function getDockerMetadata(containerIds: string[]): Promise<Map<string, { name: string; image: string; service: string }>> {
+    const validIds = [...new Set(containerIds.filter((id) => /^[a-f0-9]{12,64}$/i.test(id)))];
+    const metadata = new Map<string, { name: string; image: string; service: string }>();
+    if (!validIds.length) return metadata;
+    try {
+        const { stdout } = await execAsync(`docker inspect ${validIds.join(" ")}`, { timeout: 5000, maxBuffer: 8 * 1024 * 1024 });
+        for (const container of JSON.parse(stdout)) {
+            const id = String(container?.Id || "");
+            const labels = container?.Config?.Labels || {};
+            metadata.set(id, {
+                name: String(container?.Name || "").replace(/^\//, ""),
+                image: String(container?.Config?.Image || ""),
+                service: String(labels["com.docker.compose.service"] || labels["coolify.name"] || labels["coolify.applicationName"] || ""),
+            });
+        }
+    } catch { /* Docker socket access is optional; cgroup identity still works. */ }
+    return metadata;
+}
+
+function parseWindowsDate(value: string | null | undefined): number | null {
+    if (!value) return null;
+    const match = value.match(/^(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})/);
+    const startedAt = match
+        ? Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3]), Number(match[4]), Number(match[5]), Number(match[6]))
+        : Date.parse(value);
+    if (!Number.isFinite(startedAt)) return null;
+    return Math.max(0, Math.floor((Date.now() - startedAt) / 1000));
+}
+
+export async function getHighestProcesses(): Promise<SystemProcessStats[]> {
+    try {
+        if (os.platform() === "win32") {
+            const command = [
+                "$cores=[Environment]::ProcessorCount",
+                "$perf=Get-CimInstance Win32_PerfFormattedData_PerfProc_Process | Where-Object {$_.IDProcess -gt 0}",
+                "$info=@{}; Get-CimInstance Win32_Process | ForEach-Object {$info[[int]$_.ProcessId]=$_}",
+                "$perf | ForEach-Object {$p=$info[[int]$_.IDProcess]; [PSCustomObject]@{pid=[int]$_.IDProcess;ppid=[int]$p.ParentProcessId;name=$_.Name;user='Unavailable';state='Running';cpu=([double]$_.PercentProcessorTime/[Math]::Max($cores,1));memoryBytes=[double]$_.WorkingSetPrivate;started=$p.CreationDate;command=$p.CommandLine}} | ConvertTo-Json -Compress",
+            ].join("; ");
+            const { stdout } = await execAsync(`powershell -NoProfile -Command "${command}"`, { timeout: 5000, windowsHide: true, maxBuffer: 4 * 1024 * 1024 });
+            if (!stdout.trim()) return [];
+            const parsed = JSON.parse(stdout.trim());
+            const rows = Array.isArray(parsed) ? parsed : [parsed];
+            const totalMemory = Math.max(os.totalmem(), 1);
+            return rows.map((row: any) => ({
+                pid: Number(row.pid),
+                parentPid: Number.isFinite(Number(row.ppid)) ? Number(row.ppid) : null,
+                name: String(row.name || "Unknown"),
+                user: String(row.user || "Unavailable"),
+                state: String(row.state || "Unknown"),
+                cpuPercent: Number(row.cpu) || 0,
+                memoryPercent: (Number(row.memoryBytes) || 0) / totalMemory * 100,
+                memoryBytes: Number(row.memoryBytes) || 0,
+                elapsedSeconds: parseWindowsDate(row.started),
+                command: String(row.command || row.name || "Unavailable"),
+                workingDirectory: "",
+                projectName: "",
+                serviceName: "",
+                executablePath: "",
+                parentName: "",
+                threadCount: 0,
+                fileDescriptorCount: 0,
+                swapBytes: 0,
+                ioReadBytes: 0,
+                ioWriteBytes: 0,
+                containerId: "",
+                containerName: "",
+                containerImage: "",
+                containerService: "",
+            })).filter((row: SystemProcessStats) => Number.isFinite(row.pid));
+        }
+
+        const { stdout } = await execAsync(
+            "ps -eo pid=,ppid=,user=,stat=,pcpu=,pmem=,rss=,etimes=,nlwp=,comm=,args= --sort=-pcpu",
+            { timeout: 5000, maxBuffer: 4 * 1024 * 1024 },
+        );
+        const logicalCoreCount = Math.max((os as any).availableParallelism ? (os as any).availableParallelism() : os.cpus().length, 1);
+        const parsedRows = stdout.split("\n").map((line): SystemProcessStats | null => {
+            const parts = line.trim().split(/\s+/);
+            if (parts.length < 10) return null;
+            const [pid, ppid, user, state, cpu, memory, rssKb, elapsed, threads, name, ...args] = parts;
+            if (!Number.isFinite(Number(pid))) return null;
+            return {
+                pid: Number(pid),
+                parentPid: Number.isFinite(Number(ppid)) ? Number(ppid) : null,
+                name,
+                user,
+                state,
+                // ps reports 100% per fully utilized logical core. Normalize to
+                // the whole host so the task-manager scale never exceeds 100%.
+                cpuPercent: Math.min((Number(cpu) || 0) / logicalCoreCount, 100),
+                memoryPercent: Number(memory) || 0,
+                memoryBytes: (Number(rssKb) || 0) * 1024,
+                elapsedSeconds: Number.isFinite(Number(elapsed)) ? Number(elapsed) : null,
+                command: args.join(" ") || name,
+                workingDirectory: "",
+                projectName: "",
+                serviceName: "",
+                executablePath: "",
+                parentName: "",
+                threadCount: Number(threads) || 0,
+                fileDescriptorCount: 0,
+                swapBytes: 0,
+                ioReadBytes: 0,
+                ioWriteBytes: 0,
+                containerId: "",
+                containerName: "",
+                containerImage: "",
+                containerService: "",
+            };
+        }).filter((row): row is SystemProcessStats => row !== null);
+        const namesByPid = new Map(parsedRows.map((row) => [row.pid, row.name]));
+        const enrichedRows = parsedRows.map((row) => ({
+            ...row,
+            ...discoverLinuxProcessIdentity(row.pid),
+            parentName: row.parentPid ? namesByPid.get(row.parentPid) || "" : "",
+        }));
+        const dockerMetadata = await getDockerMetadata(enrichedRows.map((row) => row.containerId));
+        return enrichedRows.map((row) => {
+            const container = dockerMetadata.get(row.containerId);
+            return {
+                ...row,
+                containerName: container?.name || "",
+                containerImage: container?.image || "",
+                containerService: container?.service || "",
+            };
+        });
+    } catch (error) {
+        console.error("Unable to collect process telemetry:", error);
+        return [];
+    }
+}
+
+function buildProcessRows(processes: SystemProcessStats[], sort: ProcessSort): SystemProcessStats[] {
+    return [...processes].sort((a, b) => sort === "cpu"
+        ? b.cpuPercent - a.cpuPercent || b.memoryBytes - a.memoryBytes
+        : b.memoryBytes - a.memoryBytes || b.cpuPercent - a.cpuPercent);
+}
+
+function buildProcessView(processes: SystemProcessStats[], sort: ProcessSort, page: number, sampledAt: Date) {
+    const sorted = buildProcessRows(processes, sort);
+    const pageCount = Math.max(1, Math.ceil(sorted.length / PROCESS_PAGE_SIZE));
+    const safePage = Math.min(Math.max(page, 0), pageCount - 1);
+    const pageRows = sorted.slice(safePage * PROCESS_PAGE_SIZE, (safePage + 1) * PROCESS_PAGE_SIZE);
+    const totalCpu = processes.reduce((sum, row) => sum + row.cpuPercent, 0);
+    const totalMemory = processes.reduce((sum, row) => sum + row.memoryBytes, 0);
+
+    const embed = new MessageEmbed()
+        .setTitle("Task Manager · Highest Processes")
+        .setDescription([
+            `**${processes.length}** processes sampled • sorted by **${sort === "cpu" ? "CPU" : "memory"}**`,
+            `Visible RSS: \`${formatBytes(totalMemory)}\` • Combined CPU: \`${totalCpu.toFixed(1)}%\``,
+            "CPU is normalized to the whole host; memory is resident working-set usage.",
+        ].join("\n"))
+        .setColor(sort === "cpu" ? "#E67E22" : "#9B59B6")
+        .setImage("attachment://processes.png")
+        .setFooter({ text: `Page ${safePage + 1}/${pageCount} • refreshed ${sampledAt.toISOString()} • controls expire in 10 minutes` });
+
+    if (!pageRows.length) {
+        embed.addField("No process data", "The host did not expose its process table to the bot.");
+    }
+
+    const sortRow = new MessageActionRow().addComponents(
+        new MessageButton().setCustomId("cpu_process_sort_cpu").setLabel("Highest CPU").setEmoji("🔥").setStyle(sort === "cpu" ? "PRIMARY" : "SECONDARY").setDisabled(sort === "cpu"),
+        new MessageButton().setCustomId("cpu_process_sort_memory").setLabel("Highest Memory").setEmoji("🧠").setStyle(sort === "memory" ? "PRIMARY" : "SECONDARY").setDisabled(sort === "memory"),
+        new MessageButton().setCustomId("cpu_process_refresh").setLabel("Refresh").setEmoji("🔄").setStyle("SUCCESS"),
+        new MessageButton().setCustomId("cpu_process_overview").setLabel("Overview").setEmoji("↩️").setStyle("SECONDARY"),
+    );
+    const pageRow = new MessageActionRow().addComponents(
+        new MessageButton().setCustomId("cpu_process_first").setLabel("First").setStyle("SECONDARY").setDisabled(safePage === 0),
+        new MessageButton().setCustomId("cpu_process_previous").setLabel("Previous").setStyle("SECONDARY").setDisabled(safePage === 0),
+        new MessageButton().setCustomId("cpu_process_page").setLabel(`${safePage + 1} / ${pageCount}`).setStyle("SECONDARY").setDisabled(true),
+        new MessageButton().setCustomId("cpu_process_next").setLabel("Next").setStyle("SECONDARY").setDisabled(safePage >= pageCount - 1),
+        new MessageButton().setCustomId("cpu_process_last").setLabel("Last").setStyle("SECONDARY").setDisabled(safePage >= pageCount - 1),
+    );
+    return { embed, components: [sortRow, pageRow], page: safePage, pageCount };
+}
+
+export async function renderProcessStatsImage(processes: SystemProcessStats[], sort: ProcessSort, page: number, sampledAt: Date): Promise<Buffer> {
+    const sorted = buildProcessRows(processes, sort);
+    const pageCount = Math.max(1, Math.ceil(sorted.length / PROCESS_PAGE_SIZE));
+    const safePage = Math.min(Math.max(page, 0), pageCount - 1);
+    const pageRows = sorted.slice(safePage * PROCESS_PAGE_SIZE, (safePage + 1) * PROCESS_PAGE_SIZE);
+    const totalMemory = processes.reduce((sum, row) => sum + row.memoryBytes, 0);
+    const totalCpu = processes.reduce((sum, row) => sum + row.cpuPercent, 0);
+    const totalThreads = processes.reduce((sum, row) => sum + row.threadCount, 0);
+    const visibleDescriptors = processes.reduce((sum, row) => sum + row.fileDescriptorCount, 0);
+    const tableRows = pageRows.map((processInfo, index) => `
+        <article class="pt-row">
+            <div class="pt-rank">#${safePage * PROCESS_PAGE_SIZE + index + 1}</div>
+            <div class="pt-process">
+                <div class="pt-process-title">
+                    <strong>${escapeHtml(cleanDiscordText(processInfo.name, 54))}</strong>
+                    <span>PID ${escapeHtml(processInfo.pid)}</span>
+                    <em>${escapeHtml(describeProcessPurpose(processInfo))}</em>
+                </div>
+                <div class="pt-description">${escapeHtml(cleanDiscordText(explainProcess(processInfo), 190))}</div>
+                <div class="pt-command">${escapeHtml(cleanDiscordText(redactProcessCommand(processInfo.command), 180))}</div>
+            </div>
+                <div class="pt-metric ${sort === "cpu" ? "active" : ""}">
+                    <strong>${escapeHtml(processInfo.cpuPercent.toFixed(1))}%</strong>
+                    <span>host CPU</span>
+            </div>
+            <div class="pt-metric ${sort === "memory" ? "active memory" : ""}">
+                <strong>${escapeHtml(formatBytes(processInfo.memoryBytes))}</strong>
+                <span>${escapeHtml(processInfo.memoryPercent.toFixed(1))}% memory</span>
+                <span>swap ${escapeHtml(formatBytes(processInfo.swapBytes))}</span>
+            </div>
+            <div class="pt-details">
+                <strong>${escapeHtml(processStateLabel(processInfo.state))}</strong>
+                <span>${escapeHtml(cleanDiscordText(processInfo.user, 30))} · parent ${escapeHtml(processInfo.parentPid ?? "—")}</span>
+            </div>
+            <div class="pt-runtime">
+                <strong>${escapeHtml(processInfo.elapsedSeconds === null ? "Unavailable" : formatDuration(processInfo.elapsedSeconds))}</strong>
+                <span>runtime</span>
+                <span>${escapeHtml(processInfo.threadCount)} threads · ${escapeHtml(processInfo.fileDescriptorCount || "—")} FDs</span>
+                <span>I/O ${escapeHtml(formatBytes(processInfo.ioReadBytes))} R · ${escapeHtml(formatBytes(processInfo.ioWriteBytes))} W</span>
+            </div>
+        </article>
+    `).join("");
+
+    const html = buildStatsRenderDocument(`
+        <main class="pt-shell">
+            <header class="pt-header">
+                <div class="pt-brand"><span>C</span><strong>Creeper Task Manager</strong></div>
+                <div class="pt-heading">
+                    <small>HOST TELEMETRY / PROCESSES</small>
+                    <h1>Highest Processes</h1>
+                </div>
+                <div class="pt-sort">SORTED BY <strong>${escapeHtml(sort.toUpperCase())}</strong></div>
+            </header>
+            <section class="pt-summary">
+                <div><span>Processes</span><strong>${escapeHtml(processes.length)}</strong></div>
+                <div><span>Threads</span><strong>${escapeHtml(totalThreads)}</strong></div>
+                <div><span>Visible FDs</span><strong>${escapeHtml(visibleDescriptors)}</strong></div>
+                <div><span>Visible RSS</span><strong>${escapeHtml(formatBytes(totalMemory))}</strong></div>
+                <div><span>Combined CPU</span><strong>${escapeHtml(totalCpu.toFixed(1))}%</strong></div>
+                <div><span>Page</span><strong>${safePage + 1} / ${pageCount}</strong></div>
+            </section>
+            <section class="pt-table">
+                <div class="pt-columns"><span>Rank</span><span>Process / command</span><span>CPU</span><span>Memory / swap</span><span>Status / owner</span><span>Runtime / resources</span></div>
+                ${tableRows || `<div class="pt-empty">Process telemetry is unavailable on this host.</div>`}
+            </section>
+            <footer><span>Resident working-set memory · cumulative disk I/O · CPU normalized across ${escapeHtml(Math.max((os as any).availableParallelism ? (os as any).availableParallelism() : os.cpus().length, 1))} logical cores</span><span>Sampled ${escapeHtml(sampledAt.toISOString())}</span></footer>
+        </main>
+    `, `
+        :root { --pt-bg:#080e1a; --pt-panel:#0d1525; --pt-row:#111b2d; --pt-line:rgba(139,159,197,.14); --pt-text:#f5f7ff; --pt-muted:#8c99b3; --pt-blue:#3182ff; --pt-orange:#efa45e; --pt-green:#38d4a0; }
+        * { box-sizing:border-box; }
+        body { background:radial-gradient(circle at 80% 5%,rgba(49,130,255,.12),transparent 35%),var(--pt-bg); color:var(--pt-text); }
+        .pt-shell { width:100%; min-height:100vh; padding:30px; display:grid; grid-template-rows:auto auto 1fr auto; gap:14px; }
+        .pt-header,.pt-summary,.pt-table { border:1px solid var(--pt-line); background:rgba(10,17,30,.94); border-radius:18px; }
+        .pt-header { min-height:104px; padding:18px 24px; display:grid; grid-template-columns:300px 1fr 220px; align-items:center; }
+        .pt-brand { display:flex; align-items:center; gap:14px; font-size:22px; }
+        .pt-brand span { width:48px;height:48px;border-radius:13px;background:var(--pt-blue);display:grid;place-items:center;font-size:27px;font-weight:900;box-shadow:0 0 28px rgba(49,130,255,.24); }
+        .pt-heading small { color:#7791bd;font:800 13px/1 monospace;letter-spacing:.1em; }
+        .pt-heading h1 { margin:8px 0 0;font-size:34px;line-height:1; }
+        .pt-sort { justify-self:end;padding:13px 16px;border-radius:11px;background:#121d31;color:var(--pt-muted);font:800 13px/1 monospace; }
+        .pt-sort strong { color:var(--pt-orange); }
+        .pt-summary { display:grid;grid-template-columns:repeat(6,1fr);overflow:hidden; }
+        .pt-summary div { padding:13px 16px;border-right:1px solid var(--pt-line);display:flex;align-items:center;justify-content:space-between;gap:8px; }
+        .pt-summary div:last-child { border:0; }.pt-summary span { color:var(--pt-muted);font-weight:800; }.pt-summary strong { font:800 22px/1 monospace; }
+        .pt-table { padding:14px; }
+        .pt-columns,.pt-row { display:grid;grid-template-columns:70px minmax(430px,1fr) 125px 170px 220px 155px;align-items:center;gap:12px; }
+        .pt-columns { min-height:40px;padding:0 16px;color:#687792;font:800 12px/1 monospace;text-transform:uppercase;letter-spacing:.08em; }
+        .pt-row { min-height:76px;padding:9px 16px;margin-top:5px;border:1px solid var(--pt-line);border-radius:10px;background:var(--pt-row); }
+        .pt-rank { color:var(--pt-orange);font:900 17px/1 monospace; }.pt-process-title { display:flex;align-items:center;gap:9px; }.pt-process-title strong { font-size:16px; }.pt-process-title em { padding:3px 7px;border-radius:999px;background:rgba(49,130,255,.14);color:#86b6ff;font:800 9px/1 monospace;font-style:normal;text-transform:uppercase;letter-spacing:.04em; }.pt-process-title span,.pt-command,.pt-details span,.pt-metric span,.pt-runtime span { color:var(--pt-muted);font:700 10px/1.2 monospace; }
+        .pt-description { margin-top:5px;color:#c3cce0;font:700 10px/1.15 var(--font-body);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:650px; }.pt-command { margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:650px; }.pt-metric,.pt-details,.pt-runtime { display:grid;gap:4px; }.pt-metric strong,.pt-runtime strong { font:900 16px/1 monospace; }.pt-metric.active strong { color:var(--pt-orange); }.pt-metric.active.memory strong { color:var(--pt-green); }.pt-details strong { font-size:13px; }
+        .pt-empty { min-height:500px;display:grid;place-items:center;color:var(--pt-muted);font-size:22px; }
+        footer { padding:0 6px;display:flex;justify-content:space-between;color:#64718a;font:700 12px/1 monospace; }
+    `);
+    return renderStatsHtmlToBuffer(html, 1600, 3100);
+}
 
 let latestBrowserRenderStats: BrowserRenderStats = {
     processes: 0,
@@ -1800,6 +2247,18 @@ export async function sendPerformanceStats(message: Message, apiPing: number, ve
         );
 
     const statusMsg = await message.channel.send({ content: "<a:loading:1134882772596957274> Gathering telemetry and rendering UI..." });
+    const overviewRow = new MessageActionRow().addComponents(
+        new MessageButton()
+            .setCustomId("cpu_process_open")
+            .setLabel("Highest Processes")
+            .setEmoji("📊")
+            .setStyle("PRIMARY"),
+        new MessageButton()
+            .setCustomId("cpu_overview_refresh")
+            .setLabel("Refresh Report")
+            .setEmoji("🔄")
+            .setStyle("SECONDARY"),
+    );
 
     try {
         latestBrowserRenderStats = {
@@ -1826,7 +2285,107 @@ export async function sendPerformanceStats(message: Message, apiPing: number, ve
             new MessageAttachment(clasyCommandBuffer, "performance.png"),
         ];
 
-        await statusMsg.edit({ content: "Here is the performance report:", embeds: [performanceEmbed], files: attachments });
+        await statusMsg.edit({ content: "Here is the performance report:", embeds: [performanceEmbed], files: attachments, components: [overviewRow] });
+
+        let processes: SystemProcessStats[] = [];
+        let processSort: ProcessSort = "cpu";
+        let processPage = 0;
+        let sampledAt = new Date();
+
+        const collector = statusMsg.createMessageComponentCollector({
+            filter: (interaction) => interaction.customId.startsWith("cpu_"),
+            time: PROCESS_COLLECTOR_MS,
+        });
+
+        collector.on("collect", async (interaction) => {
+            if (interaction.user.id !== message.author.id) {
+                await interaction.reply({ content: "Only the person who ran `c!cpu` can control this report.", ephemeral: true });
+                return;
+            }
+
+            try {
+                if (interaction.customId === "cpu_process_overview") {
+                    await interaction.update({
+                        content: "Here is the performance report:",
+                        embeds: [performanceEmbed],
+                        files: [new MessageAttachment(clasyCommandBuffer, "performance.png")],
+                        attachments: [],
+                        components: [overviewRow],
+                    });
+                    return;
+                }
+
+                if (interaction.customId === "cpu_overview_refresh") {
+                    await interaction.deferUpdate();
+                    collector.stop("refresh-overview");
+                    await sendPerformanceStats(message, apiPing, version);
+                    await statusMsg.delete().catch(() => undefined);
+                    return;
+                }
+
+                if (interaction.customId === "cpu_process_open" || interaction.customId === "cpu_process_refresh") {
+                    await interaction.deferUpdate();
+                    processes = await getHighestProcesses();
+                    sampledAt = new Date();
+                    if (interaction.customId === "cpu_process_open") processPage = 0;
+                    const view = buildProcessView(processes, processSort, processPage, sampledAt);
+                    processPage = view.page;
+                    const processImage = await renderProcessStatsImage(processes, processSort, processPage, sampledAt);
+                    await statusMsg.edit({
+                        content: "Live host process telemetry:",
+                        embeds: [view.embed],
+                        files: [new MessageAttachment(processImage, "processes.png")],
+                        attachments: [],
+                        components: view.components,
+                    });
+                    return;
+                }
+
+                await interaction.deferUpdate();
+
+                if (interaction.customId === "cpu_process_sort_cpu") {
+                    processSort = "cpu";
+                    processPage = 0;
+                } else if (interaction.customId === "cpu_process_sort_memory") {
+                    processSort = "memory";
+                    processPage = 0;
+                } else if (interaction.customId === "cpu_process_first") {
+                    processPage = 0;
+                } else if (interaction.customId === "cpu_process_previous") {
+                    processPage--;
+                } else if (interaction.customId === "cpu_process_next") {
+                    processPage++;
+                } else if (interaction.customId === "cpu_process_last") {
+                    processPage = Number.MAX_SAFE_INTEGER;
+                }
+
+                const view = buildProcessView(processes, processSort, processPage, sampledAt);
+                processPage = view.page;
+                const processImage = await renderProcessStatsImage(processes, processSort, processPage, sampledAt);
+                await statusMsg.edit({
+                    content: "Live host process telemetry:",
+                    embeds: [view.embed],
+                    files: [new MessageAttachment(processImage, "processes.png")],
+                    attachments: [],
+                    components: view.components,
+                });
+            } catch (error) {
+                console.error("Process inspector interaction failed:", error);
+                if (!interaction.replied && !interaction.deferred) {
+                    await interaction.reply({ content: "I couldn't update the process inspector. Please try Refresh.", ephemeral: true }).catch(() => undefined);
+                } else {
+                    await interaction.followUp({ content: "I couldn't update the process inspector. Please try Refresh.", ephemeral: true }).catch(() => undefined);
+                }
+            }
+        });
+
+        collector.on("end", async (_collected, reason) => {
+            if (reason === "refresh-overview") return;
+            const disabledRow = new MessageActionRow().addComponents(
+                new MessageButton().setCustomId("cpu_process_expired").setLabel("Process controls expired").setEmoji("⌛").setStyle("SECONDARY").setDisabled(true),
+            );
+            await statusMsg.edit({ components: [disabledRow] }).catch(() => undefined);
+        });
     } catch (error) {
         console.error("Error rendering performance images:", error);
         await statusMsg.edit({ content: "An error occurred while rendering the images. Here is the traditional embed:", embeds: [performanceEmbed] });
