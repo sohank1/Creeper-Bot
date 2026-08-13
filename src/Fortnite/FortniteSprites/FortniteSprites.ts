@@ -1278,7 +1278,7 @@ export class FortniteSprites {
                 new MessageActionRow().addComponents(
                     new MessageSelectMenu()
                         .setCustomId(`fn_sprites_variant_select_${family.key}${ownerSuffix}`)
-                        .setPlaceholder("🎨 Choose a variant")
+                        .setPlaceholder("🧪 Choose a variant")
                         .addOptions(family.variants.slice(0, 25).map(variant => ({
                             label: `${this.variantEmoji(variant.variant)} ${this.variantLabel(variant.variant)}`,
                             description: this.truncate(`${this.rarityEmoji(variant.rarity)} ${this.titleCase(variant.rarity)} | ${this.formatChance(variant)} | ${variant.summonCost.toLocaleString("en-US")} cost`, 90),
@@ -2784,22 +2784,31 @@ export class FortniteSprites {
 
     private familyEmoji(familyKey?: string) {
         const emojis: Record<string, string> = {
-            water: "💧",
-            earth: "🌿",
-            fire: "🔥",
-            duck: "🦆",
-            ghost: "👻",
-            dream: "💤",
-            punk: "🤘",
-            king: "👑",
-            "zero-point": "🌌",
-            demon: "😈",
+            water: "🫧",
+            earth: "🪵",
+            fire: "❤️‍🔥",
+            duck: "🐤",
+            ghost: "🫥",
+            dream: "☁️",
+            punk: "🎸",
+            king: "☠️",
+            "zero-point": "🔮",
+            demon: "👹",
             "burnt-peanut": "🥜",
-            boss: "🕶️",
-            fishy: "🐟",
-            striker: "⚡",
-            aura: "✨",
-            grim: "💀"
+            boss: "😎",
+            seven: "7️⃣",
+            fishy: "🐡",
+            striker: "⚽",
+            aura: "🪄",
+            air: "🪁",
+            "john-wick": "🐶",
+            batman: "🦇",
+            grim: "🪦",
+            pollo: "🎮",
+            "vini-jr": "🇧🇷",
+            ironmouse: "🎀",
+            llama: "🪅",
+            peely: "🍌"
         };
         return familyKey ? emojis[familyKey] || "🧚" : "🧚";
     }
@@ -2820,9 +2829,13 @@ export class FortniteSprites {
             Base: "🌱",
             Candy: "🍬",
             Galaxy: "🌌",
-            Gold: "🏆"
+            Gold: "🏆",
+            Holofoil: "🪩",
+            Gem: "💎",
+            Cube: "🧊",
+            Quack: "🐥"
         };
-        return variant ? emojis[variant] || "🎨" : "🎨";
+        return variant ? emojis[variant] || "🧩" : "🎭";
     }
 
     private formatVariantBrief(variant?: SpriteVariant) {
