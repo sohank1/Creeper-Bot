@@ -54,7 +54,7 @@ type SpriteBrowserState = {
 type SpriteSearchIntent =
     | { kind: "overview"; state: SpriteBrowserState }
     | { kind: "family"; familyKey: string }
-    | { kind: "variant"; variantId: number };
+    | { kind: "variant"; variantId: number; familyKey?: string };
 
 type SpriteViewState =
     | { kind: "overview"; state: SpriteBrowserState }
@@ -107,9 +107,12 @@ type PendingRenderPageAcquire = {
 };
 
 const DATA_PATH = path.join(process.cwd(), "src", "Fortnite", "FortniteSprites", "spriteData.json");
+const BUNDLED_SPRITE_ARCHIVE_ROOT = path.join(process.cwd(), "sprite-archives");
 const SPRITE_ARCHIVE_ROOT = process.env.FORTNITE_SPRITE_ARCHIVE_DIR
     ? path.resolve(process.env.FORTNITE_SPRITE_ARCHIVE_DIR)
-    : path.join(process.cwd(), "sprite-archives");
+    : BUNDLED_SPRITE_ARCHIVE_ROOT;
+const SPRITE_ARCHIVE_ROOTS = Array.from(new Set([BUNDLED_SPRITE_ARCHIVE_ROOT, SPRITE_ARCHIVE_ROOT]));
+const BUNDLED_HISTORY_PATH = path.join(BUNDLED_SPRITE_ARCHIVE_ROOT, "spriteHistory.json");
 const HISTORY_PATH = process.env.FORTNITE_SPRITE_HISTORY_PATH
     ? path.resolve(process.env.FORTNITE_SPRITE_HISTORY_PATH)
     : path.join(SPRITE_ARCHIVE_ROOT, "spriteHistory.json");
@@ -255,10 +258,12 @@ export class FortniteSprites {
 
     private loadArchivedSpriteCatalog(): SpriteDataFile | null {
         const snapshots = new Map<string, SpriteDataFile>();
-        try {
-            for (const entry of fs.readdirSync(SPRITE_ARCHIVE_ROOT, { withFileTypes: true })) {
+        for (const archiveRoot of SPRITE_ARCHIVE_ROOTS) {
+            try {
+                if (!fs.existsSync(archiveRoot)) continue;
+                for (const entry of fs.readdirSync(archiveRoot, { withFileTypes: true })) {
                 if (!entry.isDirectory()) continue;
-                const archiveDir = path.join(SPRITE_ARCHIVE_ROOT, entry.name);
+                const archiveDir = path.join(archiveRoot, entry.name);
                 const manifestPath = path.join(archiveDir, "manifest.json");
                 if (!fs.existsSync(manifestPath)) continue;
                 const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
@@ -319,9 +324,10 @@ export class FortniteSprites {
                 }
                 const existing = snapshots.get(seasonId);
                 if (!existing || snapshot.totalSprites > existing.totalSprites) snapshots.set(seasonId, snapshot);
+                }
+            } catch (error) {
+                console.warn(`[FortniteSprites] Could not load archived sprite catalogs from ${archiveRoot}.`, error);
             }
-        } catch (error) {
-            console.warn("[FortniteSprites] Could not load archived sprite catalogs.", error);
         }
         return [...snapshots.values()].reduce<SpriteDataFile | null>((catalog, snapshot) => mergeSpriteCatalog(catalog, snapshot), null);
     }
@@ -343,9 +349,12 @@ export class FortniteSprites {
 
     private loadSpriteHistory() {
         try {
-            if (fs.existsSync(HISTORY_PATH)) {
-                const parsed = JSON.parse(fs.readFileSync(HISTORY_PATH, "utf8")) as SpriteHistoryFile;
-                if (parsed.schemaVersion === 1 && Array.isArray(parsed.records)) this.spriteHistory = parsed;
+            for (const historyPath of Array.from(new Set([BUNDLED_HISTORY_PATH, HISTORY_PATH]))) {
+                if (!fs.existsSync(historyPath)) continue;
+                const parsed = JSON.parse(fs.readFileSync(historyPath, "utf8")) as SpriteHistoryFile;
+                if (parsed.schemaVersion === 1 && Array.isArray(parsed.records)) {
+                    this.spriteHistory = this.mergeSpriteHistories(this.spriteHistory, parsed);
+                }
             }
 
             if (this.spriteHistory.records.length === 0 && this._data) {
@@ -382,19 +391,44 @@ export class FortniteSprites {
         fs.renameSync(tempPath, HISTORY_PATH);
     }
 
+    private mergeSpriteHistories(left: SpriteHistoryFile, right: SpriteHistoryFile): SpriteHistoryFile {
+        const records = new Map(left.records.map(record => [record.identityKey, { ...record, appearances: [...record.appearances] }]));
+        for (const incoming of right.records) {
+            const existing = records.get(incoming.identityKey);
+            if (!existing) {
+                records.set(incoming.identityKey, { ...incoming, appearances: [...incoming.appearances] });
+                continue;
+            }
+            for (const appearance of incoming.appearances) {
+                const current = existing.appearances.find(item => item.seasonId === appearance.seasonId);
+                if (!current) existing.appearances.push({ ...appearance });
+                else {
+                    if (appearance.firstSeenAt < current.firstSeenAt) current.firstSeenAt = appearance.firstSeenAt;
+                    if (appearance.lastSeenAt > current.lastSeenAt) current.lastSeenAt = appearance.lastSeenAt;
+                }
+            }
+            const earliest = [...existing.appearances].sort((a, b) => a.firstSeenAt.localeCompare(b.firstSeenAt))[0];
+            if (earliest) existing.introducedSeasonId = earliest.seasonId;
+        }
+        return { schemaVersion: 1, records: [...records.values()].sort((a, b) => a.spriteId - b.spriteId || a.identityKey.localeCompare(b.identityKey)) };
+    }
+
     private getTrustedHistorySeasonIds() {
         const trusted = new Set<string>([this.getLegacySeasonContext().id]);
         if (this._data?.seasonContext?.id) trusted.add(this._data.seasonContext.id);
-        try {
-            for (const entry of fs.readdirSync(SPRITE_ARCHIVE_ROOT, { withFileTypes: true })) {
-                if (!entry.isDirectory()) continue;
-                const manifestPath = path.join(SPRITE_ARCHIVE_ROOT, entry.name, "manifest.json");
-                if (!fs.existsSync(manifestPath)) continue;
-                const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
-                if (manifest?.season?.id) trusted.add(String(manifest.season.id));
+        for (const archiveRoot of SPRITE_ARCHIVE_ROOTS) {
+            try {
+                if (!fs.existsSync(archiveRoot)) continue;
+                for (const entry of fs.readdirSync(archiveRoot, { withFileTypes: true })) {
+                    if (!entry.isDirectory()) continue;
+                    const manifestPath = path.join(archiveRoot, entry.name, "manifest.json");
+                    if (!fs.existsSync(manifestPath)) continue;
+                    const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
+                    if (manifest?.season?.id) trusted.add(String(manifest.season.id));
+                }
+            } catch {
+                // Each archive root is optional.
             }
-        } catch {
-            // Archive storage is optional; current and legacy IDs remain trusted.
         }
         return trusted;
     }
@@ -804,8 +838,8 @@ export class FortniteSprites {
         }
 
         if (view.kind === "detail") {
-            const match = this.findVariant(view.variantId);
-            if (!match || match.family.key !== view.familyKey) {
+            const match = this.findVariantInFamily(view.familyKey, view.variantId);
+            if (!match) {
                 return this.generateOverviewResponse({}, ownerId, author, author.name, editedAt);
             }
             return this.generateDetailResponse(match.family, match.variant, ownerId, author, author.name, editedAt, view.state || {});
@@ -972,7 +1006,7 @@ export class FortniteSprites {
                 items.push({
                     type: "variant",
                     name: variant.name,
-                    value: `variant:${variant.id}`,
+                    value: `variant:${family.key}:${variant.id}`,
                     familyKey: family.key,
                     variantId: variant.id,
                     rarity: variant.rarity,
@@ -1053,6 +1087,12 @@ export class FortniteSprites {
         return undefined;
     }
 
+    private findVariantInFamily(familyKey: string | undefined, id: number | undefined): { family: SpriteFamily; variant: SpriteVariant } | undefined {
+        const family = this.findFamily(familyKey);
+        const variant = family?.variants.find(candidate => candidate.id === id);
+        return family && variant ? { family, variant } : undefined;
+    }
+
     private resolveSearchIntent(value: string | undefined): SpriteSearchIntent {
         const rawValue = String(value || "").trim();
         if (!rawValue) return { kind: "overview", state: {} };
@@ -1078,7 +1118,9 @@ export class FortniteSprites {
         if (rawValue.startsWith("family:") || rawValue.startsWith("variant:")) {
             const item = this.searchItems.find(searchItem => searchItem.value === rawValue);
             if (item?.type === "family") return { kind: "family", familyKey: item.familyKey };
-            if (item?.type === "variant" && item.variantId) return { kind: "variant", variantId: item.variantId };
+            if (item?.type === "variant" && item.variantId) return { kind: "variant", variantId: item.variantId, familyKey: item.familyKey };
+            const legacyVariantId = rawValue.match(/^variant:(\d+)$/)?.[1];
+            if (legacyVariantId) return { kind: "variant", variantId: Number(legacyVariantId) };
         }
 
         const q = rawValue.toLowerCase();
@@ -1094,12 +1136,12 @@ export class FortniteSprites {
 
         const exact = this.searchItems.find(item => item.name.toLowerCase() === q);
         if (exact?.type === "family") return { kind: "family", familyKey: exact.familyKey };
-        if (exact?.type === "variant" && exact.variantId) return { kind: "variant", variantId: exact.variantId };
+        if (exact?.type === "variant" && exact.variantId) return { kind: "variant", variantId: exact.variantId, familyKey: exact.familyKey };
 
         const best = this.fuse?.search(this.expandSearchQuery(rawValue))?.[0];
         if (best && (best.score ?? 1) <= 0.08) {
             if (best.item.type === "family") return { kind: "family", familyKey: best.item.familyKey };
-            if (best.item.variantId) return { kind: "variant", variantId: best.item.variantId };
+            if (best.item.variantId) return { kind: "variant", variantId: best.item.variantId, familyKey: best.item.familyKey };
         }
 
         return { kind: "overview", state: { searchQuery: rawValue } };
@@ -1245,12 +1287,16 @@ export class FortniteSprites {
         const author = this.createAuthor(displayName, i.user.displayAvatarURL({ dynamic: true }));
         const refreshGeneration = this.maybeQueueRuntimeRefresh();
         const result = this.resolveSearchIntent(search);
-        const seasonFilter = this.normalizeSeasonFilter(requestedSeason);
+        const seasonFilter = requestedSeason
+            ? this.normalizeSeasonFilter(requestedSeason)
+            : result.kind === "overview" ? this.normalizeSeasonFilter() : "all";
         let response: any;
         let view: SpriteViewState;
 
         if (result.kind === "variant") {
-            const match = this.findVariant(result.variantId);
+            const match = result.familyKey
+                ? this.findVariantInFamily(result.familyKey, result.variantId)
+                : this.findVariant(result.variantId);
             if (!match) return i.editReply({ content: "I could not find that sprite variant." });
             if (!this.variantMatchesSeason(match.variant, seasonFilter)) return i.editReply({ content: `That sprite was not recorded in ${this.describeSeasonFilter(seasonFilter)}.` });
             view = { kind: "detail", familyKey: match.family.key, variantId: match.variant.id, state: { seasonFilter } };
@@ -1930,14 +1976,14 @@ export class FortniteSprites {
         return Array.from(new Set([webpUrl, imageUrl, pngUrl]));
     }
 
-    private async renderHtmlToBuffer(html: string, width: number, height: number): Promise<Buffer> {
+    private async renderHtmlToBuffer(html: string, width: number, height: number, deviceScaleFactor = 2): Promise<Buffer> {
         const page = await this.acquireRenderPage();
         try {
             await page.setExtraHTTPHeaders({
                 "Referer": "https://fortnite.gg/",
                 "Accept-Language": "en-US,en;q=0.9"
             });
-            await page.setViewport({ width, height, deviceScaleFactor: 2 });
+            await page.setViewport({ width, height, deviceScaleFactor });
             await page.setContent(html, { waitUntil: "load", timeout: 15000 });
             await page.evaluate(async () => {
                 await (document as any).fonts?.ready;
@@ -2319,8 +2365,11 @@ export class FortniteSprites {
                 .filter(family => family.variants.length > 0);
             const variants = renderFamilies.flatMap(family => family.variants.map(variant => ({ family, variant })));
             const variantColumns = this.getVariantNames(renderFamilies);
-            const width = 2100;
-            const height = Math.max(1300, 520 + Math.max(renderFamilies.length, 1) * 92);
+            const allSeasonsView = (state.seasonFilter || "current") === "all";
+            const width = allSeasonsView ? 2500 : 2100;
+            const rowHeight = allSeasonsView ? 108 : 92;
+            const height = Math.max(allSeasonsView ? 1500 : 1300, 520 + Math.max(renderFamilies.length, 1) * rowHeight);
+            const deviceScaleFactor = allSeasonsView ? 2.1 : 2;
             const tags = [
                 this.describeSeasonFilter(state.seasonFilter || "current"),
                 state.searchQuery ? `Search: "${state.searchQuery}"` : null,
@@ -2394,7 +2443,7 @@ export class FortniteSprites {
             .overview-panel {
                 display: grid;
                 grid-template-rows: minmax(0, 1fr);
-                padding: 18px;
+                padding: ${allSeasonsView ? 22 : 18}px;
                 min-height: 0;
                 background: color-mix(in oklch, var(--color-panel-2) 72%, black);
             }
@@ -2429,7 +2478,7 @@ export class FortniteSprites {
                 display: grid;
                 grid-template-columns: repeat(var(--variant-count), minmax(0, 1fr));
                 gap: 10px;
-                min-height: 74px;
+                min-height: ${allSeasonsView ? 88 : 74}px;
             }
             .variant-cell {
                 min-width: 0;
@@ -2439,10 +2488,10 @@ export class FortniteSprites {
             }
             .variant-cell {
                 display: grid;
-                grid-template-columns: 68px minmax(0, 1fr) auto;
-                gap: 14px;
+                grid-template-columns: ${allSeasonsView ? 82 : 68}px minmax(0, 1fr) auto;
+                gap: ${allSeasonsView ? 16 : 14}px;
                 align-items: center;
-                padding: 9px 12px 9px 9px;
+                padding: ${allSeasonsView ? 11 : 9}px ${allSeasonsView ? 14 : 12}px ${allSeasonsView ? 11 : 9}px ${allSeasonsView ? 11 : 9}px;
             }
             .variant-cell--empty {
                 display: block;
@@ -2451,13 +2500,13 @@ export class FortniteSprites {
                 background: color-mix(in oklch, var(--color-panel) 44%, transparent);
             }
             .overview-variant-thumb {
-                width: 66px;
-                height: 64px;
+                width: ${allSeasonsView ? 80 : 66}px;
+                height: ${allSeasonsView ? 78 : 64}px;
                 overflow: visible;
             }
             .overview-variant-thumb img {
-                width: 58px;
-                height: 58px;
+                width: ${allSeasonsView ? 72 : 58}px;
+                height: ${allSeasonsView ? 72 : 58}px;
             }
             .overview-variant-copy {
                 min-width: 0;
@@ -2465,7 +2514,7 @@ export class FortniteSprites {
             .overview-variant-copy h4 {
                 margin: 0;
                 color: var(--color-ink);
-                font: 600 0.96rem/1.08 var(--font-body);
+                font: 600 ${allSeasonsView ? 1.04 : 0.96}rem/1.08 var(--font-body);
                 white-space: nowrap;
                 overflow: hidden;
                 text-overflow: ellipsis;
@@ -2473,11 +2522,11 @@ export class FortniteSprites {
             .overview-variant-copy p {
                 margin: 6px 0 0;
                 color: var(--color-muted);
-                font: 500 0.74rem/1 var(--font-mono);
+                font: 500 ${allSeasonsView ? 0.8 : 0.74}rem/1 var(--font-mono);
             }
             .variant-cell .rarity-pill {
                 padding: 0.26rem 0.44rem;
-                font-size: 0.62rem;
+                font-size: ${allSeasonsView ? 0.68 : 0.62}rem;
             }
             .empty-state {
                 display: grid;
@@ -2500,11 +2549,11 @@ export class FortniteSprites {
                 font-size: 0.88rem;
             }
         `);
-            return this.renderHtmlToBuffer(html, width, height);
+            return this.renderHtmlToBuffer(html, width, height, deviceScaleFactor);
         });
     }
     private async renderVariantImage(family: SpriteFamily, variant: SpriteVariant): Promise<Buffer> {
-        const cacheKey = `variant:${this.renderUiFingerprint}:${this._data?.fetchedAt}:${variant.id}`;
+        const cacheKey = `variant:${this.renderUiFingerprint}:${this._data?.fetchedAt}:${family.key}:${variant.id}:${variant.name}`;
         return this.getOrRenderImage(cacheKey, async () => {
             const width = 1000;
             const seasonCount = this.getVariantSeasonDetails(variant).availableSeasonIds.length;
@@ -3203,7 +3252,7 @@ export class FortniteSprites {
     private formatAutocompleteChoice(item: SpriteSearchItem) {
         const name = item.type === "family"
             ? `${this.familyEmoji(item.familyKey)} ${item.name} family`
-            : `${this.variantEmoji(item.variant)} ${item.name} - ${this.formatVariantBrief(this.findVariant(item.variantId)?.variant)}`;
+            : `${this.variantEmoji(item.variant)} ${item.name} - ${this.formatVariantBrief(this.findVariantInFamily(item.familyKey, item.variantId)?.variant)}`;
 
         return {
             name: this.truncate(name, 100),
