@@ -242,7 +242,10 @@ export class FortniteSprites {
 
             const parsed = JSON.parse(fs.readFileSync(DATA_PATH, "utf8")) as SpriteDataFile;
             validateSpriteData(parsed);
-            const catalog = mergeSpriteCatalog(this.loadArchivedSpriteCatalog(), parsed);
+            const mergedCatalog = mergeSpriteCatalog(this.loadArchivedSpriteCatalog(), parsed);
+            const catalog = this.spriteHistory.records.length > 0
+                ? applySpriteHistory(mergedCatalog, this.spriteHistory)
+                : mergedCatalog;
             catalog.families.forEach(family => {
                 family.variants.sort((a, b) => a.summonCost - b.summonCost);
             });
@@ -458,16 +461,23 @@ export class FortniteSprites {
             const existingJson = fs.existsSync(DATA_PATH) ? fs.readFileSync(DATA_PATH, "utf8") : "";
             const normalizeFetchedAt = (json: string) => json.replace(/"fetchedAt":\s*"[^"]+"/, '"fetchedAt": ""');
 
+            // Install and persist history before reloading the catalog. Historical
+            // snapshots do not carry runtime availability fields on their own;
+            // loadData must apply this history during an automatic refresh.
+            this.spriteHistory = nextHistory;
+            this.writeSpriteHistory(nextHistory);
+
             if (normalizeFetchedAt(latestJson) !== normalizeFetchedAt(existingJson)) {
                 fs.mkdirSync(path.dirname(DATA_PATH), { recursive: true });
                 fs.writeFileSync(DATA_PATH, latestJson, "utf8");
                 this.loadData();
                 changed = true;
                 console.log("[FortniteSprites] Sprite data cache updated.");
+            } else if (this._data) {
+                this._data = applySpriteHistory(this._data, nextHistory);
+                this.buildSearchIndex();
+                this.clearRenderCaches();
             }
-
-            this.spriteHistory = nextHistory;
-            this.writeSpriteHistory(nextHistory);
 
             this.lastSuccessfulSyncAt = new Date().toISOString();
             this.lastSyncError = null;
