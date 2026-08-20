@@ -25,6 +25,24 @@ export type MapImageManifest = {
     versions: Record<string, MapImageManifestEntry>;
 };
 
+export type FortniteArchiveManifestEntry = {
+    version: string;
+    chapter: number;
+    season: number;
+    path: string;
+    hasMap: boolean;
+    mapFile: string | null;
+    hasPois?: boolean;
+    poisFile?: string | null;
+};
+
+export type FortniteArchiveManifest = {
+    generated: string;
+    latest?: string;
+    count: number;
+    versions: FortniteArchiveManifestEntry[];
+};
+
 type MapImageArchiveTarget = {
     version: string;
     chapter: number;
@@ -33,6 +51,8 @@ type MapImageArchiveTarget = {
 
 const MAP_IMAGE_MANIFEST_PATH = path.join(process.cwd(), "src", "Fortnite", "FortniteMap", "mapImageManifest.json");
 const MAP_IMAGE_API_URL = "https://prod.api-fortnite.com/api/v1/map/image";
+export const FORTNITE_ARCHIVE_MANIFEST_URL = "https://raw.githubusercontent.com/yaelbrinkert/fortnite-archives/main/manifest.json";
+const FORTNITE_ARCHIVE_RAW_ROOT = "https://raw.githubusercontent.com/yaelbrinkert/fortnite-archives/main";
 const HTTP_AGENT = new https.Agent({ rejectUnauthorized: false });
 const MANIFEST_WRITE_RETRIES = 5;
 const MAP_IMAGE_GUILD_ID = "795712339240419329";
@@ -66,6 +86,34 @@ function detectImageExtension(contentType: string) {
     if (normalized.includes("webp")) return ".webp";
     if (normalized.includes("jpg") || normalized.includes("jpeg")) return ".jpg";
     return ".jpg";
+}
+
+function encodeRawGithubPath(inputPath: string): string {
+    return inputPath.split("/").map(part => encodeURIComponent(part)).join("/");
+}
+
+export function getFortniteArchiveMapImageUrl(entry: FortniteArchiveManifestEntry): string | null {
+    if (!entry.hasMap || !entry.mapFile) return null;
+
+    return `${FORTNITE_ARCHIVE_RAW_ROOT}/${encodeRawGithubPath(entry.path)}/${encodeURIComponent(entry.mapFile)}`;
+}
+
+export async function loadFortniteArchiveManifest(): Promise<FortniteArchiveManifest | null> {
+    try {
+        const response = await axios.get<FortniteArchiveManifest>(FORTNITE_ARCHIVE_MANIFEST_URL, {
+            httpsAgent: HTTP_AGENT,
+            timeout: 30000
+        });
+
+        if (!Array.isArray(response.data?.versions)) {
+            throw new Error("Archive manifest does not contain a versions array.");
+        }
+
+        return response.data;
+    } catch (error: any) {
+        console.warn(`[FortniteMap] Failed to load the GitHub archive manifest: ${error.message}`);
+        return null;
+    }
 }
 
 export async function loadMapImageManifest(): Promise<MapImageManifest> {

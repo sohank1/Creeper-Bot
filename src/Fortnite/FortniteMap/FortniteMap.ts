@@ -5,7 +5,7 @@ import Fuse from "fuse.js";
 import * as fs from "fs";
 import * as path from "path";
 import https from "https";
-import { ensureMapImageHosted, loadMapImageManifest, normalizeMapVersion, MapImageManifestEntry } from "./mapImageArchive";
+import { ensureMapImageHosted, getFortniteArchiveMapImageUrl, loadFortniteArchiveManifest, loadMapImageManifest, normalizeMapVersion, MapImageManifestEntry } from "./mapImageArchive";
 import { registerComponent } from "../../runtimeDiagnostics";
 
 type Poi = {
@@ -91,7 +91,7 @@ export class FortniteMap {
             4: { 1: "🏰", 2: "🏣", 3: "🌴", 4: "🧛", 5: "⏪" },
             5: { 1: "🚇", 2: "🏛️", 3: "🎸", 4: "🟢", 5: "🎤" },
             6: { 1: "🎎", 2: "🥒", 3: "⭐", 4: "🦸♂️", 5: "🪲", 6: "📺" },
-            7: { 1: "🏝️", 2: "⚔️", 3: "🏃" }
+            7: { 1: "🏝️", 2: "⚔️", 3: "🏃", 4: "🎮" }
         };
 
         const emoji = emojis[chapter]?.[season];
@@ -157,6 +157,56 @@ export class FortniteMap {
             let rawData: MapHistoryItem[] = Array.isArray(parsed) ? parsed : (parsed.data || []);
 
             await this.loadImageManifest();
+
+            // The API-backed JSON is only a cache now. The archive manifest is the
+            // authoritative source for new versions and their map image paths.
+            const archiveManifest = await loadFortniteArchiveManifest();
+            if (archiveManifest) {
+                const dataByVersion = new Map(rawData.map(item => [this.normalizeVersion(item.version), item]));
+
+                for (const archiveEntry of archiveManifest.versions) {
+                    const normalizedVersion = this.normalizeVersion(archiveEntry.version);
+                    const imageUrl = getFortniteArchiveMapImageUrl(archiveEntry);
+                    const existing = dataByVersion.get(normalizedVersion);
+
+                    if (existing) {
+                        existing.chapter = archiveEntry.chapter;
+                        existing.season = archiveEntry.season;
+                        if (imageUrl) {
+                            existing.hasImage = true;
+                            existing.imageUrl = imageUrl;
+                        }
+                    } else {
+                        dataByVersion.set(normalizedVersion, {
+                            version: normalizedVersion,
+                            chapter: archiveEntry.chapter,
+                            season: archiveEntry.season,
+                            patch: archiveEntry.path,
+                            releaseDate: null,
+                            hasImage: Boolean(imageUrl),
+                            imageUrl: imageUrl || "",
+                            hasPois: Boolean(archiveEntry.hasPois),
+                            pois: []
+                        });
+                    }
+
+                    if (imageUrl) {
+                        const existingImage = this.imageManifest[normalizedVersion];
+                        this.imageManifest[normalizedVersion] = {
+                            ...existingImage,
+                            archiveVersion: existingImage?.archiveVersion || archiveEntry.version,
+                            relativePath: existingImage?.relativePath,
+                            sourceUrl: imageUrl,
+                            chapter: archiveEntry.chapter,
+                            season: archiveEntry.season,
+                            downloadedAt: existingImage?.downloadedAt
+                        };
+                    }
+                }
+
+                rawData = Array.from(dataByVersion.values());
+                console.log(`[FortniteMap] Loaded ${archiveManifest.versions.length} versions from the GitHub archive.`);
+            }
 
             // Deduplicate: normalize versions (dot vs underscore) and keep the underscore variant
             const seenNormalized = new Set<string>();
@@ -485,7 +535,12 @@ export class FortniteMap {
             return hostedImageUrl;
         }
 
-        throw new Error(`No Discord-hosted map image found for version ${version}`);
+        const archiveImageUrl = this.imageManifest[this.normalizeVersion(version)]?.sourceUrl;
+        if (archiveImageUrl) {
+            return archiveImageUrl;
+        }
+
+        throw new Error(`No archived map image found for version ${version}`);
     }
 
     private async generateViewResponse(versionStr: string, showNav: boolean = false, ownerId?: string, user?: User, displayName?: string) {

@@ -1,5 +1,45 @@
 [
   {
+    "version": "42_00",
+    "chapter": 7,
+    "season": 4,
+    "patch": "chapter_7/season_4/42_00",
+    "releaseDate": null,
+    "hasImage": true,
+    "imageUrl": "https://raw.githubusercontent.com/yaelbrinkert/fortnite-archives/main/chapter_7/season_4/42_00/Apollo_Terrain_Minimap.png",
+    "hasPois": false
+  },
+  {
+    "version": "41_30",
+    "chapter": 7,
+    "season": 3,
+    "patch": "chapter_7/season_3/41_30",
+    "releaseDate": null,
+    "hasImage": true,
+    "imageUrl": "https://raw.githubusercontent.com/yaelbrinkert/fortnite-archives/main/chapter_7/season_3/41_30/Apollo_Terrain_Minimap.png",
+    "hasPois": false
+  },
+  {
+    "version": "41_20",
+    "chapter": 7,
+    "season": 3,
+    "patch": "chapter_7/season_3/41_20",
+    "releaseDate": null,
+    "hasImage": true,
+    "imageUrl": "https://raw.githubusercontent.com/yaelbrinkert/fortnite-archives/main/chapter_7/season_3/41_20/Apollo_Terrain_Minimap.png",
+    "hasPois": false
+  },
+  {
+    "version": "41_10",
+    "chapter": 7,
+    "season": 3,
+    "patch": "chapter_7/season_3/41_10",
+    "releaseDate": null,
+    "hasImage": true,
+    "imageUrl": "https://raw.githubusercontent.com/yaelbrinkert/fortnite-archives/main/chapter_7/season_3/41_10/Apollo_Terrain_Minimap.png",
+    "hasPois": false
+  },
+  {
     "version": "41_00",
     "chapter": 7,
     "season": 3,
