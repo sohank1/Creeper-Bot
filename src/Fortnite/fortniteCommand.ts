@@ -31,7 +31,8 @@ export const fortniteCommand = new SlashCommandBuilder()
     .addSubcommand(subcommand =>
         subcommand
             .setName('sprites')
-            .setDescription('Browse Fortnite Chapter 7 Season 3 sprites by variants, rarities, locations, and dust costs')
+            .setDescription('Browse Fortnite sprites by season, variant, rarity, location, and dust cost')
+            .addStringOption(o => o.setName('season').setDescription('Show sprites available during a specific season').setAutocomplete(true))
             .addStringOption(o => o.setName('search').setDescription('Search by sprite family, variant, rarity, effect, or cost').setAutocomplete(true)))
 
     .addSubcommandGroup(group =>

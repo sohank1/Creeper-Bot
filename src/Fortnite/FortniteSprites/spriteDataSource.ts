@@ -38,6 +38,8 @@ export type SpriteVariant = {
     /** Mirrors Fortnite.GG's Show unreleased toggle. */
     isUnreleased?: boolean;
     introducedSeasonId?: string;
+    /** Seasons in which this sprite was observed in the published sprite listing. */
+    availableSeasonIds?: string[];
 };
 
 export type SpriteAppearance = {
@@ -466,6 +468,9 @@ export function updateSpriteHistory(history: SpriteHistoryFile, data: SpriteData
     for (const family of data.families) {
         for (const variant of family.variants) {
             const identityKey = spriteHistoryIdentity(family, variant);
+            // IDs are not sufficient identity: a later season can reuse an ID
+            // with a different family/name/variant. Only the full identity key
+            // may carry introduction history forward.
             const existing = records.get(identityKey);
             if (!existing) {
                 records.set(identityKey, {
@@ -480,12 +485,20 @@ export function updateSpriteHistory(history: SpriteHistoryFile, data: SpriteData
                 continue;
             }
 
+            existing.familyKey = family.key;
+            existing.name = variant.name;
+            existing.variant = variant.variant;
+
             const appearance = existing.appearances.find(item => item.seasonId === seasonId);
             if (appearance) {
-                appearance.lastSeenAt = now;
+                if (now < appearance.firstSeenAt) appearance.firstSeenAt = now;
+                if (now > appearance.lastSeenAt) appearance.lastSeenAt = now;
             } else {
                 existing.appearances.push({ seasonId, firstSeenAt: now, lastSeenAt: now });
             }
+
+            const earliestAppearance = [...existing.appearances].sort((a, b) => a.firstSeenAt.localeCompare(b.firstSeenAt))[0];
+            if (earliestAppearance) existing.introducedSeasonId = earliestAppearance.seasonId;
         }
     }
 
@@ -495,17 +508,68 @@ export function updateSpriteHistory(history: SpriteHistoryFile, data: SpriteData
     };
 }
 
+/**
+ * Removes history seasons that were not backed by a trusted snapshot. This is
+ * intentionally conservative: an old migrated record must not invent an
+ * introduction season from an unverified catalog merge.
+ */
+export function sanitizeSpriteHistory(history: SpriteHistoryFile, trustedSeasonIds: Set<string>): SpriteHistoryFile {
+    const records = history.records.flatMap(record => {
+        const appearances = record.appearances.filter(appearance => trustedSeasonIds.has(appearance.seasonId));
+        if (appearances.length === 0) return [];
+        const firstAppearance = [...appearances].sort((a, b) => a.firstSeenAt.localeCompare(b.firstSeenAt))[0];
+        return [{
+            ...record,
+            introducedSeasonId: firstAppearance.seasonId,
+            appearances
+        }];
+    });
+    return { schemaVersion: 1, records };
+}
+
 export function applySpriteHistory(data: SpriteDataFile, history: SpriteHistoryFile): SpriteDataFile {
     const records = new Map(history.records.map(record => [record.identityKey, record]));
     return {
         ...data,
         families: data.families.map(family => ({
             ...family,
-            variants: family.variants.map(variant => ({
-                ...variant,
-                introducedSeasonId: records.get(spriteHistoryIdentity(family, variant))?.introducedSeasonId || data.seasonContext?.id
-            }))
+            variants: family.variants.map(variant => {
+                const record = records.get(spriteHistoryIdentity(family, variant));
+                const fallbackSeasonId = data.seasonContext?.id;
+                return {
+                    ...variant,
+                    introducedSeasonId: record?.introducedSeasonId || fallbackSeasonId,
+                    availableSeasonIds: record
+                        ? Array.from(new Set(record.appearances.map(appearance => appearance.seasonId)))
+                        : fallbackSeasonId ? [fallbackSeasonId] : []
+                };
+            })
         }))
+    };
+}
+
+/** Retains prior-season sprites while preferring the latest scrape for matching variants. */
+export function mergeSpriteCatalog(previous: SpriteDataFile | null, latest: SpriteDataFile): SpriteDataFile {
+    if (!previous) return latest;
+    const families = new Map(previous.families.map(family => [family.key, { ...family, variants: [...family.variants] }]));
+
+    for (const latestFamily of latest.families) {
+        const existing = families.get(latestFamily.key);
+        if (!existing) {
+            families.set(latestFamily.key, { ...latestFamily, variants: [...latestFamily.variants] });
+            continue;
+        }
+        const variants = new Map(existing.variants.map(variant => [variant.id, variant]));
+        for (const variant of latestFamily.variants) variants.set(variant.id, variant);
+        families.set(latestFamily.key, { ...latestFamily, variants: [...variants.values()] });
+    }
+
+    const mergedFamilies = [...families.values()];
+    return {
+        ...latest,
+        totalSprites: mergedFamilies.reduce((total, family) => total + family.variants.length, 0),
+        totalLevels: mergedFamilies.reduce((total, family) => total + family.variants.length, 0),
+        families: mergedFamilies
     };
 }
 

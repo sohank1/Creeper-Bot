@@ -7,6 +7,7 @@ import * as path from "path";
 import https from "https";
 import { ensureMapImageHosted, getFortniteArchiveMapImageUrl, loadFortniteArchiveManifest, loadMapImageManifest, normalizeMapVersion, MapImageManifestEntry } from "./mapImageArchive";
 import { registerComponent } from "../../runtimeDiagnostics";
+import { getFortniteSeasonEmoji } from "../fortniteSeasonEmoji";
 
 type Poi = {
     name: string;
@@ -84,17 +85,7 @@ export class FortniteMap {
             name = "- Chapter 2 Remix";
         }
 
-        const emojis: Record<number, Record<number, string>> = {
-            1: { 1: "🪂", 2: "🛡️", 3: "☄️", 4: "🎥", 5: "🏜️", 6: "🦇", 7: "❄️", 8: "🏴☠️", 9: "🏙️", 10: "⏳" },
-            2: { 1: "🗺️", 2: "🕵️♂️", 3: "🌊", 4: "🌌", 5: "🎯", 6: "🦴", 7: "👽", 8: "🟪" },
-            3: { 1: "🙃", 2: "🪖", 3: "🍄", 4: "⚫" },
-            4: { 1: "🏰", 2: "🏣", 3: "🌴", 4: "🧛", 5: "⏪" },
-            5: { 1: "🚇", 2: "🏛️", 3: "🎸", 4: "🟢", 5: "🎤" },
-            6: { 1: "🎎", 2: "🥒", 3: "⭐", 4: "🦸♂️", 5: "🪲", 6: "📺" },
-            7: { 1: "🏝️", 2: "⚔️", 3: "🏃", 4: "🎮" }
-        };
-
-        const emoji = emojis[chapter]?.[season];
+        const emoji = getFortniteSeasonEmoji(chapter, season);
         if (emoji) {
             return `${name} ${emoji}`;
         }
