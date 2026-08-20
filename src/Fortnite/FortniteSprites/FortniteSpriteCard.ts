@@ -38,6 +38,7 @@ export class FortniteSpriteCard {
             lastRenderAt: this.lastRenderAt,
             lastRenderError: this.lastRenderError,
             dataLoaded: !!this.data,
+            currentSeason: this.data?.seasonContext?.displayName || null,
             dataModifiedAt: this.dataModifiedAt ? new Date(this.dataModifiedAt).toISOString() : null,
         };
     }

@@ -33,6 +33,9 @@ Optional variables are only required for features that use them:
 
 - `FORTNITE_API_KEY`
 - `FORTNITE_MAP_API_KEY`
+- `FORTNITE_SPRITE_ARCHIVE_DIR` (persistent directory for sprite history/archives)
+- `FORTNITE_SPRITE_HISTORY_PATH` (optional explicit history file path)
+- `FORTNITE_SPRITE_LEGACY_SEASON_ID` (one-time label for an existing pre-history `spriteData.json`)
 - `SCRAPER_API_KEY`
 - `TWITTER_BEARER_TOKEN`
 
@@ -43,6 +46,11 @@ Default runtime values in `.env.example`:
 - `PORT=3001`
 
 For local development you can change these if needed.
+
+Sprite ingestion mirrors Fortnite.GG's own Season filter (`data-season`) and
+excludes cards marked by its Show unreleased flag. Historical seasons remain in
+the persistent sprite history and per-season archives rather than being mixed
+into the current bot dataset.
 
 ### Run Locally
 

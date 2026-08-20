@@ -5,6 +5,7 @@ import https from "https";
 import * as path from "path";
 import { loadImage } from "@napi-rs/canvas/node-canvas";
 import { fetchSpriteData, SpriteDataFile, stableSpriteDataJson, validateSpriteData } from "../Fortnite/FortniteSprites/spriteDataSource";
+import { resolveCurrentFortniteSeason } from "../Fortnite/FortniteSprites/fortniteSeason";
 
 type ArchiveAsset = {
     variantId: number;
@@ -26,7 +27,7 @@ type SpriteArchiveManifest = {
         id: string;
         displayName: string;
         chapter?: number;
-        season?: number;
+        season?: string;
     };
     archivedAt: string;
     source: {
@@ -42,8 +43,6 @@ type SpriteArchiveManifest = {
     assets: ArchiveAsset[];
 };
 
-const DEFAULT_SEASON_ID = "chapter-7-season-3";
-const DEFAULT_SEASON_NAME = "Fortnite Chapter 7 Season 3";
 const DEFAULT_ARCHIVE_ROOT = process.env.FORTNITE_SPRITE_ARCHIVE_DIR
     ? path.resolve(process.env.FORTNITE_SPRITE_ARCHIVE_DIR)
     : path.join(process.cwd(), "sprite-archives");
@@ -195,10 +194,15 @@ async function verifyArchive(archivePath: string): Promise<void> {
 }
 
 async function createArchive(): Promise<void> {
-    const seasonId = validateSeasonId(argument("season-id")?.trim() || DEFAULT_SEASON_ID);
-    const displayName = argument("name")?.trim() || DEFAULT_SEASON_NAME;
-    const chapter = parseOptionalInteger("chapter") ?? 7;
-    const season = parseOptionalInteger("season") ?? 3;
+    const resolvedSeason = await resolveCurrentFortniteSeason(true);
+    const requestedSeasonId = argument("season-id")?.trim();
+    if (requestedSeasonId && requestedSeasonId !== resolvedSeason.id) {
+        throw new Error(`Requested archive season ${requestedSeasonId} does not match the resolved current season ${resolvedSeason.id}.`);
+    }
+    const seasonId = validateSeasonId(requestedSeasonId || resolvedSeason.id);
+    const displayName = argument("name")?.trim() || resolvedSeason.displayName;
+    const chapter = parseOptionalInteger("chapter") ?? resolvedSeason.chapter;
+    const season = argument("season")?.trim() || resolvedSeason.season;
     const archiveRoot = path.resolve(argument("output") || DEFAULT_ARCHIVE_ROOT);
     const finalPath = path.join(archiveRoot, seasonId);
     const stagingPath = path.join(archiveRoot, `.${seasonId}.staging-${process.pid}`);
@@ -278,9 +282,9 @@ async function createArchive(): Promise<void> {
 }
 
 async function main() {
-    const seasonId = validateSeasonId(argument("season-id")?.trim() || DEFAULT_SEASON_ID);
     const archiveRoot = path.resolve(argument("output") || DEFAULT_ARCHIVE_ROOT);
     if (process.argv.includes("--verify")) {
+        const seasonId = validateSeasonId(argument("season-id")?.trim() || "chapter-7-season-3");
         await verifyArchive(path.join(archiveRoot, seasonId));
         return;
     }

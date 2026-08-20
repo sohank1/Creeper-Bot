@@ -2,6 +2,7 @@ import axios from "axios";
 import cheerio from "cheerio";
 import { createHash } from "crypto";
 import https from "https";
+import { FortniteSeasonContext, resolveCurrentFortniteSeason } from "./fortniteSeason";
 
 export type SpriteRarity = "rare" | "epic" | "legendary" | "mythic" | "special";
 export type SpriteVariantName = string;
@@ -32,6 +33,32 @@ export type SpriteVariant = {
     effectText: string;
     specialEffectText?: string;
     detailStatus: "complete" | "partial";
+    /** Fortnite.GG's season key for the card (for example 41 or 42). */
+    sourceSeasonKey?: string;
+    /** Mirrors Fortnite.GG's Show unreleased toggle. */
+    isUnreleased?: boolean;
+    introducedSeasonId?: string;
+};
+
+export type SpriteAppearance = {
+    seasonId: string;
+    firstSeenAt: string;
+    lastSeenAt: string;
+};
+
+export type SpriteHistoryRecord = {
+    identityKey: string;
+    spriteId: number;
+    familyKey: string;
+    name: string;
+    variant: SpriteVariantName;
+    introducedSeasonId: string;
+    appearances: SpriteAppearance[];
+};
+
+export type SpriteHistoryFile = {
+    schemaVersion: 1;
+    records: SpriteHistoryRecord[];
 };
 
 export type SpriteFamily = {
@@ -50,6 +77,7 @@ export type SpriteDataFile = {
     totalLevels: number;
     /** IDs that are present in the base /sprites listing, not merely known variants. */
     listedVariantIds?: number[];
+    seasonContext?: FortniteSeasonContext;
     families: SpriteFamily[];
 };
 
@@ -62,6 +90,8 @@ type SpriteListItem = {
     starter: boolean;
     sourceUrl: string;
     imageUrl: string;
+    sourceSeasonKey?: string;
+    isUnreleased?: boolean;
 };
 
 type SpriteVariantDetail = SpriteVariant & {
@@ -141,7 +171,9 @@ function toVariantBase(item: SpriteListItem) {
         chancePercent: item.chancePercent,
         chanceLabel: item.chanceLabel,
         starter: item.starter,
-        imageUrl: item.imageUrl
+        imageUrl: item.imageUrl,
+        ...(item.sourceSeasonKey ? { sourceSeasonKey: item.sourceSeasonKey } : {}),
+        ...(item.isUnreleased ? { isUnreleased: true } : {})
     };
 }
 
@@ -161,7 +193,7 @@ function familyKey(displayName: string): string {
         .replace(/^-|-$/g, "");
 }
 
-function parseListPage(html: string): { items: SpriteListItem[]; totalSprites: number; totalLevels: number } {
+function parseListPage(html: string, seasonKey?: string): { items: SpriteListItem[]; totalSprites: number; totalLevels: number } {
     const $ = cheerio.load(html);
     const items: SpriteListItem[] = [];
 
@@ -176,8 +208,10 @@ function parseListPage(html: string): { items: SpriteListItem[]; totalSprites: n
         const rarity = (pills.find(p => ["rare", "epic", "legendary", "mythic", "special"].includes(p.toLowerCase())) || "rare").toLowerCase() as SpriteRarity;
         const chanceLabel = pills.find(p => p.includes("%")) || "0%";
         const starter = pills.some(p => p.toLowerCase() === "starter");
+        const sourceSeasonKey = normalizeText(card.attr("data-season")) || undefined;
+        const isUnreleased = card.attr("data-unreleased") === "1";
 
-        if (!id || !name || !sourceUrl) return;
+        if (!id || !name || !sourceUrl || isUnreleased || (seasonKey && sourceSeasonKey !== seasonKey)) return;
 
         items.push({
             id,
@@ -187,7 +221,9 @@ function parseListPage(html: string): { items: SpriteListItem[]; totalSprites: n
             chanceLabel,
             starter,
             sourceUrl,
-            imageUrl
+            imageUrl,
+            sourceSeasonKey,
+            isUnreleased
         });
     });
 
@@ -201,8 +237,8 @@ function parseListPage(html: string): { items: SpriteListItem[]; totalSprites: n
 
     return {
         items: items.sort((a, b) => a.id - b.id),
-        totalSprites: Math.max(reportedTotalSprites, items.length),
-        totalLevels: parseNumber(statValues[1]?.max) || items.length * 5
+        totalSprites: seasonKey ? items.length : Math.max(reportedTotalSprites, items.length),
+        totalLevels: seasonKey ? items.length * 5 : parseNumber(statValues[1]?.max) || items.length * 5
     };
 }
 
@@ -342,6 +378,10 @@ export function validateSpriteData(data: SpriteDataFile) {
         throw new Error(`Expected ${data.totalSprites} sprites, parsed ${variants.length}.`);
     }
 
+    if (data.seasonContext && (!data.seasonContext.id || !data.seasonContext.chapter || !data.seasonContext.season)) {
+        throw new Error("Invalid Fortnite season context.");
+    }
+
     for (const family of data.families) {
         if (!family.key || !family.displayName || family.variants.length === 0) {
             throw new Error(`Invalid family entry: ${JSON.stringify(family)}`);
@@ -363,9 +403,12 @@ export function validateSpriteData(data: SpriteDataFile) {
     }
 }
 
-export async function fetchSpriteData(delayMs = 150): Promise<SpriteDataFile> {
+export async function fetchSpriteData(delayMs = 150, seasonContext?: FortniteSeasonContext): Promise<SpriteDataFile> {
+    // Resolve the season before scraping the list so the stored context is
+    // associated with this exact scrape.
+    const resolvedSeason = seasonContext || await resolveCurrentFortniteSeason();
     const listHtml = await fetchHtml(SOURCE_URL);
-    const list = parseListPage(listHtml);
+    const list = parseListPage(listHtml, resolvedSeason.seasonKey);
 
     if (list.items.length === 0) {
         throw new Error("No sprite cards were found on the remote sprite page.");
@@ -382,6 +425,7 @@ export async function fetchSpriteData(delayMs = 150): Promise<SpriteDataFile> {
         totalSprites: list.totalSprites,
         totalLevels: list.totalLevels,
         listedVariantIds: list.items.map(item => item.id),
+        seasonContext: resolvedSeason,
         families: buildFamilies(details)
     };
 
@@ -396,9 +440,73 @@ export function spriteDataContentFingerprint(data: SpriteDataFile): string {
             totalSprites: data.totalSprites,
             totalLevels: data.totalLevels,
             listedVariantIds: data.listedVariantIds,
+            seasonContext: data.seasonContext ? {
+                id: data.seasonContext.id,
+                chapter: data.seasonContext.chapter,
+                season: data.seasonContext.season,
+                seasonKey: data.seasonContext.seasonKey,
+                source: data.seasonContext.source,
+                validatedBy: data.seasonContext.validatedBy
+            } : undefined,
             families: data.families
         }))
         .digest("hex");
+}
+
+export function spriteHistoryIdentity(family: SpriteFamily, variant: SpriteVariant): string {
+    return `${variant.id}:${family.key}:${variant.name}:${variant.variant}`.toLowerCase();
+}
+
+export function updateSpriteHistory(history: SpriteHistoryFile, data: SpriteDataFile): SpriteHistoryFile {
+    const seasonId = data.seasonContext?.id;
+    if (!seasonId) throw new Error("Cannot update sprite history without a season context.");
+    const now = data.fetchedAt;
+    const records = new Map(history.records.map(record => [record.identityKey, record]));
+
+    for (const family of data.families) {
+        for (const variant of family.variants) {
+            const identityKey = spriteHistoryIdentity(family, variant);
+            const existing = records.get(identityKey);
+            if (!existing) {
+                records.set(identityKey, {
+                    identityKey,
+                    spriteId: variant.id,
+                    familyKey: family.key,
+                    name: variant.name,
+                    variant: variant.variant,
+                    introducedSeasonId: seasonId,
+                    appearances: [{ seasonId, firstSeenAt: now, lastSeenAt: now }]
+                });
+                continue;
+            }
+
+            const appearance = existing.appearances.find(item => item.seasonId === seasonId);
+            if (appearance) {
+                appearance.lastSeenAt = now;
+            } else {
+                existing.appearances.push({ seasonId, firstSeenAt: now, lastSeenAt: now });
+            }
+        }
+    }
+
+    return {
+        schemaVersion: 1,
+        records: [...records.values()].sort((a, b) => a.spriteId - b.spriteId || a.identityKey.localeCompare(b.identityKey))
+    };
+}
+
+export function applySpriteHistory(data: SpriteDataFile, history: SpriteHistoryFile): SpriteDataFile {
+    const records = new Map(history.records.map(record => [record.identityKey, record]));
+    return {
+        ...data,
+        families: data.families.map(family => ({
+            ...family,
+            variants: family.variants.map(variant => ({
+                ...variant,
+                introducedSeasonId: records.get(spriteHistoryIdentity(family, variant))?.introducedSeasonId || data.seasonContext?.id
+            }))
+        }))
+    };
 }
 
 export function stableSpriteDataJson(data: SpriteDataFile): string {

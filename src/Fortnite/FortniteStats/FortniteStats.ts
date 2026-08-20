@@ -701,11 +701,11 @@ import { version } from "../../index";
 import { platformChoices } from "../fortniteCommand";
 import * as cheerio from 'cheerio';
 import path from "path";
-import https from "https";
 import * as fs from "fs";
 // 1. Import registerFont
 import { createCanvas, loadImage, registerFont, CanvasRenderingContext2D } from "@napi-rs/canvas/node-canvas";
 import { registerComponent } from "../../runtimeDiagnostics";
+import { resolveCurrentFortniteSeason } from "../FortniteSprites/fortniteSeason";
 
 const loadingStr = "Loading more... <a:loading:1140700893898084382>";
 
@@ -754,23 +754,10 @@ export class FortniteStats {
         }
 
         try {
-            const httpsAgent = new https.Agent({ rejectUnauthorized: false });
-            const res = await axios.get("https://fortnite.gg/season-countdown", {
-                headers: {
-                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0 Safari/537.36",
-                    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
-                },
-                httpsAgent,
-                timeout: 10000
-            });
+            const season = await resolveCurrentFortniteSeason();
+            if (!season.endsAt) return null;
 
-            const html = res.data;
-            const match = html.match(/id='big-countdown' data-target='(\d+)'/);
-            
-            if (!match) return null;
-
-            const timestamp = parseInt(match[1]);
-            const parsedSeasonEndDate = new Date(timestamp);
+            const parsedSeasonEndDate = new Date(season.endsAt);
             
             if (Number.isNaN(parsedSeasonEndDate.getTime())) return null;
             if (parsedSeasonEndDate.getTime() <= Date.now()) return null;
@@ -1109,8 +1096,6 @@ export class FortniteStats {
         return new MessageAttachment(buffer, "progress.png");
     }
 }
-
-
 
 
 

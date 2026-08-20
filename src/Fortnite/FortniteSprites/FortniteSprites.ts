@@ -22,7 +22,8 @@ import * as crypto from "crypto";
 import type { Browser, Page } from "puppeteer";
 import https from "https";
 import { createCanvas, loadImage } from "@napi-rs/canvas";
-import { fetchSpriteData, SpriteDataFile, SpriteFamily, SpriteRarity, SpriteVariant, SpriteVariantName, stableSpriteDataJson, validateSpriteData } from "./spriteDataSource";
+import { applySpriteHistory, fetchSpriteData, SpriteDataFile, SpriteFamily, SpriteHistoryFile, SpriteRarity, SpriteVariant, SpriteVariantName, stableSpriteDataJson, updateSpriteHistory, validateSpriteData } from "./spriteDataSource";
+import { FortniteSeasonContext } from "./fortniteSeason";
 import { createTrackedJob, registerComponent } from "../../runtimeDiagnostics";
 
 type SpriteSearchItem = {
@@ -41,6 +42,7 @@ type SpriteSearchItem = {
 
 type SpriteBrowserState = {
     familyKey?: string;
+    seasonFilter?: "current" | "all";
     variantFilter?: "all" | SpriteVariantName;
     rarityFilter?: "all" | SpriteRarity;
     searchQuery?: string;
@@ -103,6 +105,12 @@ type PendingRenderPageAcquire = {
 };
 
 const DATA_PATH = path.join(process.cwd(), "src", "Fortnite", "FortniteSprites", "spriteData.json");
+const SPRITE_ARCHIVE_ROOT = process.env.FORTNITE_SPRITE_ARCHIVE_DIR
+    ? path.resolve(process.env.FORTNITE_SPRITE_ARCHIVE_DIR)
+    : path.join(process.cwd(), "sprite-archives");
+const HISTORY_PATH = process.env.FORTNITE_SPRITE_HISTORY_PATH
+    ? path.resolve(process.env.FORTNITE_SPRITE_HISTORY_PATH)
+    : path.join(SPRITE_ARCHIVE_ROOT, "spriteHistory.json");
 const TOKENS_PATH = path.join(process.cwd(), "src", "Fortnite", "FortniteSprites", "tokens.css");
 const DUST_ICON_PATH = path.join(process.cwd(), "assets", "sprite-dust.png");
 const SPAWN_RATE_ICON_PATHS: Record<string, string> = {
@@ -136,6 +144,7 @@ const MAX_SPRITE_ASSET_CACHE_BYTES = 32 * 1024 * 1024;
 const SPRITE_IMAGE_PREWARM_CONCURRENCY = 6;
 export class FortniteSprites {
     private _data: SpriteDataFile | null = null;
+    private spriteHistory: SpriteHistoryFile = { schemaVersion: 1, records: [] };
     private fuse: Fuse<SpriteSearchItem> | null = null;
     private searchItems: SpriteSearchItem[] = [];
     private isSyncingSprites = false;
@@ -177,6 +186,7 @@ export class FortniteSprites {
     constructor(private client: Client) {
         registerComponent("fortniteSprites", this);
         this.loadData();
+        this.loadSpriteHistory();
         if (this.shouldSyncSprites()) {
             createTrackedJob("fortnite-sprites-sync", "Fortnite Sprites Sync", "Daily and startup", () => this.syncLatestSprites())();
         } else {
@@ -204,6 +214,8 @@ export class FortniteSprites {
         return {
             familiesLoaded: this._data?.families.length || 0,
             variantsLoaded: this.getAllVariants().length,
+            currentSeason: this._data?.seasonContext?.displayName || null,
+            spriteHistoryRecords: this.spriteHistory.records.length,
             trackedMessages: this.trackedSpriteMessages.size,
             renderedImageEntries: this.imageCache.size,
             renderedImageBytes: this.imageCacheBytes,
@@ -237,6 +249,49 @@ export class FortniteSprites {
         }
     }
 
+    private getLegacySeasonContext(): FortniteSeasonContext {
+        const id = process.env.FORTNITE_SPRITE_LEGACY_SEASON_ID || "chapter-7-season-3";
+        const match = id.match(/^chapter-(\d+)-season-(.+)$/i);
+        const chapter = Number(match?.[1] || 7);
+        const season = match?.[2] || "3";
+        return {
+            id,
+            chapter,
+            season,
+            displayName: `Chapter ${chapter} Season ${season}`,
+            source: "fortnite-gg",
+            validatedBy: ["fortnite-gg"]
+        };
+    }
+
+    private loadSpriteHistory() {
+        try {
+            if (fs.existsSync(HISTORY_PATH)) {
+                const parsed = JSON.parse(fs.readFileSync(HISTORY_PATH, "utf8")) as SpriteHistoryFile;
+                if (parsed.schemaVersion === 1 && Array.isArray(parsed.records)) this.spriteHistory = parsed;
+            }
+
+            if (this.spriteHistory.records.length === 0 && this._data) {
+                const seedData = this._data.seasonContext
+                    ? this._data
+                    : { ...this._data, seasonContext: this.getLegacySeasonContext() };
+                this.spriteHistory = updateSpriteHistory(this.spriteHistory, seedData);
+                this.writeSpriteHistory(this.spriteHistory);
+                console.log(`[FortniteSprites] Seeded sprite history with ${this.spriteHistory.records.length} legacy records.`);
+            }
+        } catch (e) {
+            console.error("[FortniteSprites] Failed to load spriteHistory.json", e);
+            this.spriteHistory = { schemaVersion: 1, records: [] };
+        }
+    }
+
+    private writeSpriteHistory(history: SpriteHistoryFile) {
+        fs.mkdirSync(path.dirname(HISTORY_PATH), { recursive: true });
+        const tempPath = `${HISTORY_PATH}.tmp-${process.pid}`;
+        fs.writeFileSync(tempPath, `${JSON.stringify(history, null, 2)}\n`, "utf8");
+        fs.renameSync(tempPath, HISTORY_PATH);
+    }
+
     private shouldSyncSprites() {
         if (!this._data?.fetchedAt) return true;
         const fetchedAt = new Date(this._data.fetchedAt).getTime();
@@ -256,7 +311,9 @@ export class FortniteSprites {
 
         try {
             const latest = await fetchSpriteData();
-            const latestJson = stableSpriteDataJson(latest);
+            const nextHistory = updateSpriteHistory(this.spriteHistory, latest);
+            const enrichedLatest = applySpriteHistory(latest, nextHistory);
+            const latestJson = stableSpriteDataJson(enrichedLatest);
             const existingJson = fs.existsSync(DATA_PATH) ? fs.readFileSync(DATA_PATH, "utf8") : "";
             const normalizeFetchedAt = (json: string) => json.replace(/"fetchedAt":\s*"[^"]+"/, '"fetchedAt": ""');
 
@@ -267,6 +324,9 @@ export class FortniteSprites {
                 changed = true;
                 console.log("[FortniteSprites] Sprite data cache updated.");
             }
+
+            this.spriteHistory = nextHistory;
+            this.writeSpriteHistory(nextHistory);
 
             this.lastSuccessfulSyncAt = new Date().toISOString();
             this.lastSyncError = null;
@@ -946,7 +1006,7 @@ export class FortniteSprites {
         if (!query) {
             const baseFamilies = this.searchItems.filter(item => item.type === "family");
             choices.push(
-                { name: "🧚 Browse all sprites", value: "browse:all" },
+                { name: "🆕 Browse current-season sprites", value: "browse:all" },
                 { name: "🌟 Show mythic sprites", value: "filter:rarity:mythic" },
                 { name: "🍬 Show Gummy variants", value: "filter:variant:Candy" }
             );
@@ -1009,7 +1069,7 @@ export class FortniteSprites {
             }
 
             choices.push(
-                { name: `${this.familyEmoji()} Browse all sprites`, value: "browse:all" }
+                { name: `${this.familyEmoji()} Browse current-season sprites`, value: "browse:all" }
             );
 
             return i.respond(choices.slice(0, 25));
@@ -1091,6 +1151,8 @@ export class FortniteSprites {
 
     private getFilteredFamilies(state: SpriteBrowserState): SpriteFamily[] {
         if (!this._data) return [];
+        const seasonFilter = state.seasonFilter || "current";
+        const currentSeasonKey = this._data.seasonContext?.seasonKey;
         const variantFilter = state.variantFilter || "all";
         const rarityFilter = state.rarityFilter || "all";
 
@@ -1098,10 +1160,14 @@ export class FortniteSprites {
             .map(family => ({
                 ...family,
                 variants: family.variants.filter(variant => {
+                    const seasonMatches = seasonFilter === "all"
+                        || !currentSeasonKey
+                        || !variant.sourceSeasonKey
+                        || variant.sourceSeasonKey === currentSeasonKey;
                     const variantMatches = variantFilter === "all" || variant.variant === variantFilter;
                     const rarityMatches = rarityFilter === "all" || variant.rarity === rarityFilter;
                     const searchMatches = !state.searchQuery || this.spriteMatchesQuery(family, variant, state.searchQuery);
-                    return variantMatches && rarityMatches && searchMatches;
+                    return seasonMatches && variantMatches && rarityMatches && searchMatches;
                 })
             }))
             .filter(family => family.variants.length > 0);
@@ -1109,9 +1175,10 @@ export class FortniteSprites {
 
     private buildFooterText(editedAt?: string) {
         const fetchedAt = this._data?.fetchedAt ? new Date(this._data.fetchedAt).toLocaleString("en-US", { timeZone: "America/New_York" }) : "unknown";
+        const seasonText = this._data?.seasonContext?.displayName ? `${this._data.seasonContext.displayName} | ` : "";
         const syncText = this.lastSyncError ? ` | Last sync error: ${this.lastSyncError}` : "";
         const editedText = editedAt ? ` | Edited ${new Date(editedAt).toLocaleString("en-US", { timeZone: "America/New_York" })}` : "";
-        return `${appVersion} | Data fetched ${fetchedAt}${editedText}${syncText}`;
+        return `${appVersion} | ${seasonText}Data fetched ${fetchedAt}${editedText}${syncText}`;
     }
 
     private async generateOverviewResponse(state: SpriteBrowserState, ownerId: string, user: User | SpriteAuthor, displayName: string, editedAt?: string) {
@@ -1179,7 +1246,7 @@ export class FortniteSprites {
     }
     private generateOverviewComponents(state: SpriteBrowserState, ownerId: string) {
         const ownerSuffix = `|${ownerId}`;
-        const families = this.getDisplayFamilies(this._data?.families || []);
+        const families = this.getFilteredFamilies({ ...state, familyKey: undefined });
         const selectedFamily = state.familyKey && families.some(f => f.key === state.familyKey) ? state.familyKey : undefined;
         const familyPage = state.familyPage || 0;
         const familiesPerPage = 25;
@@ -1201,17 +1268,18 @@ export class FortniteSprites {
 
         const variantFilter = state.variantFilter || "all";
         const rarityFilter = state.rarityFilter || "all";
+        const seasonFilter = state.seasonFilter || "current";
         const activeQuickFilter = rarityFilter !== "all"
             ? `rarity:${rarityFilter}`
             : variantFilter !== "all"
                 ? `variant:${variantFilter}`
-                : "all";
+                : `season:${seasonFilter}`;
         const quickFilterRow = new MessageActionRow().addComponents(
             new MessageSelectMenu()
                 .setCustomId(`fn_sprites_quick_filter${ownerSuffix}`)
                 .setPlaceholder("🔎 Choose a view")
                 .addOptions([
-                    { label: "🧚 All sprites", description: "Reset filters and show the full sprite list", value: "all", default: activeQuickFilter === "all" },
+                    { label: "🆕 Current-season sprites", description: "Show sprites from the active Fortnite season", value: "season:current", default: activeQuickFilter === "season:current" },
                     ...this.getVariantNames().slice(0, 8).map(variant => ({
                         label: `${this.variantEmoji(variant)} ${this.variantLabel(variant)} variants`,
                         description: `Show every ${this.variantLabel(variant)} variant`,
@@ -2082,7 +2150,7 @@ export class FortniteSprites {
     }
 
     private async renderOverviewImage(families: SpriteFamily[], state: SpriteBrowserState): Promise<Buffer> {
-        const cacheKey = `overview:${this.renderUiFingerprint}:${this._data?.fetchedAt}:${state.variantFilter || "all"}:${state.rarityFilter || "all"}:${state.searchQuery || ""}`;
+        const cacheKey = `overview:${this.renderUiFingerprint}:${this._data?.fetchedAt}:${state.seasonFilter || "current"}:${state.variantFilter || "all"}:${state.rarityFilter || "all"}:${state.searchQuery || ""}`;
         return this.getOrRenderImage(cacheKey, async () => {
             const displayFamilies = this.getDisplayFamilies(families);
             await this.prewarmSpriteImages(displayFamilies.flatMap(family => family.variants.map(variant => variant.imageUrl)));
@@ -2097,6 +2165,7 @@ export class FortniteSprites {
             const width = 2100;
             const height = Math.max(1300, 520 + Math.max(renderFamilies.length, 1) * 92);
             const tags = [
+                (state.seasonFilter || "current") === "all" ? "All seasons" : "Current season",
                 state.searchQuery ? `Search: "${state.searchQuery}"` : null,
                 state.variantFilter && state.variantFilter !== "all" ? this.variantLabel(state.variantFilter) : null,
                 state.rarityFilter && state.rarityFilter !== "all" ? this.titleCase(state.rarityFilter) : null
@@ -2767,6 +2836,7 @@ export class FortniteSprites {
 
     private describeOverviewState(state: SpriteBrowserState) {
         const parts = [
+            (state.seasonFilter || "current") === "all" ? "All seasons" : "Current season",
             state.searchQuery ? `Results for "${state.searchQuery}"` : null,
             state.variantFilter && state.variantFilter !== "all" ? `${this.variantEmoji(state.variantFilter)} ${this.variantLabel(state.variantFilter)} variants` : null,
             state.rarityFilter && state.rarityFilter !== "all" ? `${this.rarityEmoji(state.rarityFilter)} ${this.titleCase(state.rarityFilter)} rarity` : null
@@ -2776,7 +2846,8 @@ export class FortniteSprites {
     }
 
     private stateFromQuickFilter(value: string): SpriteBrowserState {
-        if (value === "all") return {};
+        if (value === "all" || value === "season:current") return { seasonFilter: "current" };
+        if (value === "season:all") return { seasonFilter: "all" };
         if (value.startsWith("variant:")) return { variantFilter: value.replace("variant:", "") as SpriteVariantName };
         if (value.startsWith("rarity:")) return { rarityFilter: value.replace("rarity:", "") as SpriteRarity };
         return {};
