@@ -308,7 +308,7 @@ export class FortniteSprites {
                                 const localImage = localImages.get(`${family.key}:${variant.id}:${variant.name}:${variant.variant}`.toLowerCase());
                                 if (!localImage || localImage.startsWith("http")) return variant;
                                 const localPath = path.resolve(archiveDir, localImage);
-                                return localPath.startsWith(`${path.resolve(archiveDir)}${path.sep}`)
+                                return localPath.startsWith(`${path.resolve(archiveDir)}${path.sep}`) && fs.existsSync(localPath)
                                     ? { ...variant, imageUrl: localPath }
                                     : variant;
                             })
@@ -1293,6 +1293,13 @@ export class FortniteSprites {
             .filter(family => family.variants.length > 0);
     }
 
+    private getSeasonScopedFamilies(seasonFilter: string): SpriteFamily[] {
+        if (!this._data) return [];
+        return this.getDisplayFamilies(this._data.families)
+            .map(family => this.filterFamilyBySeason(family, seasonFilter))
+            .filter((family): family is SpriteFamily => Boolean(family));
+    }
+
     private buildFooterText(editedAt?: string) {
         const fetchedAt = this._data?.fetchedAt ? new Date(this._data.fetchedAt).toLocaleString("en-US", { timeZone: "America/New_York" }) : "unknown";
         const seasonText = this._data?.seasonContext?.displayName ? `${this._data.seasonContext.displayName} | ` : "";
@@ -1341,7 +1348,7 @@ export class FortniteSprites {
         return {
             embeds: [embed],
             files: [attachment],
-            components: this.generateFamilyComponents(displayFamily, ownerId)
+            components: this.generateFamilyComponents(displayFamily, ownerId, state)
         };
     }
 
@@ -1362,12 +1369,13 @@ export class FortniteSprites {
         return {
             embeds: [embed],
             files: [attachment],
-            components: this.generateDetailComponents(this.filterFamilyBySeason(family, state.seasonFilter || "current") || family, variant, ownerId)
+            components: this.generateDetailComponents(this.filterFamilyBySeason(family, state.seasonFilter || "current") || family, variant, ownerId, state)
         };
     }
     private generateOverviewComponents(state: SpriteBrowserState, ownerId: string) {
         const ownerSuffix = `|${ownerId}`;
-        const families = this.getFilteredFamilies({ ...state, familyKey: undefined });
+        const seasonFilter = state.seasonFilter || "current";
+        const families = this.getSeasonScopedFamilies(seasonFilter);
         const selectedFamily = state.familyKey && families.some(f => f.key === state.familyKey) ? state.familyKey : undefined;
         const familyPage = state.familyPage || 0;
         const familiesPerPage = 25;
@@ -1389,7 +1397,6 @@ export class FortniteSprites {
 
         const variantFilter = state.variantFilter || "all";
         const rarityFilter = state.rarityFilter || "all";
-        const seasonFilter = state.seasonFilter || "current";
         const activeQuickFilter = seasonFilter === "all" && variantFilter === "all" && rarityFilter === "all"
             ? "all"
             : rarityFilter !== "all"
@@ -1402,9 +1409,10 @@ export class FortniteSprites {
                 .setCustomId(`fn_sprites_quick_filter${ownerSuffix}`)
                 .setPlaceholder("🔎 Choose a view")
                 .addOptions([
-                    { label: "🧚 All sprites", description: "Reset filters and show the full sprite list", value: "all", default: activeQuickFilter === "all" },
-                    { label: "🆕 Current-season sprites", description: "Show sprites from the active Fortnite season", value: "season:current", default: activeQuickFilter === "season:current" },
-                    ...this.getVariantNames().slice(0, 8).map(variant => ({
+                    seasonFilter === "all"
+                        ? { label: "🧚 All sprites", description: "Reset filters and show the full recorded catalog", value: "all", default: activeQuickFilter === "all" }
+                        : { label: `🧚 All ${this.describeSeasonFilter(seasonFilter)} sprites`, description: "Clear variant and rarity filters within this season", value: "filters:clear", default: variantFilter === "all" && rarityFilter === "all" },
+                    ...this.getVariantNames(families).slice(0, 8).map(variant => ({
                         label: `${this.variantEmoji(variant)} ${this.variantLabel(variant)} variants`,
                         description: `Show every ${this.variantLabel(variant)} variant`,
                         value: `variant:${variant}`,
@@ -1451,11 +1459,12 @@ export class FortniteSprites {
         return rows;
     }
 
-    private generateFamilyComponents(family: SpriteFamily, ownerId: string) {
+    private generateFamilyComponents(family: SpriteFamily, ownerId: string, state: SpriteBrowserState = {}) {
         const ownerSuffix = `|${ownerId}`;
-        const currentIndex = this._data?.families.findIndex(f => f.key === family.key) ?? -1;
-        const prev = currentIndex > 0 ? this._data!.families[currentIndex - 1] : null;
-        const next = this._data && currentIndex < this._data.families.length - 1 ? this._data.families[currentIndex + 1] : null;
+        const scopedFamilies = this.getSeasonScopedFamilies(state.seasonFilter || "current");
+        const currentIndex = scopedFamilies.findIndex(candidate => candidate.key === family.key);
+        const prev = currentIndex > 0 ? scopedFamilies[currentIndex - 1] : null;
+        const next = currentIndex >= 0 && currentIndex < scopedFamilies.length - 1 ? scopedFamilies[currentIndex + 1] : null;
         const variantRows = this.generateVariantComponents(family, ownerId);
         const navRow = new MessageActionRow().addComponents(
             new MessageButton().setCustomId(`fn_sprites_family_${prev?.key || family.key}${ownerSuffix}`).setLabel("⬅️ Family").setStyle("SECONDARY").setDisabled(!prev),
@@ -1466,7 +1475,7 @@ export class FortniteSprites {
         return [...variantRows, navRow];
     }
 
-    private generateDetailComponents(family: SpriteFamily, selectedVariant: SpriteVariant, ownerId: string) {
+    private generateDetailComponents(family: SpriteFamily, selectedVariant: SpriteVariant, ownerId: string, state: SpriteBrowserState = {}) {
         const ownerSuffix = `|${ownerId}`;
         const variantRows = this.generateVariantComponents(family, ownerId, selectedVariant.id);
         const navRow = new MessageActionRow().addComponents(
@@ -3242,6 +3251,7 @@ export class FortniteSprites {
 
     private stateFromQuickFilter(value: string): SpriteBrowserState {
         if (value === "all") return { seasonFilter: "all", variantFilter: "all", rarityFilter: "all", searchQuery: undefined, familyKey: undefined };
+        if (value === "filters:clear") return { variantFilter: "all", rarityFilter: "all", searchQuery: undefined, familyKey: undefined };
         if (value === "season:current") return { seasonFilter: "current", variantFilter: "all", rarityFilter: "all", searchQuery: undefined, familyKey: undefined };
         if (value === "season:all") return { seasonFilter: "all" };
         if (value.startsWith("variant:")) return { variantFilter: value.replace("variant:", "") as SpriteVariantName };
@@ -3423,7 +3433,8 @@ export class FortniteSprites {
         let view: SpriteViewState | null = null;
         if (rawId === "fn_sprites_family_select") {
             const familyKey = i.values[0];
-            const family = this.findFamily(familyKey);
+            const sourceFamily = this.findFamily(familyKey);
+            const family = sourceFamily ? this.filterFamilyBySeason(sourceFamily, currentState.seasonFilter || "current") : undefined;
             let targetVariant: SpriteVariant | undefined;
             
             if (currentState.variantFilter || currentState.rarityFilter) {
@@ -3442,16 +3453,27 @@ export class FortniteSprites {
             }
         } else if (rawId.startsWith("fn_sprites_variant_select_")) {
             const id = parseInt(i.values[0], 10);
-            const match = this.findVariant(id);
-            if (!match) return i.reply({ content: "Sprite variant not found.", ephemeral: true });
-            view = { kind: "detail", familyKey: match.family.key, variantId: match.variant.id, state: currentState };
-            response = await this.generateDetailResponse(match.family, match.variant, responseOwnerId, i.user, displayName, undefined, currentState);
+            const familyKey = rawId.replace("fn_sprites_variant_select_", "");
+            const sourceFamily = this.findFamily(familyKey);
+            const family = sourceFamily ? this.filterFamilyBySeason(sourceFamily, currentState.seasonFilter || "current") : undefined;
+            const variant = family?.variants.find(candidate => candidate.id === id);
+            if (!family || !variant) return i.editReply({ content: "That sprite variant is not available in the selected season.", components: [] });
+            view = { kind: "detail", familyKey: family.key, variantId: variant.id, state: currentState };
+            response = await this.generateDetailResponse(family, variant, responseOwnerId, i.user, displayName, undefined, currentState);
         } else if (rawId === "fn_sprites_quick_filter") {
             const state = { ...currentState, ...this.stateFromQuickFilter(i.values[0]), familyPage: 0 };
             view = { kind: "overview", state };
             response = await this.generateOverviewResponse(state, responseOwnerId, i.user, displayName);
         } else if (rawId === "fn_sprites_season_filter") {
-            const state = { ...currentState, seasonFilter: this.normalizeSeasonFilter(i.values[0]), familyPage: 0 };
+            const state = {
+                ...currentState,
+                seasonFilter: this.normalizeSeasonFilter(i.values[0]),
+                variantFilter: "all" as const,
+                rarityFilter: "all" as const,
+                searchQuery: undefined,
+                familyKey: undefined,
+                familyPage: 0
+            };
             view = { kind: "overview", state };
             response = await this.generateOverviewResponse(state, responseOwnerId, i.user, displayName);
         } else if (rawId === "fn_sprites_variant_filter") {
@@ -3533,7 +3555,8 @@ export class FortniteSprites {
             response = await this.generateOverviewResponse(state, responseOwnerId, i.user, displayName);
         } else if (rawId.startsWith("fn_sprites_family_")) {
             const familyKey = rawId.replace("fn_sprites_family_", "");
-            const family = this.findFamily(familyKey);
+            const sourceFamily = this.findFamily(familyKey);
+            const family = sourceFamily ? this.filterFamilyBySeason(sourceFamily, currentState.seasonFilter || "current") : undefined;
             let targetVariant: SpriteVariant | undefined;
             
             if (familyKey !== currentFamilyKey && (currentState.variantFilter || currentState.rarityFilter)) {
@@ -3552,35 +3575,40 @@ export class FortniteSprites {
             }
         } else if (rawId.startsWith("fn_sprites_variant_")) {
             const id = parseInt(rawId.replace("fn_sprites_variant_", ""), 10);
-            const match = this.findVariant(id);
-            if (!match) {
+            const sourceFamily = currentFamilyKey ? this.findFamily(currentFamilyKey) : undefined;
+            const family = sourceFamily ? this.filterFamilyBySeason(sourceFamily, currentState.seasonFilter || "current") : undefined;
+            const variant = family?.variants.find(candidate => candidate.id === id);
+            if (!family || !variant) {
                 if (isOriginalUser) return i.followUp({ content: "Sprite variant not found.", ephemeral: true });
                 return i.editReply({ content: "Sprite variant not found.", components: [] });
             }
-            view = { kind: "detail", familyKey: match.family.key, variantId: match.variant.id, state: currentState };
-            response = await this.generateDetailResponse(match.family, match.variant, responseOwnerId, i.user, displayName, undefined, currentState);
+            view = { kind: "detail", familyKey: family.key, variantId: variant.id, state: currentState };
+            response = await this.generateDetailResponse(family, variant, responseOwnerId, i.user, displayName, undefined, currentState);
         } else if (rawId === "fn_sprites_quick_rarest") {
-            const filteredVariants = this.getFilteredFamilies(currentState).flatMap(family => family.variants);
+            const filteredFamilies = this.getFilteredFamilies(currentState);
+            const filteredVariants = filteredFamilies.flatMap(family => family.variants);
             const variant = this.findRarestVariant(filteredVariants);
-            const match = this.findVariant(variant?.id);
-            if (match) {
-                view = { kind: "detail", familyKey: match.family.key, variantId: match.variant.id, state: currentState };
-                response = await this.generateDetailResponse(match.family, match.variant, responseOwnerId, i.user, displayName, undefined, currentState);
+            const family = variant ? filteredFamilies.find(candidate => candidate.variants.includes(variant)) : undefined;
+            if (family && variant) {
+                view = { kind: "detail", familyKey: family.key, variantId: variant.id, state: currentState };
+                response = await this.generateDetailResponse(family, variant, responseOwnerId, i.user, displayName, undefined, currentState);
             }
         } else if (rawId === "fn_sprites_quick_cost") {
-            const variant = this.getFilteredFamilies(currentState).flatMap(family => family.variants).sort((a, b) => b.summonCost - a.summonCost)[0];
-            const match = this.findVariant(variant?.id);
-            if (match) {
-                view = { kind: "detail", familyKey: match.family.key, variantId: match.variant.id, state: currentState };
-                response = await this.generateDetailResponse(match.family, match.variant, responseOwnerId, i.user, displayName, undefined, currentState);
+            const filteredFamilies = this.getFilteredFamilies(currentState);
+            const variant = filteredFamilies.flatMap(family => family.variants).sort((a, b) => b.summonCost - a.summonCost)[0];
+            const family = variant ? filteredFamilies.find(candidate => candidate.variants.includes(variant)) : undefined;
+            if (family && variant) {
+                view = { kind: "detail", familyKey: family.key, variantId: variant.id, state: currentState };
+                response = await this.generateDetailResponse(family, variant, responseOwnerId, i.user, displayName, undefined, currentState);
             }
         } else if (rawId === "fn_sprites_quick_random") {
-            const variants = this.getFilteredFamilies(currentState).flatMap(family => family.variants);
+            const filteredFamilies = this.getFilteredFamilies(currentState);
+            const variants = filteredFamilies.flatMap(family => family.variants);
             const variant = variants[Math.floor(Math.random() * variants.length)];
-            const match = this.findVariant(variant?.id);
-            if (match) {
-                view = { kind: "detail", familyKey: match.family.key, variantId: match.variant.id, state: currentState };
-                response = await this.generateDetailResponse(match.family, match.variant, responseOwnerId, i.user, displayName, undefined, currentState);
+            const family = variant ? filteredFamilies.find(candidate => candidate.variants.includes(variant)) : undefined;
+            if (family && variant) {
+                view = { kind: "detail", familyKey: family.key, variantId: variant.id, state: currentState };
+                response = await this.generateDetailResponse(family, variant, responseOwnerId, i.user, displayName, undefined, currentState);
             }
         }
 
