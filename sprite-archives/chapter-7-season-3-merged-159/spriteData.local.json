@@ -1,0 +1,3471 @@
+{
+  "fetchedAt": "2026-08-13T17:29:21.860Z",
+  "totalSprites": 159,
+  "totalLevels": 117,
+  "listedVariantIds": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
+    20,
+    21,
+    22,
+    23,
+    24,
+    25,
+    26,
+    27,
+    28,
+    29,
+    30,
+    31,
+    32,
+    33,
+    34,
+    35,
+    36,
+    37,
+    38,
+    39,
+    40,
+    41,
+    42,
+    43,
+    44,
+    45,
+    46,
+    47,
+    48,
+    49,
+    50,
+    51,
+    52,
+    53,
+    54,
+    55,
+    56,
+    57,
+    58,
+    59,
+    60,
+    61,
+    62,
+    63,
+    64,
+    65,
+    66,
+    67,
+    68,
+    69,
+    70,
+    71,
+    72,
+    73,
+    74,
+    75,
+    76,
+    77,
+    78,
+    79,
+    80,
+    81,
+    82,
+    84,
+    86,
+    87,
+    89,
+    90,
+    99,
+    106,
+    111,
+    112,
+    113,
+    116,
+    126,
+    128,
+    129,
+    130,
+    138,
+    139,
+    140,
+    141,
+    142,
+    145,
+    146,
+    148,
+    149,
+    150,
+    151,
+    152,
+    153,
+    154,
+    155,
+    156,
+    157,
+    158,
+    159,
+    160
+  ],
+  "families": [
+    {
+      "key": "water",
+      "displayName": "Water",
+      "effectSummary": "Replenish shields while standing in water!",
+      "levelScaling": "Increases in power at each Level Up: 2 Shield -> 3 Shield -> 4 Shield -> 5 Shield -> 6 Shield per tick",
+      "location": "Spotted near rivers and beaches",
+      "variants": [
+        {
+          "id": 1,
+          "name": "Water",
+          "rarity": "rare",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "assets/1-water.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Base",
+          "summonCost": 100,
+          "effectText": "Replenish shields while standing in water!",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 2,
+          "name": "Gummy Water",
+          "rarity": "special",
+          "chancePercent": 0.53,
+          "chanceLabel": "0.53%",
+          "starter": false,
+          "imageUrl": "assets/2-gummy-water.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0.53,
+              "label": "0.53%"
+            }
+          },
+          "variant": "Candy",
+          "summonCost": 2700,
+          "effectText": "Replenish shields while standing in water!",
+          "specialEffectText": "Gain 20% more Sprite Dust upon Extraction",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 3,
+          "name": "Galaxy Water",
+          "rarity": "special",
+          "chancePercent": 0.43,
+          "chanceLabel": "0.43%",
+          "starter": false,
+          "imageUrl": "assets/3-galaxy-water.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0.43,
+              "label": "0.43%"
+            }
+          },
+          "variant": "Galaxy",
+          "summonCost": 2700,
+          "effectText": "Replenish shields while standing in water!",
+          "specialEffectText": "Gain 30% more Ammo whenever picked up in the world",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 4,
+          "name": "Gold Water",
+          "rarity": "special",
+          "chancePercent": 0.53,
+          "chanceLabel": "0.53%",
+          "starter": false,
+          "imageUrl": "assets/4-gold-water.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0.53,
+              "label": "0.53%"
+            }
+          },
+          "variant": "Gold",
+          "summonCost": 2700,
+          "effectText": "Replenish shields while standing in water!",
+          "specialEffectText": "Gain 3x bonus XP from eliminations",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 43,
+          "name": "Holofoil Water",
+          "rarity": "special",
+          "chancePercent": 0.53,
+          "chanceLabel": "0.53%",
+          "starter": false,
+          "imageUrl": "assets/43-holofoil-water.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0.53,
+              "label": "0.53%"
+            }
+          },
+          "variant": "Holofoil",
+          "summonCost": 2700,
+          "effectText": "Replenish shields while standing in water!",
+          "specialEffectText": "5% chance for your squad to find rare Sprite Variants from looting chests",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 76,
+          "name": "Gem Water",
+          "rarity": "special",
+          "chancePercent": 0.37,
+          "chanceLabel": "0.37%",
+          "starter": false,
+          "imageUrl": "assets/76-gem-water.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0.37,
+              "label": "0.37%"
+            }
+          },
+          "variant": "Gem",
+          "summonCost": 2700,
+          "effectText": "Replenish shields while standing in water!",
+          "specialEffectText": "Take 30% less Fall damage",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 83,
+          "name": "Cube Water",
+          "rarity": "special",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "assets/83-cube-water.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Cube",
+          "summonCost": 0,
+          "effectText": "Replenish shields while standing in water!",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 84,
+          "name": "Quack Water",
+          "rarity": "special",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "assets/84-quack-water.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Quack",
+          "summonCost": 2700,
+          "effectText": "Replenish shields while standing in water!",
+          "detailStatus": "complete"
+        }
+      ]
+    },
+    {
+      "key": "earth",
+      "displayName": "Earth",
+      "effectSummary": "You have a chance to find additional rare items when opening chests.",
+      "levelScaling": "Chance increases at each Level Up: 10% -> 12.5% -> 15% -> 17.5% -> 20% chance to find additional rare loot",
+      "location": "Found wandering around forests and wooded regions",
+      "variants": [
+        {
+          "id": 5,
+          "name": "Earth",
+          "rarity": "rare",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "assets/5-earth.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Base",
+          "summonCost": 100,
+          "effectText": "You have a chance to find additional rare items when opening chests.",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 6,
+          "name": "Gummy Earth",
+          "rarity": "special",
+          "chancePercent": 0.53,
+          "chanceLabel": "0.53%",
+          "starter": false,
+          "imageUrl": "assets/6-gummy-earth.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0.53,
+              "label": "0.53%"
+            }
+          },
+          "variant": "Candy",
+          "summonCost": 2700,
+          "effectText": "You have a chance to find additional rare items when opening chests.",
+          "specialEffectText": "Gain 20% more Sprite Dust upon Extraction",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 7,
+          "name": "Galaxy Earth",
+          "rarity": "special",
+          "chancePercent": 0.43,
+          "chanceLabel": "0.43%",
+          "starter": false,
+          "imageUrl": "assets/7-galaxy-earth.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0.43,
+              "label": "0.43%"
+            }
+          },
+          "variant": "Galaxy",
+          "summonCost": 2700,
+          "effectText": "You have a chance to find additional rare items when opening chests.",
+          "specialEffectText": "Gain 30% more Ammo whenever picked up in the world",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 8,
+          "name": "Gold Earth",
+          "rarity": "special",
+          "chancePercent": 0.53,
+          "chanceLabel": "0.53%",
+          "starter": false,
+          "imageUrl": "assets/8-gold-earth.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0.53,
+              "label": "0.53%"
+            }
+          },
+          "variant": "Gold",
+          "summonCost": 2700,
+          "effectText": "You have a chance to find additional rare items when opening chests.",
+          "specialEffectText": "Gain 3x bonus XP from eliminations",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 45,
+          "name": "Gem Earth",
+          "rarity": "special",
+          "chancePercent": 0.37,
+          "chanceLabel": "0.37%",
+          "starter": false,
+          "imageUrl": "assets/45-gem-earth.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0.37,
+              "label": "0.37%"
+            }
+          },
+          "variant": "Gem",
+          "summonCost": 2700,
+          "effectText": "You have a chance to find additional rare items when opening chests.",
+          "specialEffectText": "Take 30% less Fall damage",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 85,
+          "name": "Holofoil Earth",
+          "rarity": "special",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "assets/85-holofoil-earth.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Holofoil",
+          "summonCost": 0,
+          "effectText": "You have a chance to find additional rare items when opening chests.",
+          "specialEffectText": "5% chance for your squad to find rare Sprite Variants from looting chests",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 86,
+          "name": "Cube Earth",
+          "rarity": "special",
+          "chancePercent": 0.21,
+          "chanceLabel": "0.21%",
+          "starter": false,
+          "imageUrl": "assets/86-cube-earth.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0.21,
+              "label": "0.21%"
+            }
+          },
+          "variant": "Cube",
+          "summonCost": 2700,
+          "effectText": "You have a chance to find additional rare items when opening chests.",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 87,
+          "name": "Quack Earth",
+          "rarity": "special",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "assets/87-quack-earth.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Quack",
+          "summonCost": 2700,
+          "effectText": "You have a chance to find additional rare items when opening chests.",
+          "detailStatus": "complete"
+        }
+      ]
+    },
+    {
+      "key": "fire",
+      "displayName": "Fire",
+      "effectSummary": "Creates a fiery burst when you deal enough damage to an enemy!",
+      "levelScaling": "Required damage decreases at each Level Up: 150 Damage -> 125 Damage -> 100 Damage -> 75 Damage -> 50 Damage to trigger",
+      "location": "Located near urban areas",
+      "variants": [
+        {
+          "id": 9,
+          "name": "Fire",
+          "rarity": "rare",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "assets/9-fire.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Base",
+          "summonCost": 100,
+          "effectText": "Creates a fiery burst when you deal enough damage to an enemy!",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 10,
+          "name": "Gummy Fire",
+          "rarity": "special",
+          "chancePercent": 0.53,
+          "chanceLabel": "0.53%",
+          "starter": false,
+          "imageUrl": "assets/10-gummy-fire.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0.53,
+              "label": "0.53%"
+            }
+          },
+          "variant": "Candy",
+          "summonCost": 2700,
+          "effectText": "Creates a fiery burst when you deal enough damage to an enemy!",
+          "specialEffectText": "Gain 20% more Sprite Dust upon Extraction",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 11,
+          "name": "Galaxy Fire",
+          "rarity": "special",
+          "chancePercent": 0.43,
+          "chanceLabel": "0.43%",
+          "starter": false,
+          "imageUrl": "assets/11-galaxy-fire.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0.43,
+              "label": "0.43%"
+            }
+          },
+          "variant": "Galaxy",
+          "summonCost": 2700,
+          "effectText": "Creates a fiery burst when you deal enough damage to an enemy!",
+          "specialEffectText": "Gain 30% more Ammo whenever picked up in the world",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 12,
+          "name": "Gold Fire",
+          "rarity": "special",
+          "chancePercent": 0.53,
+          "chanceLabel": "0.53%",
+          "starter": false,
+          "imageUrl": "assets/12-gold-fire.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0.53,
+              "label": "0.53%"
+            }
+          },
+          "variant": "Gold",
+          "summonCost": 2700,
+          "effectText": "Creates a fiery burst when you deal enough damage to an enemy!",
+          "specialEffectText": "Gain 3x bonus XP from eliminations",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 46,
+          "name": "Holofoil Fire",
+          "rarity": "special",
+          "chancePercent": 0.53,
+          "chanceLabel": "0.53%",
+          "starter": false,
+          "imageUrl": "assets/46-holofoil-fire.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0.53,
+              "label": "0.53%"
+            }
+          },
+          "variant": "Holofoil",
+          "summonCost": 2700,
+          "effectText": "Creates a fiery burst when you deal enough damage to an enemy!",
+          "specialEffectText": "5% chance for your squad to find rare Sprite Variants from looting chests",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 88,
+          "name": "Gem Fire",
+          "rarity": "special",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "assets/88-gem-fire.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Gem",
+          "summonCost": 0,
+          "effectText": "Creates a fiery burst when you deal enough damage to an enemy!",
+          "specialEffectText": "Take 30% less Fall damage",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 89,
+          "name": "Cube Fire",
+          "rarity": "special",
+          "chancePercent": 0.21,
+          "chanceLabel": "0.21%",
+          "starter": false,
+          "imageUrl": "assets/89-cube-fire.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0.21,
+              "label": "0.21%"
+            }
+          },
+          "variant": "Cube",
+          "summonCost": 2700,
+          "effectText": "Creates a fiery burst when you deal enough damage to an enemy!",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 90,
+          "name": "Quack Fire",
+          "rarity": "special",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "assets/90-quack-fire.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Quack",
+          "summonCost": 2700,
+          "effectText": "Creates a fiery burst when you deal enough damage to an enemy!",
+          "detailStatus": "complete"
+        }
+      ]
+    },
+    {
+      "key": "duck",
+      "displayName": "Duck",
+      "effectSummary": "Emoting or Jamming replenishes shields.",
+      "levelScaling": "Increases in power at each Level Up: 2 Shield -> 3 Shield -> 4 Shield -> 6 Shield -> 8 Shield per tick",
+      "location": "Found in the vault of a certain business mogul",
+      "variants": [
+        {
+          "id": 13,
+          "name": "Duck",
+          "rarity": "epic",
+          "chancePercent": 6.48,
+          "chanceLabel": "6.48%",
+          "starter": false,
+          "imageUrl": "assets/13-duck.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 6.48,
+              "label": "6.48%"
+            }
+          },
+          "variant": "Base",
+          "summonCost": 2700,
+          "effectText": "Emoting or Jamming replenishes shields.",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 14,
+          "name": "Gummy Duck",
+          "rarity": "special",
+          "chancePercent": 0.37,
+          "chanceLabel": "0.37%",
+          "starter": false,
+          "imageUrl": "assets/14-gummy-duck.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0.37,
+              "label": "0.37%"
+            }
+          },
+          "variant": "Candy",
+          "summonCost": 4000,
+          "effectText": "Emoting or Jamming replenishes shields.",
+          "specialEffectText": "Gain 20% more Sprite Dust upon Extraction",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 15,
+          "name": "Galaxy Duck",
+          "rarity": "special",
+          "chancePercent": 0.25,
+          "chanceLabel": "0.25%",
+          "starter": false,
+          "imageUrl": "assets/15-galaxy-duck.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0.25,
+              "label": "0.25%"
+            }
+          },
+          "variant": "Galaxy",
+          "summonCost": 4000,
+          "effectText": "Emoting or Jamming replenishes shields.",
+          "specialEffectText": "Gain 30% more Ammo whenever picked up in the world",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 16,
+          "name": "Gold Duck",
+          "rarity": "special",
+          "chancePercent": 0.62,
+          "chanceLabel": "0.62%",
+          "starter": false,
+          "imageUrl": "assets/16-gold-duck.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0.62,
+              "label": "0.62%"
+            }
+          },
+          "variant": "Gold",
+          "summonCost": 4000,
+          "effectText": "Emoting or Jamming replenishes shields.",
+          "specialEffectText": "Gain 3x bonus XP from eliminations",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 44,
+          "name": "Gem Duck",
+          "rarity": "special",
+          "chancePercent": 0.1,
+          "chanceLabel": "0.1%",
+          "starter": false,
+          "imageUrl": "assets/44-gem-duck.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0.1,
+              "label": "0.1%"
+            }
+          },
+          "variant": "Gem",
+          "summonCost": 4000,
+          "effectText": "Emoting or Jamming replenishes shields.",
+          "specialEffectText": "Take 30% less Fall damage",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 91,
+          "name": "Holofoil Duck",
+          "rarity": "special",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "assets/91-holofoil-duck.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Holofoil",
+          "summonCost": 0,
+          "effectText": "Emoting or Jamming replenishes shields.",
+          "specialEffectText": "5% chance for your squad to find rare Sprite Variants from looting chests",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 92,
+          "name": "Cube Duck",
+          "rarity": "special",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "assets/92-cube-duck.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Cube",
+          "summonCost": 0,
+          "effectText": "Emoting or Jamming replenishes shields.",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 93,
+          "name": "Quack Duck",
+          "rarity": "special",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "assets/93-quack-duck.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Quack",
+          "summonCost": 0,
+          "effectText": "Emoting or Jamming replenishes shields.",
+          "detailStatus": "complete"
+        }
+      ]
+    },
+    {
+      "key": "ghost",
+      "displayName": "Ghost",
+      "effectSummary": "Grants cloak for a duration upon reloading.",
+      "levelScaling": "Increases in duration at each Level Up: 3 Seconds -> 3.5 Seconds -> 4 Seconds -> 4.5 Seconds -> 5 Seconds",
+      "location": "Found in the world at nighttime",
+      "variants": [
+        {
+          "id": 17,
+          "name": "Ghost",
+          "rarity": "epic",
+          "chancePercent": 5.25,
+          "chanceLabel": "5.25%",
+          "starter": false,
+          "imageUrl": "assets/17-ghost.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 5.25,
+              "label": "5.25%"
+            }
+          },
+          "variant": "Base",
+          "summonCost": 2700,
+          "effectText": "Grants cloak for a duration upon reloading.",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 18,
+          "name": "Gummy Ghost",
+          "rarity": "special",
+          "chancePercent": 0.37,
+          "chanceLabel": "0.37%",
+          "starter": false,
+          "imageUrl": "assets/18-gummy-ghost.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0.37,
+              "label": "0.37%"
+            }
+          },
+          "variant": "Candy",
+          "summonCost": 4000,
+          "effectText": "Grants cloak for a duration upon reloading.",
+          "specialEffectText": "Gain 20% more Sprite Dust upon Extraction",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 19,
+          "name": "Galaxy Ghost",
+          "rarity": "special",
+          "chancePercent": 0.25,
+          "chanceLabel": "0.25%",
+          "starter": false,
+          "imageUrl": "assets/19-galaxy-ghost.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0.25,
+              "label": "0.25%"
+            }
+          },
+          "variant": "Galaxy",
+          "summonCost": 4000,
+          "effectText": "Grants cloak for a duration upon reloading.",
+          "specialEffectText": "Gain 30% more Ammo whenever picked up in the world",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 20,
+          "name": "Gold Ghost",
+          "rarity": "special",
+          "chancePercent": 0.62,
+          "chanceLabel": "0.62%",
+          "starter": false,
+          "imageUrl": "assets/20-gold-ghost.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0.62,
+              "label": "0.62%"
+            }
+          },
+          "variant": "Gold",
+          "summonCost": 4000,
+          "effectText": "Grants cloak for a duration upon reloading.",
+          "specialEffectText": "Gain 3x bonus XP from eliminations",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 48,
+          "name": "Holofoil Ghost",
+          "rarity": "special",
+          "chancePercent": 1.23,
+          "chanceLabel": "1.23%",
+          "starter": false,
+          "imageUrl": "assets/48-holofoil-ghost.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 1.23,
+              "label": "1.23%"
+            }
+          },
+          "variant": "Holofoil",
+          "summonCost": 4000,
+          "effectText": "Grants cloak for a duration upon reloading.",
+          "specialEffectText": "5% chance for your squad to find rare Sprite Variants from looting chests",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 94,
+          "name": "Gem Ghost",
+          "rarity": "special",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "assets/94-gem-ghost.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Gem",
+          "summonCost": 0,
+          "effectText": "Grants cloak for a duration upon reloading.",
+          "specialEffectText": "Take 30% less Fall damage",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 95,
+          "name": "Cube Ghost",
+          "rarity": "special",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "assets/95-cube-ghost.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Cube",
+          "summonCost": 0,
+          "effectText": "Grants cloak for a duration upon reloading.",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 96,
+          "name": "Quack Ghost",
+          "rarity": "special",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "assets/96-quack-ghost.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Quack",
+          "summonCost": 0,
+          "effectText": "Grants cloak for a duration upon reloading.",
+          "detailStatus": "complete"
+        }
+      ]
+    },
+    {
+      "key": "dream",
+      "displayName": "Dream",
+      "effectSummary": "Grants a random item at each level, exploding with legendary loot at Max Level.",
+      "levelScaling": "Loot value increases at each Level Up!",
+      "location": "Sometimes found sleeping in the storage crates",
+      "variants": [
+        {
+          "id": 21,
+          "name": "Dream",
+          "rarity": "legendary",
+          "chancePercent": 4.45,
+          "chanceLabel": "4.45%",
+          "starter": false,
+          "imageUrl": "assets/21-dream.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 4.45,
+              "label": "4.45%"
+            }
+          },
+          "variant": "Base",
+          "summonCost": 4500,
+          "effectText": "Grants a random item at each level, exploding with legendary loot at Max Level.",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 22,
+          "name": "Gummy Dream",
+          "rarity": "special",
+          "chancePercent": 0.26,
+          "chanceLabel": "0.26%",
+          "starter": false,
+          "imageUrl": "assets/22-gummy-dream.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0.26,
+              "label": "0.26%"
+            }
+          },
+          "variant": "Candy",
+          "summonCost": 6750,
+          "effectText": "Grants a random item at each level, exploding with legendary loot at Max Level.",
+          "specialEffectText": "Gain 20% more Sprite Dust upon Extraction",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 23,
+          "name": "Galaxy Dream",
+          "rarity": "special",
+          "chancePercent": 0.17,
+          "chanceLabel": "0.17%",
+          "starter": false,
+          "imageUrl": "assets/23-galaxy-dream.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0.17,
+              "label": "0.17%"
+            }
+          },
+          "variant": "Galaxy",
+          "summonCost": 6750,
+          "effectText": "Grants a random item at each level, exploding with legendary loot at Max Level.",
+          "specialEffectText": "Gain 30% more Ammo whenever picked up in the world",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 24,
+          "name": "Gold Dream",
+          "rarity": "special",
+          "chancePercent": 0.43,
+          "chanceLabel": "0.43%",
+          "starter": false,
+          "imageUrl": "assets/24-gold-dream.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0.43,
+              "label": "0.43%"
+            }
+          },
+          "variant": "Gold",
+          "summonCost": 6750,
+          "effectText": "Grants a random item at each level, exploding with legendary loot at Max Level.",
+          "specialEffectText": "Gain 3x bonus XP from eliminations",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 97,
+          "name": "Gem Dream",
+          "rarity": "special",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "assets/97-gem-dream.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Gem",
+          "summonCost": 0,
+          "effectText": "Grants a random item at each level, exploding with legendary loot at Max Level.",
+          "specialEffectText": "Take 30% less Fall damage",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 98,
+          "name": "Holofoil Dream",
+          "rarity": "special",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "assets/98-holofoil-dream.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Holofoil",
+          "summonCost": 0,
+          "effectText": "Grants a random item at each level, exploding with legendary loot at Max Level.",
+          "specialEffectText": "5% chance for your squad to find rare Sprite Variants from looting chests",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 99,
+          "name": "Cube Dream",
+          "rarity": "special",
+          "chancePercent": 0.04,
+          "chanceLabel": "0.04%",
+          "starter": false,
+          "imageUrl": "assets/99-cube-dream.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0.04,
+              "label": "0.04%"
+            }
+          },
+          "variant": "Cube",
+          "summonCost": 6750,
+          "effectText": "Grants a random item at each level, exploding with legendary loot at Max Level.",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 100,
+          "name": "Quack Dream",
+          "rarity": "special",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "assets/100-quack-dream.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Quack",
+          "summonCost": 0,
+          "effectText": "Grants a random item at each level, exploding with legendary loot at Max Level.",
+          "detailStatus": "complete"
+        }
+      ]
+    },
+    {
+      "key": "punk",
+      "displayName": "Punk",
+      "effectSummary": "Possibly nothing... or infinitely something",
+      "levelScaling": "No level scaling available.",
+      "location": "Found rarely in Sprite Chests",
+      "variants": [
+        {
+          "id": 25,
+          "name": "Punk",
+          "rarity": "legendary",
+          "chancePercent": 4.45,
+          "chanceLabel": "4.45%",
+          "starter": false,
+          "imageUrl": "assets/25-punk.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 4.45,
+              "label": "4.45%"
+            }
+          },
+          "variant": "Base",
+          "summonCost": 4500,
+          "effectText": "Possibly nothing... or infinitely something",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 26,
+          "name": "Gummy Punk",
+          "rarity": "special",
+          "chancePercent": 0.26,
+          "chanceLabel": "0.26%",
+          "starter": false,
+          "imageUrl": "assets/26-gummy-punk.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0.26,
+              "label": "0.26%"
+            }
+          },
+          "variant": "Candy",
+          "summonCost": 6750,
+          "effectText": "Possibly nothing... or infinitely something",
+          "specialEffectText": "Gain 20% more Sprite Dust upon Extraction",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 27,
+          "name": "Galaxy Punk",
+          "rarity": "special",
+          "chancePercent": 0.17,
+          "chanceLabel": "0.17%",
+          "starter": false,
+          "imageUrl": "assets/27-galaxy-punk.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0.17,
+              "label": "0.17%"
+            }
+          },
+          "variant": "Galaxy",
+          "summonCost": 6750,
+          "effectText": "Possibly nothing... or infinitely something",
+          "specialEffectText": "Gain 30% more Ammo whenever picked up in the world",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 28,
+          "name": "Gold Punk",
+          "rarity": "special",
+          "chancePercent": 0.43,
+          "chanceLabel": "0.43%",
+          "starter": false,
+          "imageUrl": "assets/28-gold-punk.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0.43,
+              "label": "0.43%"
+            }
+          },
+          "variant": "Gold",
+          "summonCost": 6750,
+          "effectText": "Possibly nothing... or infinitely something",
+          "specialEffectText": "Gain 3x bonus XP from eliminations",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 104,
+          "name": "Gem Punk",
+          "rarity": "special",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "assets/104-gem-punk.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Gem",
+          "summonCost": 0,
+          "effectText": "Possibly nothing... or infinitely something",
+          "specialEffectText": "Take 30% less Fall damage",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 105,
+          "name": "Holofoil Punk",
+          "rarity": "special",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "assets/105-holofoil-punk.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Holofoil",
+          "summonCost": 0,
+          "effectText": "Possibly nothing... or infinitely something",
+          "specialEffectText": "5% chance for your squad to find rare Sprite Variants from looting chests",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 106,
+          "name": "Cube Punk",
+          "rarity": "special",
+          "chancePercent": 0.04,
+          "chanceLabel": "0.04%",
+          "starter": false,
+          "imageUrl": "assets/106-cube-punk.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0.04,
+              "label": "0.04%"
+            }
+          },
+          "variant": "Cube",
+          "summonCost": 6750,
+          "effectText": "Possibly nothing... or infinitely something",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 107,
+          "name": "Quack Punk",
+          "rarity": "special",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "assets/107-quack-punk.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Quack",
+          "summonCost": 0,
+          "effectText": "Possibly nothing... or infinitely something",
+          "detailStatus": "complete"
+        }
+      ]
+    },
+    {
+      "key": "king",
+      "displayName": "King",
+      "effectSummary": "Your Pickaxe deals more damage.",
+      "levelScaling": "Increases in damage at each Level Up: 30 -> 40 -> 60 -> 80 -> 120 bonus damage",
+      "location": "Found rarely in Sprite Chests",
+      "variants": [
+        {
+          "id": 29,
+          "name": "King",
+          "rarity": "epic",
+          "chancePercent": 5.25,
+          "chanceLabel": "5.25%",
+          "starter": false,
+          "imageUrl": "assets/29-king.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 5.25,
+              "label": "5.25%"
+            }
+          },
+          "variant": "Base",
+          "summonCost": 2700,
+          "effectText": "Your Pickaxe deals more damage.",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 30,
+          "name": "Gummy King",
+          "rarity": "special",
+          "chancePercent": 0.37,
+          "chanceLabel": "0.37%",
+          "starter": false,
+          "imageUrl": "assets/30-gummy-king.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0.37,
+              "label": "0.37%"
+            }
+          },
+          "variant": "Candy",
+          "summonCost": 4000,
+          "effectText": "Your Pickaxe deals more damage.",
+          "specialEffectText": "Gain 20% more Sprite Dust upon Extraction",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 31,
+          "name": "Galaxy King",
+          "rarity": "special",
+          "chancePercent": 0.25,
+          "chanceLabel": "0.25%",
+          "starter": false,
+          "imageUrl": "assets/31-galaxy-king.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0.25,
+              "label": "0.25%"
+            }
+          },
+          "variant": "Galaxy",
+          "summonCost": 4000,
+          "effectText": "Your Pickaxe deals more damage.",
+          "specialEffectText": "Gain 30% more Ammo whenever picked up in the world",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 32,
+          "name": "Gold King",
+          "rarity": "special",
+          "chancePercent": 0.62,
+          "chanceLabel": "0.62%",
+          "starter": false,
+          "imageUrl": "assets/32-gold-king.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0.62,
+              "label": "0.62%"
+            }
+          },
+          "variant": "Gold",
+          "summonCost": 4000,
+          "effectText": "Your Pickaxe deals more damage.",
+          "specialEffectText": "Gain 3x bonus XP from eliminations",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 73,
+          "name": "Holofoil King",
+          "rarity": "special",
+          "chancePercent": 1.23,
+          "chanceLabel": "1.23%",
+          "starter": false,
+          "imageUrl": "assets/73-holofoil-king.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 1.23,
+              "label": "1.23%"
+            }
+          },
+          "variant": "Holofoil",
+          "summonCost": 4000,
+          "effectText": "Your Pickaxe deals more damage.",
+          "specialEffectText": "5% chance for your squad to find rare Sprite Variants from looting chests",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 108,
+          "name": "Gem King",
+          "rarity": "special",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "assets/108-gem-king.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Gem",
+          "summonCost": 0,
+          "effectText": "Your Pickaxe deals more damage.",
+          "specialEffectText": "Take 30% less Fall damage",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 109,
+          "name": "Cube King",
+          "rarity": "special",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "assets/109-cube-king.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Cube",
+          "summonCost": 0,
+          "effectText": "Your Pickaxe deals more damage.",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 110,
+          "name": "Quack King",
+          "rarity": "special",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "assets/110-quack-king.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Quack",
+          "summonCost": 0,
+          "effectText": "Your Pickaxe deals more damage.",
+          "detailStatus": "complete"
+        }
+      ]
+    },
+    {
+      "key": "zero-point",
+      "displayName": "Zero Point",
+      "effectSummary": "Spawn a Shield Bubble Jr. when you use a healing item on yourself (excluding splashes and grenades).",
+      "levelScaling": "Increases in duration at each Level Up: 6 Seconds -> 7 Seconds -> 8 Seconds -> 9 Seconds -> 10 Seconds",
+      "location": "Found rarely in Sprite Chests",
+      "variants": [
+        {
+          "id": 33,
+          "name": "Zero Point",
+          "rarity": "mythic",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "assets/33-zero-point.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Base",
+          "summonCost": 6750,
+          "effectText": "Spawn a Shield Bubble Jr. when you use a healing item on yourself (excluding splashes and grenades).",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 34,
+          "name": "Gummy Zero Point",
+          "rarity": "special",
+          "chancePercent": 0.000085,
+          "chanceLabel": "0.000085%",
+          "starter": false,
+          "imageUrl": "assets/34-gummy-zero-point.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0.000085,
+              "label": "0.000085%"
+            }
+          },
+          "variant": "Candy",
+          "summonCost": 10000,
+          "effectText": "Spawn a Shield Bubble Jr. when you use a healing item on yourself (excluding splashes and grenades).",
+          "specialEffectText": "Gain 20% more Sprite Dust upon Extraction",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 35,
+          "name": "Galaxy Zero Point",
+          "rarity": "special",
+          "chancePercent": 0.000056,
+          "chanceLabel": "0.000056%",
+          "starter": false,
+          "imageUrl": "assets/35-galaxy-zero-point.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0.000056,
+              "label": "0.000056%"
+            }
+          },
+          "variant": "Galaxy",
+          "summonCost": 10000,
+          "effectText": "Spawn a Shield Bubble Jr. when you use a healing item on yourself (excluding splashes and grenades).",
+          "specialEffectText": "Gain 30% more Ammo whenever picked up in the world",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 36,
+          "name": "Gold Zero Point",
+          "rarity": "special",
+          "chancePercent": 0.00014,
+          "chanceLabel": "0.00014%",
+          "starter": false,
+          "imageUrl": "assets/36-gold-zero-point.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0.00014,
+              "label": "0.00014%"
+            }
+          },
+          "variant": "Gold",
+          "summonCost": 10000,
+          "effectText": "Spawn a Shield Bubble Jr. when you use a healing item on yourself (excluding splashes and grenades).",
+          "specialEffectText": "Gain 3x bonus XP from eliminations",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 82,
+          "name": "Gem Zero Point",
+          "rarity": "special",
+          "chancePercent": 0.00001,
+          "chanceLabel": "0.00001%",
+          "starter": false,
+          "imageUrl": "assets/82-gem-zero-point.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0.00001,
+              "label": "0.00001%"
+            }
+          },
+          "variant": "Gem",
+          "summonCost": 10000,
+          "effectText": "Spawn a Shield Bubble Jr. when you use a healing item on yourself (excluding splashes and grenades).",
+          "specialEffectText": "Take 30% less Fall damage",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 111,
+          "name": "Holofoil Zero Point",
+          "rarity": "special",
+          "chancePercent": 0.00028,
+          "chanceLabel": "0.00028%",
+          "starter": false,
+          "imageUrl": "assets/111-holofoil-zero-point.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0.00028,
+              "label": "0.00028%"
+            }
+          },
+          "variant": "Holofoil",
+          "summonCost": 10000,
+          "effectText": "Spawn a Shield Bubble Jr. when you use a healing item on yourself (excluding splashes and grenades).",
+          "specialEffectText": "5% chance for your squad to find rare Sprite Variants from looting chests",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 112,
+          "name": "Cube Zero Point",
+          "rarity": "special",
+          "chancePercent": 0.000014,
+          "chanceLabel": "0.000014%",
+          "starter": false,
+          "imageUrl": "assets/112-cube-zero-point.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0.000014,
+              "label": "0.000014%"
+            }
+          },
+          "variant": "Cube",
+          "summonCost": 10000,
+          "effectText": "Spawn a Shield Bubble Jr. when you use a healing item on yourself (excluding splashes and grenades).",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 113,
+          "name": "Quack Zero Point",
+          "rarity": "special",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "assets/113-quack-zero-point.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Quack",
+          "summonCost": 10000,
+          "effectText": "Spawn a Shield Bubble Jr. when you use a healing item on yourself (excluding splashes and grenades).",
+          "detailStatus": "complete"
+        }
+      ]
+    },
+    {
+      "key": "demon",
+      "displayName": "Demon",
+      "effectSummary": "Siphon some health and shields when you eliminate an opponent.",
+      "levelScaling": "Increases in power at each Level Up: 10 Healing -> 15 Healing -> 20 Healing -> 25 Healing -> 30 Healing per elimination",
+      "location": "Found rarely in Sprite Chests",
+      "variants": [
+        {
+          "id": 37,
+          "name": "Demon",
+          "rarity": "epic",
+          "chancePercent": 6.48,
+          "chanceLabel": "6.48%",
+          "starter": false,
+          "imageUrl": "assets/37-demon.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 6.48,
+              "label": "6.48%"
+            }
+          },
+          "variant": "Base",
+          "summonCost": 2700,
+          "effectText": "Siphon some health and shields when you eliminate an opponent.",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 38,
+          "name": "Gummy Demon",
+          "rarity": "special",
+          "chancePercent": 0.37,
+          "chanceLabel": "0.37%",
+          "starter": false,
+          "imageUrl": "assets/38-gummy-demon.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0.37,
+              "label": "0.37%"
+            }
+          },
+          "variant": "Candy",
+          "summonCost": 4000,
+          "effectText": "Siphon some health and shields when you eliminate an opponent.",
+          "specialEffectText": "Gain 20% more Sprite Dust upon Extraction",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 39,
+          "name": "Galaxy Demon",
+          "rarity": "special",
+          "chancePercent": 0.25,
+          "chanceLabel": "0.25%",
+          "starter": false,
+          "imageUrl": "assets/39-galaxy-demon.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0.25,
+              "label": "0.25%"
+            }
+          },
+          "variant": "Galaxy",
+          "summonCost": 4000,
+          "effectText": "Siphon some health and shields when you eliminate an opponent.",
+          "specialEffectText": "Gain 30% more Ammo whenever picked up in the world",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 40,
+          "name": "Gold Demon",
+          "rarity": "special",
+          "chancePercent": 0.62,
+          "chanceLabel": "0.62%",
+          "starter": false,
+          "imageUrl": "assets/40-gold-demon.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0.62,
+              "label": "0.62%"
+            }
+          },
+          "variant": "Gold",
+          "summonCost": 4000,
+          "effectText": "Siphon some health and shields when you eliminate an opponent.",
+          "specialEffectText": "Gain 3x bonus XP from eliminations",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 47,
+          "name": "Gem Demon",
+          "rarity": "special",
+          "chancePercent": 0.1,
+          "chanceLabel": "0.1%",
+          "starter": false,
+          "imageUrl": "assets/47-gem-demon.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0.1,
+              "label": "0.1%"
+            }
+          },
+          "variant": "Gem",
+          "summonCost": 4000,
+          "effectText": "Siphon some health and shields when you eliminate an opponent.",
+          "specialEffectText": "Take 30% less Fall damage",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 101,
+          "name": "Holofoil Demon",
+          "rarity": "special",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "assets/101-holofoil-demon.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Holofoil",
+          "summonCost": 0,
+          "effectText": "Siphon some health and shields when you eliminate an opponent.",
+          "specialEffectText": "5% chance for your squad to find rare Sprite Variants from looting chests",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 102,
+          "name": "Cube Demon",
+          "rarity": "special",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "assets/102-cube-demon.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Cube",
+          "summonCost": 0,
+          "effectText": "Siphon some health and shields when you eliminate an opponent.",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 103,
+          "name": "Quack Demon",
+          "rarity": "special",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "assets/103-quack-demon.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Quack",
+          "summonCost": 0,
+          "effectText": "Siphon some health and shields when you eliminate an opponent.",
+          "detailStatus": "complete"
+        }
+      ]
+    },
+    {
+      "key": "burnt-peanut",
+      "displayName": "Burnt Peanut",
+      "effectSummary": "Goop! When eliminating players, you may find more loot. Sometimes mythic!",
+      "levelScaling": "Chance increases at each Level Up: 20% -> 30% -> 40% -> 50% -> 60% chance to find more loot. 10% chance to find Mythic at Max Level!",
+      "location": "Found in Relic Chests",
+      "variants": [
+        {
+          "id": 41,
+          "name": "Burnt Peanut",
+          "rarity": "mythic",
+          "chancePercent": 2.14,
+          "chanceLabel": "2.14%",
+          "starter": false,
+          "imageUrl": "assets/41-burnt-peanut.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 2.14,
+              "label": "2.14%"
+            }
+          },
+          "variant": "Base",
+          "summonCost": 6750,
+          "effectText": "Goop! When eliminating players, you may find more loot. Sometimes mythic!",
+          "detailStatus": "complete"
+        }
+      ]
+    },
+    {
+      "key": "boss",
+      "displayName": "Boss",
+      "effectSummary": "Grants an increase to your max HP and Shield.",
+      "levelScaling": "Increases at each Level Up: 5 HP/Shield -> 10 HP/Shield -> 15 HP/Shield -> 20 HP/Shield -> 25 HP/Shield",
+      "location": "Claimed from defeating a powerful adversary",
+      "variants": [
+        {
+          "id": 49,
+          "name": "Boss",
+          "rarity": "legendary",
+          "chancePercent": 4.45,
+          "chanceLabel": "4.45%",
+          "starter": false,
+          "imageUrl": "assets/49-boss.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 4.45,
+              "label": "4.45%"
+            }
+          },
+          "variant": "Base",
+          "summonCost": 4500,
+          "effectText": "Grants an increase to your max HP and Shield.",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 50,
+          "name": "Gold Boss",
+          "rarity": "special",
+          "chancePercent": 0.43,
+          "chanceLabel": "0.43%",
+          "starter": false,
+          "imageUrl": "assets/50-gold-boss.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0.43,
+              "label": "0.43%"
+            }
+          },
+          "variant": "Gold",
+          "summonCost": 6750,
+          "effectText": "Grants an increase to your max HP and Shield.",
+          "specialEffectText": "Gain 3x bonus XP from eliminations",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 51,
+          "name": "Gummy Boss",
+          "rarity": "special",
+          "chancePercent": 0.26,
+          "chanceLabel": "0.26%",
+          "starter": false,
+          "imageUrl": "assets/51-gummy-boss.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0.26,
+              "label": "0.26%"
+            }
+          },
+          "variant": "Candy",
+          "summonCost": 6750,
+          "effectText": "Grants an increase to your max HP and Shield.",
+          "specialEffectText": "Gain 20% more Sprite Dust upon Extraction",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 52,
+          "name": "Galaxy Boss",
+          "rarity": "special",
+          "chancePercent": 0.17,
+          "chanceLabel": "0.17%",
+          "starter": false,
+          "imageUrl": "assets/52-galaxy-boss.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0.17,
+              "label": "0.17%"
+            }
+          },
+          "variant": "Galaxy",
+          "summonCost": 6750,
+          "effectText": "Grants an increase to your max HP and Shield.",
+          "specialEffectText": "Gain 30% more Ammo whenever picked up in the world",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 124,
+          "name": "Gem Boss",
+          "rarity": "special",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "assets/124-gem-boss.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Gem",
+          "summonCost": 0,
+          "effectText": "Grants an increase to your max HP and Shield.",
+          "specialEffectText": "Take 30% less Fall damage",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 125,
+          "name": "Holofoil Boss",
+          "rarity": "special",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "assets/125-holofoil-boss.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Holofoil",
+          "summonCost": 0,
+          "effectText": "Grants an increase to your max HP and Shield.",
+          "specialEffectText": "5% chance for your squad to find rare Sprite Variants from looting chests",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 126,
+          "name": "Cube Boss",
+          "rarity": "special",
+          "chancePercent": 0.04,
+          "chanceLabel": "0.04%",
+          "starter": false,
+          "imageUrl": "assets/126-cube-boss.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0.04,
+              "label": "0.04%"
+            }
+          },
+          "variant": "Cube",
+          "summonCost": 6750,
+          "effectText": "Grants an increase to your max HP and Shield.",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 127,
+          "name": "Quack Boss",
+          "rarity": "special",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "assets/127-quack-boss.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Quack",
+          "summonCost": 0,
+          "effectText": "Grants an increase to your max HP and Shield.",
+          "detailStatus": "complete"
+        }
+      ]
+    },
+    {
+      "key": "seven",
+      "displayName": "Seven",
+      "effectSummary": "Enemy player foot trails are visible in the world for your Squad.",
+      "levelScaling": "Duration increases at each Level Up: 10 Seconds -> 15 Seconds -> 20 Seconds -> 25 Seconds -> 30 Second foot trails",
+      "location": "Spotted near high and mountainous areas",
+      "variants": [
+        {
+          "id": 53,
+          "name": "Seven",
+          "rarity": "legendary",
+          "chancePercent": 3.63,
+          "chanceLabel": "3.63%",
+          "starter": false,
+          "imageUrl": "assets/53-seven.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 3.63,
+              "label": "3.63%"
+            }
+          },
+          "variant": "Base",
+          "summonCost": 4500,
+          "effectText": "Enemy player foot trails are visible in the world for your Squad.",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 54,
+          "name": "Gummy Seven",
+          "rarity": "special",
+          "chancePercent": 0.26,
+          "chanceLabel": "0.26%",
+          "starter": false,
+          "imageUrl": "assets/54-gummy-seven.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0.26,
+              "label": "0.26%"
+            }
+          },
+          "variant": "Candy",
+          "summonCost": 6750,
+          "effectText": "Enemy player foot trails are visible in the world for your Squad.",
+          "specialEffectText": "Gain 20% more Sprite Dust upon Extraction",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 55,
+          "name": "Galaxy Seven",
+          "rarity": "special",
+          "chancePercent": 0.17,
+          "chanceLabel": "0.17%",
+          "starter": false,
+          "imageUrl": "assets/55-galaxy-seven.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0.17,
+              "label": "0.17%"
+            }
+          },
+          "variant": "Galaxy",
+          "summonCost": 6750,
+          "effectText": "Enemy player foot trails are visible in the world for your Squad.",
+          "specialEffectText": "Gain 30% more Ammo whenever picked up in the world",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 56,
+          "name": "Gold Seven",
+          "rarity": "special",
+          "chancePercent": 0.43,
+          "chanceLabel": "0.43%",
+          "starter": false,
+          "imageUrl": "assets/56-gold-seven.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0.43,
+              "label": "0.43%"
+            }
+          },
+          "variant": "Gold",
+          "summonCost": 6750,
+          "effectText": "Enemy player foot trails are visible in the world for your Squad.",
+          "specialEffectText": "Gain 3x bonus XP from eliminations",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 57,
+          "name": "Holofoil Seven",
+          "rarity": "special",
+          "chancePercent": 0.85,
+          "chanceLabel": "0.85%",
+          "starter": false,
+          "imageUrl": "assets/57-holofoil-seven.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0.85,
+              "label": "0.85%"
+            }
+          },
+          "variant": "Holofoil",
+          "summonCost": 6750,
+          "effectText": "Enemy player foot trails are visible in the world for your Squad.",
+          "specialEffectText": "5% chance for your squad to find rare Sprite Variants from looting chests",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 135,
+          "name": "Gem Seven",
+          "rarity": "special",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "assets/135-gem-seven.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Gem",
+          "summonCost": 0,
+          "effectText": "Enemy player foot trails are visible in the world for your Squad.",
+          "specialEffectText": "Take 30% less Fall damage",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 136,
+          "name": "Cube Seven",
+          "rarity": "special",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "assets/136-cube-seven.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Cube",
+          "summonCost": 0,
+          "effectText": "Enemy player foot trails are visible in the world for your Squad.",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 137,
+          "name": "Quack Seven",
+          "rarity": "special",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "assets/137-quack-seven.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Quack",
+          "summonCost": 0,
+          "effectText": "Enemy player foot trails are visible in the world for your Squad.",
+          "detailStatus": "complete"
+        }
+      ]
+    },
+    {
+      "key": "fishy",
+      "displayName": "Fishy",
+      "effectSummary": "Swim speed greatly increased. Taking damage also briefly increases movement speed.",
+      "levelScaling": "Increases in power at each Level Up: 25% Swim Speed / 10% Movement Speed -> 50% Swim Speed / 20% Movement Speed -> 100% Swim Speed / 30% Movement Speed -> 150% Swim Speed / 40% Movement Speed -> 200% Swim Speed / 50% Movement Speed Bonuses",
+      "location": "Spotted near high and mountainous areas",
+      "variants": [
+        {
+          "id": 58,
+          "name": "Fishy",
+          "rarity": "rare",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "assets/58-fishy.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Base",
+          "summonCost": 1800,
+          "effectText": "Swim speed greatly increased. Taking damage also briefly increases movement speed.",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 59,
+          "name": "Gummy Fishy",
+          "rarity": "special",
+          "chancePercent": 0.53,
+          "chanceLabel": "0.53%",
+          "starter": false,
+          "imageUrl": "assets/59-gummy-fishy.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0.53,
+              "label": "0.53%"
+            }
+          },
+          "variant": "Candy",
+          "summonCost": 2700,
+          "effectText": "Swim speed greatly increased. Taking damage also briefly increases movement speed.",
+          "specialEffectText": "Gain 20% more Sprite Dust upon Extraction",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 60,
+          "name": "Galaxy Fishy",
+          "rarity": "special",
+          "chancePercent": 0.43,
+          "chanceLabel": "0.43%",
+          "starter": false,
+          "imageUrl": "assets/60-galaxy-fishy.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0.43,
+              "label": "0.43%"
+            }
+          },
+          "variant": "Galaxy",
+          "summonCost": 2700,
+          "effectText": "Swim speed greatly increased. Taking damage also briefly increases movement speed.",
+          "specialEffectText": "Gain 30% more Ammo whenever picked up in the world",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 61,
+          "name": "Gold Fishy",
+          "rarity": "special",
+          "chancePercent": 0.64,
+          "chanceLabel": "0.64%",
+          "starter": false,
+          "imageUrl": "assets/61-gold-fishy.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0.64,
+              "label": "0.64%"
+            }
+          },
+          "variant": "Gold",
+          "summonCost": 2700,
+          "effectText": "Swim speed greatly increased. Taking damage also briefly increases movement speed.",
+          "specialEffectText": "Gain 3x bonus XP from eliminations",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 114,
+          "name": "Gem Fishy",
+          "rarity": "special",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "assets/114-gem-fishy.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Gem",
+          "summonCost": 0,
+          "effectText": "Swim speed greatly increased. Taking damage also briefly increases movement speed.",
+          "specialEffectText": "Take 30% less Fall damage",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 115,
+          "name": "Holofoil Fishy",
+          "rarity": "special",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "assets/115-holofoil-fishy.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Holofoil",
+          "summonCost": 0,
+          "effectText": "Swim speed greatly increased. Taking damage also briefly increases movement speed.",
+          "specialEffectText": "5% chance for your squad to find rare Sprite Variants from looting chests",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 116,
+          "name": "Cube Fishy",
+          "rarity": "special",
+          "chancePercent": 0.21,
+          "chanceLabel": "0.21%",
+          "starter": false,
+          "imageUrl": "assets/116-cube-fishy.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0.21,
+              "label": "0.21%"
+            }
+          },
+          "variant": "Cube",
+          "summonCost": 2700,
+          "effectText": "Swim speed greatly increased. Taking damage also briefly increases movement speed.",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 117,
+          "name": "Quack Fishy",
+          "rarity": "special",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "assets/117-quack-fishy.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Quack",
+          "summonCost": 0,
+          "effectText": "Swim speed greatly increased. Taking damage also briefly increases movement speed.",
+          "detailStatus": "complete"
+        }
+      ]
+    },
+    {
+      "key": "striker",
+      "displayName": "Striker",
+      "effectSummary": "Gain the Overdrive effect when you Mantle, Hurdle, or Wall Scramble.",
+      "levelScaling": "Duration increases at each Level Up: 6 Seconds -> 7 Seconds -> 8 Seconds -> 9 Seconds -> 10 Seconds of Overdrive",
+      "location": "Spotted near high and mountainous areas",
+      "variants": [
+        {
+          "id": 62,
+          "name": "Striker",
+          "rarity": "epic",
+          "chancePercent": 5.25,
+          "chanceLabel": "5.25%",
+          "starter": false,
+          "imageUrl": "assets/62-striker.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 5.25,
+              "label": "5.25%"
+            }
+          },
+          "variant": "Base",
+          "summonCost": 2700,
+          "effectText": "Gain the Overdrive effect when you Mantle, Hurdle, or Wall Scramble.",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 63,
+          "name": "Gummy Striker",
+          "rarity": "special",
+          "chancePercent": 0.37,
+          "chanceLabel": "0.37%",
+          "starter": false,
+          "imageUrl": "assets/63-gummy-striker.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0.37,
+              "label": "0.37%"
+            }
+          },
+          "variant": "Candy",
+          "summonCost": 4000,
+          "effectText": "Gain the Overdrive effect when you Mantle, Hurdle, or Wall Scramble.",
+          "specialEffectText": "Gain 20% more Sprite Dust upon Extraction",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 64,
+          "name": "Galaxy Striker",
+          "rarity": "special",
+          "chancePercent": 0.25,
+          "chanceLabel": "0.25%",
+          "starter": false,
+          "imageUrl": "assets/64-galaxy-striker.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0.25,
+              "label": "0.25%"
+            }
+          },
+          "variant": "Galaxy",
+          "summonCost": 4000,
+          "effectText": "Gain the Overdrive effect when you Mantle, Hurdle, or Wall Scramble.",
+          "specialEffectText": "Gain 30% more Ammo whenever picked up in the world",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 65,
+          "name": "Gold Striker",
+          "rarity": "special",
+          "chancePercent": 0.62,
+          "chanceLabel": "0.62%",
+          "starter": false,
+          "imageUrl": "assets/65-gold-striker.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0.62,
+              "label": "0.62%"
+            }
+          },
+          "variant": "Gold",
+          "summonCost": 4000,
+          "effectText": "Gain the Overdrive effect when you Mantle, Hurdle, or Wall Scramble.",
+          "specialEffectText": "Gain 3x bonus XP from eliminations",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 66,
+          "name": "Holofoil Striker",
+          "rarity": "special",
+          "chancePercent": 1.23,
+          "chanceLabel": "1.23%",
+          "starter": false,
+          "imageUrl": "assets/66-holofoil-striker.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 1.23,
+              "label": "1.23%"
+            }
+          },
+          "variant": "Holofoil",
+          "summonCost": 4000,
+          "effectText": "Gain the Overdrive effect when you Mantle, Hurdle, or Wall Scramble.",
+          "specialEffectText": "5% chance for your squad to find rare Sprite Variants from looting chests",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 118,
+          "name": "Gem Striker",
+          "rarity": "special",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "assets/118-gem-striker.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Gem",
+          "summonCost": 0,
+          "effectText": "Gain the Overdrive effect when you Mantle, Hurdle, or Wall Scramble.",
+          "specialEffectText": "Take 30% less Fall damage",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 119,
+          "name": "Cube Striker",
+          "rarity": "special",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "assets/119-cube-striker.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Cube",
+          "summonCost": 0,
+          "effectText": "Gain the Overdrive effect when you Mantle, Hurdle, or Wall Scramble.",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 120,
+          "name": "Quack Striker",
+          "rarity": "special",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "assets/120-quack-striker.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Quack",
+          "summonCost": 0,
+          "effectText": "Gain the Overdrive effect when you Mantle, Hurdle, or Wall Scramble.",
+          "detailStatus": "complete"
+        }
+      ]
+    },
+    {
+      "key": "aura",
+      "displayName": "Aura",
+      "effectSummary": "Gain a Shock Rock charge when you deal enough damage to enemies!",
+      "levelScaling": "Required damage decreases at each Level Up: 175 Damage -> 150 Damage -> 125 Damage -> 100 Damage -> 75 Damage to trigger",
+      "location": "Spotted near high and mountainous areas",
+      "variants": [
+        {
+          "id": 67,
+          "name": "Aura",
+          "rarity": "epic",
+          "chancePercent": 6.48,
+          "chanceLabel": "6.48%",
+          "starter": false,
+          "imageUrl": "assets/67-aura.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 6.48,
+              "label": "6.48%"
+            }
+          },
+          "variant": "Base",
+          "summonCost": 2700,
+          "effectText": "Gain a Shock Rock charge when you deal enough damage to enemies!",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 68,
+          "name": "Gummy Aura",
+          "rarity": "special",
+          "chancePercent": 0.37,
+          "chanceLabel": "0.37%",
+          "starter": false,
+          "imageUrl": "assets/68-gummy-aura.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0.37,
+              "label": "0.37%"
+            }
+          },
+          "variant": "Candy",
+          "summonCost": 4000,
+          "effectText": "Gain a Shock Rock charge when you deal enough damage to enemies!",
+          "specialEffectText": "Gain 20% more Sprite Dust upon Extraction",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 69,
+          "name": "Galaxy Aura",
+          "rarity": "special",
+          "chancePercent": 0.25,
+          "chanceLabel": "0.25%",
+          "starter": false,
+          "imageUrl": "assets/69-galaxy-aura.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0.25,
+              "label": "0.25%"
+            }
+          },
+          "variant": "Galaxy",
+          "summonCost": 4000,
+          "effectText": "Gain a Shock Rock charge when you deal enough damage to enemies!",
+          "specialEffectText": "Gain 30% more Ammo whenever picked up in the world",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 70,
+          "name": "Gem Aura",
+          "rarity": "special",
+          "chancePercent": 0.08,
+          "chanceLabel": "0.08%",
+          "starter": false,
+          "imageUrl": "assets/70-gem-aura.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0.08,
+              "label": "0.08%"
+            }
+          },
+          "variant": "Gem",
+          "summonCost": 4000,
+          "effectText": "Gain a Shock Rock charge when you deal enough damage to enemies!",
+          "specialEffectText": "Take 30% less Fall damage",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 71,
+          "name": "Gold Aura",
+          "rarity": "special",
+          "chancePercent": 0.62,
+          "chanceLabel": "0.62%",
+          "starter": false,
+          "imageUrl": "assets/71-gold-aura.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0.62,
+              "label": "0.62%"
+            }
+          },
+          "variant": "Gold",
+          "summonCost": 4000,
+          "effectText": "Gain a Shock Rock charge when you deal enough damage to enemies!",
+          "specialEffectText": "Gain 3x bonus XP from eliminations",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 121,
+          "name": "Holofoil Aura",
+          "rarity": "special",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "assets/121-holofoil-aura.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Holofoil",
+          "summonCost": 0,
+          "effectText": "Gain a Shock Rock charge when you deal enough damage to enemies!",
+          "specialEffectText": "5% chance for your squad to find rare Sprite Variants from looting chests",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 122,
+          "name": "Cube Aura",
+          "rarity": "special",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "assets/122-cube-aura.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Cube",
+          "summonCost": 0,
+          "effectText": "Gain a Shock Rock charge when you deal enough damage to enemies!",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 123,
+          "name": "Quack Aura",
+          "rarity": "special",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "assets/123-quack-aura.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Quack",
+          "summonCost": 0,
+          "effectText": "Gain a Shock Rock charge when you deal enough damage to enemies!",
+          "detailStatus": "complete"
+        }
+      ]
+    },
+    {
+      "key": "air",
+      "displayName": "Air",
+      "effectSummary": "Increases sprinting speed and jump height.",
+      "levelScaling": "Also nullifies fall damage.",
+      "location": "Spotted near high and mountainous areas",
+      "variants": [
+        {
+          "id": 42,
+          "name": "Gold Air",
+          "rarity": "special",
+          "chancePercent": 0.53,
+          "chanceLabel": "0.53%",
+          "starter": false,
+          "imageUrl": "assets/42-gold-air.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0.53,
+              "label": "0.53%"
+            }
+          },
+          "variant": "Gold",
+          "summonCost": 2700,
+          "effectText": "Increases sprinting speed and jump height.",
+          "specialEffectText": "Gain 3x bonus XP from eliminations",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 72,
+          "name": "Gummy Air",
+          "rarity": "special",
+          "chancePercent": 0.53,
+          "chanceLabel": "0.53%",
+          "starter": false,
+          "imageUrl": "assets/72-gummy-air.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0.53,
+              "label": "0.53%"
+            }
+          },
+          "variant": "Candy",
+          "summonCost": 2700,
+          "effectText": "Increases sprinting speed and jump height.",
+          "specialEffectText": "Gain 20% more Sprite Dust upon Extraction",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 74,
+          "name": "Air",
+          "rarity": "rare",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "assets/74-air.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Base",
+          "summonCost": 1800,
+          "effectText": "Increases sprinting speed and jump height.",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 75,
+          "name": "Galaxy Air",
+          "rarity": "special",
+          "chancePercent": 0.43,
+          "chanceLabel": "0.43%",
+          "starter": false,
+          "imageUrl": "assets/75-galaxy-air.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0.43,
+              "label": "0.43%"
+            }
+          },
+          "variant": "Galaxy",
+          "summonCost": 2700,
+          "effectText": "Increases sprinting speed and jump height.",
+          "specialEffectText": "Gain 30% more Ammo whenever picked up in the world",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 77,
+          "name": "Holofoil Air",
+          "rarity": "special",
+          "chancePercent": 0.53,
+          "chanceLabel": "0.53%",
+          "starter": false,
+          "imageUrl": "assets/77-holofoil-air.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0.53,
+              "label": "0.53%"
+            }
+          },
+          "variant": "Holofoil",
+          "summonCost": 2700,
+          "effectText": "Increases sprinting speed and jump height.",
+          "specialEffectText": "5% chance for your squad to find rare Sprite Variants from looting chests",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 132,
+          "name": "Gem Air",
+          "rarity": "special",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "assets/132-gem-air.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Gem",
+          "summonCost": 0,
+          "effectText": "Increases sprinting speed and jump height.",
+          "specialEffectText": "Take 30% less Fall damage",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 133,
+          "name": "Cube Air",
+          "rarity": "special",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "assets/133-cube-air.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Cube",
+          "summonCost": 0,
+          "effectText": "Increases sprinting speed and jump height.",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 134,
+          "name": "Quack Air",
+          "rarity": "special",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "assets/134-quack-air.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Quack",
+          "summonCost": 0,
+          "effectText": "Increases sprinting speed and jump height.",
+          "detailStatus": "complete"
+        }
+      ]
+    },
+    {
+      "key": "grim",
+      "displayName": "Grim",
+      "effectSummary": "Players who attack you are marked for a duration.",
+      "levelScaling": "Increases in duration at each Level Up: 3 Seconds -> 3.5 Seconds -> 4 Seconds -> 4.5 Seconds -> 5 Seconds",
+      "location": "Found rarely in Sprite Chests",
+      "variants": [
+        {
+          "id": 78,
+          "name": "Grim",
+          "rarity": "mythic",
+          "chancePercent": 0.15,
+          "chanceLabel": "0.15%",
+          "starter": false,
+          "imageUrl": "assets/78-grim.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0.15,
+              "label": "0.15%"
+            }
+          },
+          "variant": "Base",
+          "summonCost": 6750,
+          "effectText": "Players who attack you are marked for a duration.",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 79,
+          "name": "Gummy Grim",
+          "rarity": "special",
+          "chancePercent": 0.01,
+          "chanceLabel": "0.01%",
+          "starter": false,
+          "imageUrl": "assets/79-gummy-grim.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0.01,
+              "label": "0.01%"
+            }
+          },
+          "variant": "Candy",
+          "summonCost": 10000,
+          "effectText": "Players who attack you are marked for a duration.",
+          "specialEffectText": "Gain 20% more Sprite Dust upon Extraction",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 80,
+          "name": "Galaxy Grim",
+          "rarity": "special",
+          "chancePercent": 0.01,
+          "chanceLabel": "0.01%",
+          "starter": false,
+          "imageUrl": "assets/80-galaxy-grim.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0.01,
+              "label": "0.01%"
+            }
+          },
+          "variant": "Galaxy",
+          "summonCost": 10000,
+          "effectText": "Players who attack you are marked for a duration.",
+          "specialEffectText": "Gain 30% more Ammo whenever picked up in the world",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 81,
+          "name": "Gold Grim",
+          "rarity": "special",
+          "chancePercent": 0.01,
+          "chanceLabel": "0.01%",
+          "starter": false,
+          "imageUrl": "assets/81-gold-grim.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0.01,
+              "label": "0.01%"
+            }
+          },
+          "variant": "Gold",
+          "summonCost": 10000,
+          "effectText": "Players who attack you are marked for a duration.",
+          "specialEffectText": "Gain 3x bonus XP from eliminations",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 128,
+          "name": "Gem Grim",
+          "rarity": "special",
+          "chancePercent": 0.00099,
+          "chanceLabel": "0.00099%",
+          "starter": false,
+          "imageUrl": "assets/128-gem-grim.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0.00099,
+              "label": "0.00099%"
+            }
+          },
+          "variant": "Gem",
+          "summonCost": 10000,
+          "effectText": "Players who attack you are marked for a duration.",
+          "specialEffectText": "Take 30% less Fall damage",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 129,
+          "name": "Holofoil Grim",
+          "rarity": "special",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "assets/129-holofoil-grim.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Holofoil",
+          "summonCost": 10000,
+          "effectText": "Players who attack you are marked for a duration.",
+          "specialEffectText": "5% chance for your squad to find rare Sprite Variants from looting chests",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 130,
+          "name": "Cube Grim",
+          "rarity": "special",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "assets/130-cube-grim.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Cube",
+          "summonCost": 10000,
+          "effectText": "Players who attack you are marked for a duration.",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 131,
+          "name": "Quack Grim",
+          "rarity": "special",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "assets/131-quack-grim.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Quack",
+          "summonCost": 0,
+          "effectText": "Players who attack you are marked for a duration.",
+          "detailStatus": "complete"
+        }
+      ]
+    },
+    {
+      "key": "john-wick",
+      "displayName": "John Wick",
+      "effectSummary": "Knocking players reveals others nearby.",
+      "levelScaling": "Mark duration increases at each Level Up: 3 Seconds -> 3.5 Seconds -> 4 Seconds -> 4.5 Seconds -> 5 Seconds",
+      "location": "Found rarely in Sprite Chests",
+      "variants": [
+        {
+          "id": 138,
+          "name": "John Wick",
+          "rarity": "mythic",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "assets/138-john-wick.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Base",
+          "summonCost": 6750,
+          "effectText": "Knocking players reveals others nearby.",
+          "detailStatus": "complete"
+        }
+      ]
+    },
+    {
+      "key": "batman",
+      "displayName": "Batman",
+      "effectSummary": "Grants the ability to launch in the air and deploy the Bat Cape!",
+      "levelScaling": "No level scaling available.",
+      "location": "Found rarely in Sprite Chests",
+      "variants": [
+        {
+          "id": 139,
+          "name": "Batman",
+          "rarity": "mythic",
+          "chancePercent": 1.44,
+          "chanceLabel": "1.44%",
+          "starter": false,
+          "imageUrl": "assets/139-batman.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 1.44,
+              "label": "1.44%"
+            }
+          },
+          "variant": "Base",
+          "summonCost": 6750,
+          "effectText": "Grants the ability to launch in the air and deploy the Bat Cape!",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 140,
+          "name": "Gold Batman",
+          "rarity": "special",
+          "chancePercent": 0.17,
+          "chanceLabel": "0.17%",
+          "starter": false,
+          "imageUrl": "assets/140-gold-batman.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0.17,
+              "label": "0.17%"
+            }
+          },
+          "variant": "Gold",
+          "summonCost": 10000,
+          "effectText": "Grants the ability to launch in the air and deploy the Bat Cape!",
+          "specialEffectText": "Gain 3x bonus XP from eliminations",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 141,
+          "name": "Gummy Batman",
+          "rarity": "special",
+          "chancePercent": 0.1,
+          "chanceLabel": "0.1%",
+          "starter": false,
+          "imageUrl": "assets/141-gummy-batman.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0.1,
+              "label": "0.1%"
+            }
+          },
+          "variant": "Candy",
+          "summonCost": 10000,
+          "effectText": "Grants the ability to launch in the air and deploy the Bat Cape!",
+          "specialEffectText": "Gain 20% more Sprite Dust upon Extraction",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 142,
+          "name": "Galaxy Batman",
+          "rarity": "special",
+          "chancePercent": 0.07,
+          "chanceLabel": "0.07%",
+          "starter": false,
+          "imageUrl": "assets/142-galaxy-batman.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0.07,
+              "label": "0.07%"
+            }
+          },
+          "variant": "Galaxy",
+          "summonCost": 10000,
+          "effectText": "Grants the ability to launch in the air and deploy the Bat Cape!",
+          "specialEffectText": "Gain 30% more Ammo whenever picked up in the world",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 143,
+          "name": "Gem Batman",
+          "rarity": "special",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "assets/143-gem-batman.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Gem",
+          "summonCost": 0,
+          "effectText": "",
+          "specialEffectText": "Take 30% less Fall damage",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 145,
+          "name": "Holofoil Batman",
+          "rarity": "special",
+          "chancePercent": 0.34,
+          "chanceLabel": "0.34%",
+          "starter": false,
+          "imageUrl": "assets/145-holofoil-batman.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0.34,
+              "label": "0.34%"
+            }
+          },
+          "variant": "Holofoil",
+          "summonCost": 10000,
+          "effectText": "Grants the ability to launch in the air and deploy the Bat Cape!",
+          "specialEffectText": "5% chance for your squad to find rare Sprite Variants from looting chests",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 146,
+          "name": "Cube Batman",
+          "rarity": "special",
+          "chancePercent": 0.02,
+          "chanceLabel": "0.02%",
+          "starter": false,
+          "imageUrl": "assets/146-cube-batman.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0.02,
+              "label": "0.02%"
+            }
+          },
+          "variant": "Cube",
+          "summonCost": 10000,
+          "effectText": "Grants the ability to launch in the air and deploy the Bat Cape!",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 147,
+          "name": "Quack Batman",
+          "rarity": "special",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "assets/147-quack-batman.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Quack",
+          "summonCost": 0,
+          "effectText": "",
+          "detailStatus": "complete"
+        }
+      ]
+    },
+    {
+      "key": "pollo",
+      "displayName": "Pollo",
+      "effectSummary": "Upon earning an elimination, slowly replenish shield for you and nearby squad members for a duration.",
+      "levelScaling": "Duration increases at each Level Up: 6 Seconds -> 7 Seconds -> 8 Seconds -> 9 Seconds -> 10 Seconds",
+      "location": "Unknown",
+      "variants": [
+        {
+          "id": 148,
+          "name": "Pollo",
+          "rarity": "mythic",
+          "chancePercent": 2.14,
+          "chanceLabel": "2.14%",
+          "starter": false,
+          "imageUrl": "assets/148-pollo.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 2.14,
+              "label": "2.14%"
+            }
+          },
+          "variant": "Base",
+          "summonCost": 6750,
+          "effectText": "Upon earning an elimination, slowly replenish shield for you and nearby squad members for a duration.",
+          "detailStatus": "complete"
+        }
+      ]
+    },
+    {
+      "key": "vini-jr",
+      "displayName": "Vini Jr.",
+      "effectSummary": "Sprinting for a short time makes your slide destructive.",
+      "levelScaling": "Slidekicking enemies increases rate of fire and reload speed.",
+      "location": "Found in Relic Chests",
+      "variants": [
+        {
+          "id": 149,
+          "name": "Vini Jr.",
+          "rarity": "mythic",
+          "chancePercent": 2.14,
+          "chanceLabel": "2.14%",
+          "starter": false,
+          "imageUrl": "assets/149-vini-jr.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 2.14,
+              "label": "2.14%"
+            }
+          },
+          "variant": "Base",
+          "summonCost": 6750,
+          "effectText": "Sprinting for a short time makes your slide destructive.",
+          "detailStatus": "complete"
+        }
+      ]
+    },
+    {
+      "key": "ironmouse",
+      "displayName": "Ironmouse",
+      "effectSummary": "Regenerate health over time when low.",
+      "levelScaling": "While regenerating, gain Cloak and low gravity!",
+      "location": "Found in Relic Chests",
+      "variants": [
+        {
+          "id": 150,
+          "name": "Ironmouse",
+          "rarity": "mythic",
+          "chancePercent": 2.14,
+          "chanceLabel": "2.14%",
+          "starter": false,
+          "imageUrl": "assets/150-ironmouse.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 2.14,
+              "label": "2.14%"
+            }
+          },
+          "variant": "Base",
+          "summonCost": 6750,
+          "effectText": "Regenerate health over time when low.",
+          "detailStatus": "complete"
+        }
+      ]
+    },
+    {
+      "key": "llama",
+      "displayName": "Llama",
+      "effectSummary": "Opening ammo boxes has a chance to grant a weapon upgrade.",
+      "levelScaling": "Chance increases at each Level Up: 5% -> 10% -> 15% -> 17% -> 20%",
+      "location": "Found in Relic Chests",
+      "variants": [
+        {
+          "id": 151,
+          "name": "Llama",
+          "rarity": "legendary",
+          "chancePercent": 4.45,
+          "chanceLabel": "4.45%",
+          "starter": false,
+          "imageUrl": "assets/151-llama.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 4.45,
+              "label": "4.45%"
+            }
+          },
+          "variant": "Base",
+          "summonCost": 4500,
+          "effectText": "Opening ammo boxes has a chance to grant a weapon upgrade.",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 152,
+          "name": "Gold Llama",
+          "rarity": "special",
+          "chancePercent": 0.43,
+          "chanceLabel": "0.43%",
+          "starter": false,
+          "imageUrl": "assets/152-gold-llama.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0.43,
+              "label": "0.43%"
+            }
+          },
+          "variant": "Gold",
+          "summonCost": 6750,
+          "effectText": "Opening ammo boxes has a chance to grant a weapon upgrade.",
+          "specialEffectText": "Gain 3x bonus XP from eliminations",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 153,
+          "name": "Gummy Llama",
+          "rarity": "special",
+          "chancePercent": 0.26,
+          "chanceLabel": "0.26%",
+          "starter": false,
+          "imageUrl": "assets/153-gummy-llama.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0.26,
+              "label": "0.26%"
+            }
+          },
+          "variant": "Candy",
+          "summonCost": 6750,
+          "effectText": "Opening ammo boxes has a chance to grant a weapon upgrade.",
+          "specialEffectText": "Gain 20% more Sprite Dust upon Extraction",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 154,
+          "name": "Galaxy Llama",
+          "rarity": "special",
+          "chancePercent": 0.17,
+          "chanceLabel": "0.17%",
+          "starter": false,
+          "imageUrl": "assets/154-galaxy-llama.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0.17,
+              "label": "0.17%"
+            }
+          },
+          "variant": "Galaxy",
+          "summonCost": 6750,
+          "effectText": "Opening ammo boxes has a chance to grant a weapon upgrade.",
+          "specialEffectText": "Gain 30% more Ammo whenever picked up in the world",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 155,
+          "name": "Gem Llama",
+          "rarity": "special",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "assets/155-gem-llama.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Gem",
+          "summonCost": 6750,
+          "effectText": "Opening ammo boxes has a chance to grant a weapon upgrade.",
+          "specialEffectText": "Take 30% less Fall damage",
+          "detailStatus": "complete"
+        }
+      ]
+    },
+    {
+      "key": "peely",
+      "displayName": "Peely",
+      "effectSummary": "Emits a ping for players with rare sprites nearby, but marks you on the map.",
+      "levelScaling": "Ping radius increases at each Level Up: 40m -> 50m -> 60m -> 70m -> 80m",
+      "location": "Spotted near high and mountainous areas",
+      "variants": [
+        {
+          "id": 156,
+          "name": "Peely",
+          "rarity": "legendary",
+          "chancePercent": 4.62,
+          "chanceLabel": "4.62%",
+          "starter": false,
+          "imageUrl": "assets/156-peely.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 4.62,
+              "label": "4.62%"
+            }
+          },
+          "variant": "Base",
+          "summonCost": 4500,
+          "effectText": "Emits a ping for players with rare sprites nearby, but marks you on the map.",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 157,
+          "name": "Gold Peely",
+          "rarity": "special",
+          "chancePercent": 0.43,
+          "chanceLabel": "0.43%",
+          "starter": false,
+          "imageUrl": "assets/157-gold-peely.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0.43,
+              "label": "0.43%"
+            }
+          },
+          "variant": "Gold",
+          "summonCost": 6750,
+          "effectText": "Emits a ping for players with rare sprites nearby, but marks you on the map.",
+          "specialEffectText": "Gain 3x bonus XP from eliminations",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 158,
+          "name": "Gummy Peely",
+          "rarity": "special",
+          "chancePercent": 0.26,
+          "chanceLabel": "0.26%",
+          "starter": false,
+          "imageUrl": "assets/158-gummy-peely.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0.26,
+              "label": "0.26%"
+            }
+          },
+          "variant": "Candy",
+          "summonCost": 6750,
+          "effectText": "Emits a ping for players with rare sprites nearby, but marks you on the map.",
+          "specialEffectText": "Gain 20% more Sprite Dust upon Extraction",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 159,
+          "name": "Galaxy Peely",
+          "rarity": "special",
+          "chancePercent": 0.17,
+          "chanceLabel": "0.17%",
+          "starter": false,
+          "imageUrl": "assets/159-galaxy-peely.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0.17,
+              "label": "0.17%"
+            }
+          },
+          "variant": "Galaxy",
+          "summonCost": 6750,
+          "effectText": "Emits a ping for players with rare sprites nearby, but marks you on the map.",
+          "specialEffectText": "Gain 30% more Ammo whenever picked up in the world",
+          "detailStatus": "complete"
+        },
+        {
+          "id": 160,
+          "name": "Holofoil Peely",
+          "rarity": "special",
+          "chancePercent": 0.85,
+          "chanceLabel": "0.85%",
+          "starter": false,
+          "imageUrl": "assets/160-holofoil-peely.webp",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0.85,
+              "label": "0.85%"
+            }
+          },
+          "variant": "Holofoil",
+          "summonCost": 6750,
+          "effectText": "Emits a ping for players with rare sprites nearby, but marks you on the map.",
+          "specialEffectText": "5% chance for your squad to find rare Sprite Variants from looting chests",
+          "detailStatus": "complete"
+        }
+      ]
+    }
+  ],
+  "contentFingerprint": "734c2ff530427752c44da80e63657522a3bebf6ce5fc7d86f68fc1e0a44f989f"
+}

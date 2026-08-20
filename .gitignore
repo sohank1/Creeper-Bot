@@ -2,5 +2,10 @@ node_modules
 .env
 dist
 .cache
-sprite-archives/
+# Runtime archives stay on the VPS; the immutable S3 seed is shipped with the bot.
+sprite-archives/*
+!sprite-archives/**/
+!sprite-archives/**/*.json
+sprite-archives/**/assets/*
+!sprite-archives/spriteHistory.json
 assets/fortnite-maps/

@@ -19,6 +19,7 @@ import Fuse from "fuse.js";
 import * as fs from "fs";
 import * as path from "path";
 import * as crypto from "crypto";
+import { fileURLToPath } from "url";
 import type { Browser, Page } from "puppeteer";
 import https from "https";
 import { createCanvas, loadImage } from "@napi-rs/canvas";
@@ -262,12 +263,60 @@ export class FortniteSprites {
                 if (!fs.existsSync(manifestPath)) continue;
                 const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
                 const seasonId = String(manifest?.season?.id || "");
-                const dataFile = String(manifest?.source?.dataFile || "");
-                if (!seasonId || !dataFile) continue;
-                const dataPath = path.resolve(archiveDir, dataFile);
-                if (!dataPath.startsWith(`${path.resolve(archiveDir)}${path.sep}`) || !fs.existsSync(dataPath)) continue;
-                const snapshot = JSON.parse(fs.readFileSync(dataPath, "utf8")) as SpriteDataFile;
-                validateSpriteData(snapshot);
+                if (!seasonId) continue;
+
+                // Prefer the largest complete snapshot in the archive. A merged
+                // archive may keep the live source file in manifest.source while
+                // spriteData.json contains the recovered full catalog.
+                const dataFiles = Array.from(new Set([
+                    String(manifest?.source?.dataFile || ""),
+                    "spriteData.json",
+                    "spriteData.local.json",
+                    "spriteData.bot.json",
+                    "spriteData.live.json"
+                ].filter(Boolean)));
+                const candidates: SpriteDataFile[] = [];
+                for (const dataFile of dataFiles) {
+                    const dataPath = path.resolve(archiveDir, dataFile);
+                    if (!dataPath.startsWith(`${path.resolve(archiveDir)}${path.sep}`) || !fs.existsSync(dataPath)) continue;
+                    try {
+                        const candidate = JSON.parse(fs.readFileSync(dataPath, "utf8")) as SpriteDataFile;
+                        validateSpriteData(candidate);
+                        candidates.push(candidate);
+                    } catch {
+                        // Ignore incomplete/non-catalog files in an archive.
+                    }
+                }
+                const snapshot = candidates.sort((a, b) => b.totalSprites - a.totalSprites)[0];
+                if (!snapshot) continue;
+
+                // Use the archived local image paths when available, so old
+                // cards do not depend on fortnite.gg retaining their URLs.
+                const localDataFile = String(manifest?.localDataFile || "");
+                const localDataPath = localDataFile ? path.resolve(archiveDir, localDataFile) : "";
+                if (localDataPath && localDataPath.startsWith(`${path.resolve(archiveDir)}${path.sep}`) && fs.existsSync(localDataPath)) {
+                    try {
+                        const localSnapshot = JSON.parse(fs.readFileSync(localDataPath, "utf8")) as SpriteDataFile;
+                        validateSpriteData(localSnapshot);
+                        const localImages = new Map(localSnapshot.families.flatMap(family => family.variants.map(variant => [
+                            `${family.key}:${variant.id}:${variant.name}:${variant.variant}`.toLowerCase(),
+                            variant.imageUrl
+                        ] as [string, string])));
+                        snapshot.families = snapshot.families.map(family => ({
+                            ...family,
+                            variants: family.variants.map(variant => {
+                                const localImage = localImages.get(`${family.key}:${variant.id}:${variant.name}:${variant.variant}`.toLowerCase());
+                                if (!localImage || localImage.startsWith("http")) return variant;
+                                const localPath = path.resolve(archiveDir, localImage);
+                                return localPath.startsWith(`${path.resolve(archiveDir)}${path.sep}`)
+                                    ? { ...variant, imageUrl: localPath }
+                                    : variant;
+                            })
+                        }));
+                    } catch {
+                        // Remote image URLs remain a valid fallback.
+                    }
+                }
                 const existing = snapshots.get(seasonId);
                 if (!existing || snapshot.totalSprites > existing.totalSprites) snapshots.set(seasonId, snapshot);
             }
@@ -1341,16 +1390,20 @@ export class FortniteSprites {
         const variantFilter = state.variantFilter || "all";
         const rarityFilter = state.rarityFilter || "all";
         const seasonFilter = state.seasonFilter || "current";
-        const activeQuickFilter = rarityFilter !== "all"
-            ? `rarity:${rarityFilter}`
-            : variantFilter !== "all"
-                ? `variant:${variantFilter}`
-                : `season:${seasonFilter}`;
+        const activeQuickFilter = seasonFilter === "all" && variantFilter === "all" && rarityFilter === "all"
+            ? "all"
+            : rarityFilter !== "all"
+                ? `rarity:${rarityFilter}`
+                : variantFilter !== "all"
+                    ? `variant:${variantFilter}`
+                    : `season:${seasonFilter}`;
         const quickFilterRow = new MessageActionRow().addComponents(
             new MessageSelectMenu()
                 .setCustomId(`fn_sprites_quick_filter${ownerSuffix}`)
                 .setPlaceholder("🔎 Choose a view")
                 .addOptions([
+                    { label: "🧚 All sprites", description: "Reset filters and show the full sprite list", value: "all", default: activeQuickFilter === "all" },
+                    { label: "🆕 Current-season sprites", description: "Show sprites from the active Fortnite season", value: "season:current", default: activeQuickFilter === "season:current" },
                     ...this.getVariantNames().slice(0, 8).map(variant => ({
                         label: `${this.variantEmoji(variant)} ${this.variantLabel(variant)} variants`,
                         description: `Show every ${this.variantLabel(variant)} variant`,
@@ -1749,6 +1802,15 @@ export class FortniteSprites {
 
         const loadPromise = (async () => {
             try {
+                const localPath = imageUrl.startsWith("file://") ? fileURLToPath(imageUrl) : imageUrl;
+                if (path.isAbsolute(localPath)) {
+                    const buffer = await fs.promises.readFile(localPath);
+                    const extension = path.extname(localPath).toLowerCase();
+                    const mime = extension === ".png" ? "image/png" : extension === ".jpg" || extension === ".jpeg" ? "image/jpeg" : "image/webp";
+                    const src = `data:${mime};base64,${buffer.toString("base64")}`;
+                    this.setSpriteAssetCacheEntry(imageUrl, src);
+                    return src;
+                }
                 const diskCached = await this.readSpriteAssetFromDisk(imageUrl);
                 if (diskCached) {
                     this.setSpriteAssetCacheEntry(imageUrl, diskCached);
@@ -3179,7 +3241,8 @@ export class FortniteSprites {
     }
 
     private stateFromQuickFilter(value: string): SpriteBrowserState {
-        if (value === "all" || value === "season:current") return { seasonFilter: "current" };
+        if (value === "all") return { seasonFilter: "all", variantFilter: "all", rarityFilter: "all", searchQuery: undefined, familyKey: undefined };
+        if (value === "season:current") return { seasonFilter: "current", variantFilter: "all", rarityFilter: "all", searchQuery: undefined, familyKey: undefined };
         if (value === "season:all") return { seasonFilter: "all" };
         if (value.startsWith("variant:")) return { variantFilter: value.replace("variant:", "") as SpriteVariantName };
         if (value.startsWith("rarity:")) return { rarityFilter: value.replace("rarity:", "") as SpriteRarity };

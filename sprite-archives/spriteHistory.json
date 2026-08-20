@@ -1,0 +1,2930 @@
+{
+  "schemaVersion": 1,
+  "records": [
+    {
+      "identityKey": "1:water:water:base",
+      "spriteId": 1,
+      "familyKey": "water",
+      "name": "Water",
+      "variant": "Base",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-07-09T13:24:12.204Z",
+          "lastSeenAt": "2026-08-13T17:29:21.860Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "2:water:gummy water:candy",
+      "spriteId": 2,
+      "familyKey": "water",
+      "name": "Gummy Water",
+      "variant": "Candy",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-07-09T13:24:12.204Z",
+          "lastSeenAt": "2026-08-13T17:29:21.860Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "3:water:galaxy water:galaxy",
+      "spriteId": 3,
+      "familyKey": "water",
+      "name": "Galaxy Water",
+      "variant": "Galaxy",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-07-09T13:24:12.204Z",
+          "lastSeenAt": "2026-08-13T17:29:21.860Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "4:water:gold water:gold",
+      "spriteId": 4,
+      "familyKey": "water",
+      "name": "Gold Water",
+      "variant": "Gold",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-07-09T13:24:12.204Z",
+          "lastSeenAt": "2026-08-13T17:29:21.860Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "5:earth:earth:base",
+      "spriteId": 5,
+      "familyKey": "earth",
+      "name": "Earth",
+      "variant": "Base",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-07-09T13:24:12.204Z",
+          "lastSeenAt": "2026-08-13T17:29:21.860Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "6:earth:gummy earth:candy",
+      "spriteId": 6,
+      "familyKey": "earth",
+      "name": "Gummy Earth",
+      "variant": "Candy",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-07-09T13:24:12.204Z",
+          "lastSeenAt": "2026-08-13T17:29:21.860Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "7:earth:galaxy earth:galaxy",
+      "spriteId": 7,
+      "familyKey": "earth",
+      "name": "Galaxy Earth",
+      "variant": "Galaxy",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-07-09T13:24:12.204Z",
+          "lastSeenAt": "2026-08-13T17:29:21.860Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "8:earth:gold earth:gold",
+      "spriteId": 8,
+      "familyKey": "earth",
+      "name": "Gold Earth",
+      "variant": "Gold",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-07-09T13:24:12.204Z",
+          "lastSeenAt": "2026-08-13T17:29:21.860Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "9:fire:fire:base",
+      "spriteId": 9,
+      "familyKey": "fire",
+      "name": "Fire",
+      "variant": "Base",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-07-09T13:24:12.204Z",
+          "lastSeenAt": "2026-08-13T17:29:21.860Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "10:fire:gummy fire:candy",
+      "spriteId": 10,
+      "familyKey": "fire",
+      "name": "Gummy Fire",
+      "variant": "Candy",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-07-09T13:24:12.204Z",
+          "lastSeenAt": "2026-08-13T17:29:21.860Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "11:fire:galaxy fire:galaxy",
+      "spriteId": 11,
+      "familyKey": "fire",
+      "name": "Galaxy Fire",
+      "variant": "Galaxy",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-07-09T13:24:12.204Z",
+          "lastSeenAt": "2026-08-13T17:29:21.860Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "12:fire:gold fire:gold",
+      "spriteId": 12,
+      "familyKey": "fire",
+      "name": "Gold Fire",
+      "variant": "Gold",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-07-09T13:24:12.204Z",
+          "lastSeenAt": "2026-08-13T17:29:21.860Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "13:duck:duck:base",
+      "spriteId": 13,
+      "familyKey": "duck",
+      "name": "Duck",
+      "variant": "Base",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-07-09T13:24:12.204Z",
+          "lastSeenAt": "2026-08-13T17:29:21.860Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "14:duck:gummy duck:candy",
+      "spriteId": 14,
+      "familyKey": "duck",
+      "name": "Gummy Duck",
+      "variant": "Candy",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-07-09T13:24:12.204Z",
+          "lastSeenAt": "2026-08-13T17:29:21.860Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "15:duck:galaxy duck:galaxy",
+      "spriteId": 15,
+      "familyKey": "duck",
+      "name": "Galaxy Duck",
+      "variant": "Galaxy",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-07-09T13:24:12.204Z",
+          "lastSeenAt": "2026-08-13T17:29:21.860Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "16:duck:gold duck:gold",
+      "spriteId": 16,
+      "familyKey": "duck",
+      "name": "Gold Duck",
+      "variant": "Gold",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-07-09T13:24:12.204Z",
+          "lastSeenAt": "2026-08-13T17:29:21.860Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "17:ghost:ghost:base",
+      "spriteId": 17,
+      "familyKey": "ghost",
+      "name": "Ghost",
+      "variant": "Base",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-07-09T13:24:12.204Z",
+          "lastSeenAt": "2026-08-13T17:29:21.860Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "18:ghost:gummy ghost:candy",
+      "spriteId": 18,
+      "familyKey": "ghost",
+      "name": "Gummy Ghost",
+      "variant": "Candy",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-07-09T13:24:12.204Z",
+          "lastSeenAt": "2026-08-13T17:29:21.860Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "19:ghost:galaxy ghost:galaxy",
+      "spriteId": 19,
+      "familyKey": "ghost",
+      "name": "Galaxy Ghost",
+      "variant": "Galaxy",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-07-09T13:24:12.204Z",
+          "lastSeenAt": "2026-08-13T17:29:21.860Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "20:ghost:gold ghost:gold",
+      "spriteId": 20,
+      "familyKey": "ghost",
+      "name": "Gold Ghost",
+      "variant": "Gold",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-07-09T13:24:12.204Z",
+          "lastSeenAt": "2026-08-13T17:29:21.860Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "21:dream:dream:base",
+      "spriteId": 21,
+      "familyKey": "dream",
+      "name": "Dream",
+      "variant": "Base",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-07-09T13:24:12.204Z",
+          "lastSeenAt": "2026-08-13T17:29:21.860Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "22:dream:gummy dream:candy",
+      "spriteId": 22,
+      "familyKey": "dream",
+      "name": "Gummy Dream",
+      "variant": "Candy",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-07-09T13:24:12.204Z",
+          "lastSeenAt": "2026-08-13T17:29:21.860Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "23:dream:galaxy dream:galaxy",
+      "spriteId": 23,
+      "familyKey": "dream",
+      "name": "Galaxy Dream",
+      "variant": "Galaxy",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-07-09T13:24:12.204Z",
+          "lastSeenAt": "2026-08-13T17:29:21.860Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "24:dream:gold dream:gold",
+      "spriteId": 24,
+      "familyKey": "dream",
+      "name": "Gold Dream",
+      "variant": "Gold",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-07-09T13:24:12.204Z",
+          "lastSeenAt": "2026-08-13T17:29:21.860Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "25:punk:punk:base",
+      "spriteId": 25,
+      "familyKey": "punk",
+      "name": "Punk",
+      "variant": "Base",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-07-09T13:24:12.204Z",
+          "lastSeenAt": "2026-08-13T17:29:21.860Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "26:punk:gummy punk:candy",
+      "spriteId": 26,
+      "familyKey": "punk",
+      "name": "Gummy Punk",
+      "variant": "Candy",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-07-09T13:24:12.204Z",
+          "lastSeenAt": "2026-08-13T17:29:21.860Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "27:punk:galaxy punk:galaxy",
+      "spriteId": 27,
+      "familyKey": "punk",
+      "name": "Galaxy Punk",
+      "variant": "Galaxy",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-07-09T13:24:12.204Z",
+          "lastSeenAt": "2026-08-13T17:29:21.860Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "28:punk:gold punk:gold",
+      "spriteId": 28,
+      "familyKey": "punk",
+      "name": "Gold Punk",
+      "variant": "Gold",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-07-09T13:24:12.204Z",
+          "lastSeenAt": "2026-08-13T17:29:21.860Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "29:king:king:base",
+      "spriteId": 29,
+      "familyKey": "king",
+      "name": "King",
+      "variant": "Base",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-07-09T13:24:12.204Z",
+          "lastSeenAt": "2026-08-13T17:29:21.860Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "30:king:gummy king:candy",
+      "spriteId": 30,
+      "familyKey": "king",
+      "name": "Gummy King",
+      "variant": "Candy",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-07-09T13:24:12.204Z",
+          "lastSeenAt": "2026-08-13T17:29:21.860Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "31:king:galaxy king:galaxy",
+      "spriteId": 31,
+      "familyKey": "king",
+      "name": "Galaxy King",
+      "variant": "Galaxy",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-07-09T13:24:12.204Z",
+          "lastSeenAt": "2026-08-13T17:29:21.860Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "32:king:gold king:gold",
+      "spriteId": 32,
+      "familyKey": "king",
+      "name": "Gold King",
+      "variant": "Gold",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-07-09T13:24:12.204Z",
+          "lastSeenAt": "2026-08-13T17:29:21.860Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "33:zero-point:zero point:base",
+      "spriteId": 33,
+      "familyKey": "zero-point",
+      "name": "Zero Point",
+      "variant": "Base",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-07-09T13:24:12.204Z",
+          "lastSeenAt": "2026-08-13T17:29:21.860Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "34:zero-point:gummy zero point:candy",
+      "spriteId": 34,
+      "familyKey": "zero-point",
+      "name": "Gummy Zero Point",
+      "variant": "Candy",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-07-09T13:24:12.204Z",
+          "lastSeenAt": "2026-08-13T17:29:21.860Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "35:zero-point:galaxy zero point:galaxy",
+      "spriteId": 35,
+      "familyKey": "zero-point",
+      "name": "Galaxy Zero Point",
+      "variant": "Galaxy",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-07-09T13:24:12.204Z",
+          "lastSeenAt": "2026-08-13T17:29:21.860Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "36:zero-point:gold zero point:gold",
+      "spriteId": 36,
+      "familyKey": "zero-point",
+      "name": "Gold Zero Point",
+      "variant": "Gold",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-07-09T13:24:12.204Z",
+          "lastSeenAt": "2026-08-13T17:29:21.860Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "37:demon:demon:base",
+      "spriteId": 37,
+      "familyKey": "demon",
+      "name": "Demon",
+      "variant": "Base",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-07-09T13:24:12.204Z",
+          "lastSeenAt": "2026-08-13T17:29:21.860Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "38:demon:gummy demon:candy",
+      "spriteId": 38,
+      "familyKey": "demon",
+      "name": "Gummy Demon",
+      "variant": "Candy",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-07-09T13:24:12.204Z",
+          "lastSeenAt": "2026-08-13T17:29:21.860Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "39:demon:galaxy demon:galaxy",
+      "spriteId": 39,
+      "familyKey": "demon",
+      "name": "Galaxy Demon",
+      "variant": "Galaxy",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-07-09T13:24:12.204Z",
+          "lastSeenAt": "2026-08-13T17:29:21.860Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "40:demon:gold demon:gold",
+      "spriteId": 40,
+      "familyKey": "demon",
+      "name": "Gold Demon",
+      "variant": "Gold",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-07-09T13:24:12.204Z",
+          "lastSeenAt": "2026-08-13T17:29:21.860Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "41:burnt-peanut:burnt peanut:base",
+      "spriteId": 41,
+      "familyKey": "burnt-peanut",
+      "name": "Burnt Peanut",
+      "variant": "Base",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-07-09T13:24:12.204Z",
+          "lastSeenAt": "2026-08-13T17:29:21.860Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "42:air:gold air:gold",
+      "spriteId": 42,
+      "familyKey": "air",
+      "name": "Gold Air",
+      "variant": "Gold",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-07-09T13:24:12.204Z",
+          "lastSeenAt": "2026-08-13T17:29:21.860Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "43:water:holofoil water:holofoil",
+      "spriteId": 43,
+      "familyKey": "water",
+      "name": "Holofoil Water",
+      "variant": "Holofoil",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-07-09T13:24:12.204Z",
+          "lastSeenAt": "2026-08-13T17:29:21.860Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "44:duck:gem duck:gem",
+      "spriteId": 44,
+      "familyKey": "duck",
+      "name": "Gem Duck",
+      "variant": "Gem",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-07-09T13:24:12.204Z",
+          "lastSeenAt": "2026-08-13T17:29:21.860Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "45:earth:gem earth:gem",
+      "spriteId": 45,
+      "familyKey": "earth",
+      "name": "Gem Earth",
+      "variant": "Gem",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-07-09T13:24:12.204Z",
+          "lastSeenAt": "2026-08-13T17:29:21.860Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "46:fire:holofoil fire:holofoil",
+      "spriteId": 46,
+      "familyKey": "fire",
+      "name": "Holofoil Fire",
+      "variant": "Holofoil",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-07-09T13:24:12.204Z",
+          "lastSeenAt": "2026-08-13T17:29:21.860Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "47:demon:gem demon:gem",
+      "spriteId": 47,
+      "familyKey": "demon",
+      "name": "Gem Demon",
+      "variant": "Gem",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-07-09T13:24:12.204Z",
+          "lastSeenAt": "2026-08-13T17:29:21.860Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "48:ghost:holofoil ghost:holofoil",
+      "spriteId": 48,
+      "familyKey": "ghost",
+      "name": "Holofoil Ghost",
+      "variant": "Holofoil",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-07-09T13:24:12.204Z",
+          "lastSeenAt": "2026-08-13T17:29:21.860Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "49:boss:boss:base",
+      "spriteId": 49,
+      "familyKey": "boss",
+      "name": "Boss",
+      "variant": "Base",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-07-09T13:24:12.204Z",
+          "lastSeenAt": "2026-08-13T17:29:21.860Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "50:boss:gold boss:gold",
+      "spriteId": 50,
+      "familyKey": "boss",
+      "name": "Gold Boss",
+      "variant": "Gold",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-07-09T13:24:12.204Z",
+          "lastSeenAt": "2026-08-13T17:29:21.860Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "51:boss:gummy boss:candy",
+      "spriteId": 51,
+      "familyKey": "boss",
+      "name": "Gummy Boss",
+      "variant": "Candy",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-07-09T13:24:12.204Z",
+          "lastSeenAt": "2026-08-13T17:29:21.860Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "52:boss:galaxy boss:galaxy",
+      "spriteId": 52,
+      "familyKey": "boss",
+      "name": "Galaxy Boss",
+      "variant": "Galaxy",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-07-09T13:24:12.204Z",
+          "lastSeenAt": "2026-08-13T17:29:21.860Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "53:seven:seven:base",
+      "spriteId": 53,
+      "familyKey": "seven",
+      "name": "Seven",
+      "variant": "Base",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-07-09T13:24:12.204Z",
+          "lastSeenAt": "2026-08-13T17:29:21.860Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "54:seven:gummy seven:candy",
+      "spriteId": 54,
+      "familyKey": "seven",
+      "name": "Gummy Seven",
+      "variant": "Candy",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-07-09T13:24:12.204Z",
+          "lastSeenAt": "2026-08-13T17:29:21.860Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "55:seven:galaxy seven:galaxy",
+      "spriteId": 55,
+      "familyKey": "seven",
+      "name": "Galaxy Seven",
+      "variant": "Galaxy",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-07-09T13:24:12.204Z",
+          "lastSeenAt": "2026-08-13T17:29:21.860Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "56:seven:gold seven:gold",
+      "spriteId": 56,
+      "familyKey": "seven",
+      "name": "Gold Seven",
+      "variant": "Gold",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-07-09T13:24:12.204Z",
+          "lastSeenAt": "2026-08-13T17:29:21.860Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "57:seven:holofoil seven:holofoil",
+      "spriteId": 57,
+      "familyKey": "seven",
+      "name": "Holofoil Seven",
+      "variant": "Holofoil",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-07-09T13:24:12.204Z",
+          "lastSeenAt": "2026-08-13T17:29:21.860Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "58:fishy:fishy:base",
+      "spriteId": 58,
+      "familyKey": "fishy",
+      "name": "Fishy",
+      "variant": "Base",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-07-09T13:24:12.204Z",
+          "lastSeenAt": "2026-08-13T17:29:21.860Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "59:fishy:gummy fishy:candy",
+      "spriteId": 59,
+      "familyKey": "fishy",
+      "name": "Gummy Fishy",
+      "variant": "Candy",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-07-09T13:24:12.204Z",
+          "lastSeenAt": "2026-08-13T17:29:21.860Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "60:fishy:galaxy fishy:galaxy",
+      "spriteId": 60,
+      "familyKey": "fishy",
+      "name": "Galaxy Fishy",
+      "variant": "Galaxy",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-07-09T13:24:12.204Z",
+          "lastSeenAt": "2026-08-13T17:29:21.860Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "61:fishy:gold fishy:gold",
+      "spriteId": 61,
+      "familyKey": "fishy",
+      "name": "Gold Fishy",
+      "variant": "Gold",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-07-09T13:24:12.204Z",
+          "lastSeenAt": "2026-08-13T17:29:21.860Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "62:striker:striker:base",
+      "spriteId": 62,
+      "familyKey": "striker",
+      "name": "Striker",
+      "variant": "Base",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-07-09T13:24:12.204Z",
+          "lastSeenAt": "2026-08-13T17:29:21.860Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "63:striker:gummy striker:candy",
+      "spriteId": 63,
+      "familyKey": "striker",
+      "name": "Gummy Striker",
+      "variant": "Candy",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-07-09T13:24:12.204Z",
+          "lastSeenAt": "2026-08-13T17:29:21.860Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "64:striker:galaxy striker:galaxy",
+      "spriteId": 64,
+      "familyKey": "striker",
+      "name": "Galaxy Striker",
+      "variant": "Galaxy",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-07-09T13:24:12.204Z",
+          "lastSeenAt": "2026-08-13T17:29:21.860Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "65:striker:gold striker:gold",
+      "spriteId": 65,
+      "familyKey": "striker",
+      "name": "Gold Striker",
+      "variant": "Gold",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-07-09T13:24:12.204Z",
+          "lastSeenAt": "2026-08-13T17:29:21.860Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "66:striker:holofoil striker:holofoil",
+      "spriteId": 66,
+      "familyKey": "striker",
+      "name": "Holofoil Striker",
+      "variant": "Holofoil",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-07-09T13:24:12.204Z",
+          "lastSeenAt": "2026-08-13T17:29:21.860Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "67:aura:aura:base",
+      "spriteId": 67,
+      "familyKey": "aura",
+      "name": "Aura",
+      "variant": "Base",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-07-09T13:24:12.204Z",
+          "lastSeenAt": "2026-08-13T17:29:21.860Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "68:aura:gummy aura:candy",
+      "spriteId": 68,
+      "familyKey": "aura",
+      "name": "Gummy Aura",
+      "variant": "Candy",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-07-09T13:24:12.204Z",
+          "lastSeenAt": "2026-08-13T17:29:21.860Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "69:aura:galaxy aura:galaxy",
+      "spriteId": 69,
+      "familyKey": "aura",
+      "name": "Galaxy Aura",
+      "variant": "Galaxy",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-07-09T13:24:12.204Z",
+          "lastSeenAt": "2026-08-13T17:29:21.860Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "70:aura:gem aura:gem",
+      "spriteId": 70,
+      "familyKey": "aura",
+      "name": "Gem Aura",
+      "variant": "Gem",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-07-09T13:24:12.204Z",
+          "lastSeenAt": "2026-08-13T17:29:21.860Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "71:aura:gold aura:gold",
+      "spriteId": 71,
+      "familyKey": "aura",
+      "name": "Gold Aura",
+      "variant": "Gold",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-07-09T13:24:12.204Z",
+          "lastSeenAt": "2026-08-13T17:29:21.860Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "72:air:gummy air:candy",
+      "spriteId": 72,
+      "familyKey": "air",
+      "name": "Gummy Air",
+      "variant": "Candy",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-07-09T13:24:12.204Z",
+          "lastSeenAt": "2026-08-13T17:29:21.860Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "73:king:holofoil king:holofoil",
+      "spriteId": 73,
+      "familyKey": "king",
+      "name": "Holofoil King",
+      "variant": "Holofoil",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-07-09T13:24:12.204Z",
+          "lastSeenAt": "2026-08-13T17:29:21.860Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "74:air:air:base",
+      "spriteId": 74,
+      "familyKey": "air",
+      "name": "Air",
+      "variant": "Base",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-07-09T13:24:12.204Z",
+          "lastSeenAt": "2026-08-13T17:29:21.860Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "75:air:galaxy air:galaxy",
+      "spriteId": 75,
+      "familyKey": "air",
+      "name": "Galaxy Air",
+      "variant": "Galaxy",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-07-09T13:24:12.204Z",
+          "lastSeenAt": "2026-08-13T17:29:21.860Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "76:water:gem water:gem",
+      "spriteId": 76,
+      "familyKey": "water",
+      "name": "Gem Water",
+      "variant": "Gem",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-07-09T13:24:12.204Z",
+          "lastSeenAt": "2026-08-13T17:29:21.860Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "77:air:holofoil air:holofoil",
+      "spriteId": 77,
+      "familyKey": "air",
+      "name": "Holofoil Air",
+      "variant": "Holofoil",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-07-09T13:24:12.204Z",
+          "lastSeenAt": "2026-08-13T17:29:21.860Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "78:grim:grim:base",
+      "spriteId": 78,
+      "familyKey": "grim",
+      "name": "Grim",
+      "variant": "Base",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-07-09T13:24:12.204Z",
+          "lastSeenAt": "2026-08-13T17:29:21.860Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "79:grim:gummy grim:candy",
+      "spriteId": 79,
+      "familyKey": "grim",
+      "name": "Gummy Grim",
+      "variant": "Candy",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-07-09T13:24:12.204Z",
+          "lastSeenAt": "2026-08-13T17:29:21.860Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "80:grim:galaxy grim:galaxy",
+      "spriteId": 80,
+      "familyKey": "grim",
+      "name": "Galaxy Grim",
+      "variant": "Galaxy",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-07-09T13:24:12.204Z",
+          "lastSeenAt": "2026-08-13T17:29:21.860Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "81:grim:gold grim:gold",
+      "spriteId": 81,
+      "familyKey": "grim",
+      "name": "Gold Grim",
+      "variant": "Gold",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-07-09T13:24:12.204Z",
+          "lastSeenAt": "2026-08-13T17:29:21.860Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "82:zero-point:gem zero point:gem",
+      "spriteId": 82,
+      "familyKey": "zero-point",
+      "name": "Gem Zero Point",
+      "variant": "Gem",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-07-09T13:24:12.204Z",
+          "lastSeenAt": "2026-08-13T17:29:21.860Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "83:water:cube water:cube",
+      "spriteId": 83,
+      "familyKey": "water",
+      "name": "Cube Water",
+      "variant": "Cube",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-07-09T13:24:12.204Z",
+          "lastSeenAt": "2026-07-09T13:24:12.204Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "84:water:quack water:quack",
+      "spriteId": 84,
+      "familyKey": "water",
+      "name": "Quack Water",
+      "variant": "Quack",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-07-09T13:24:12.204Z",
+          "lastSeenAt": "2026-08-13T17:29:21.860Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "85:earth:holofoil earth:holofoil",
+      "spriteId": 85,
+      "familyKey": "earth",
+      "name": "Holofoil Earth",
+      "variant": "Holofoil",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-07-09T13:24:12.204Z",
+          "lastSeenAt": "2026-07-09T13:24:12.204Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "86:earth:cube earth:cube",
+      "spriteId": 86,
+      "familyKey": "earth",
+      "name": "Cube Earth",
+      "variant": "Cube",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-07-09T13:24:12.204Z",
+          "lastSeenAt": "2026-08-13T17:29:21.860Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "87:earth:quack earth:quack",
+      "spriteId": 87,
+      "familyKey": "earth",
+      "name": "Quack Earth",
+      "variant": "Quack",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-07-09T13:24:12.204Z",
+          "lastSeenAt": "2026-08-13T17:29:21.860Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "88:fire:gem fire:gem",
+      "spriteId": 88,
+      "familyKey": "fire",
+      "name": "Gem Fire",
+      "variant": "Gem",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-07-09T13:24:12.204Z",
+          "lastSeenAt": "2026-07-09T13:24:12.204Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "89:fire:cube fire:cube",
+      "spriteId": 89,
+      "familyKey": "fire",
+      "name": "Cube Fire",
+      "variant": "Cube",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-07-09T13:24:12.204Z",
+          "lastSeenAt": "2026-08-13T17:29:21.860Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "90:fire:quack fire:quack",
+      "spriteId": 90,
+      "familyKey": "fire",
+      "name": "Quack Fire",
+      "variant": "Quack",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-07-09T13:24:12.204Z",
+          "lastSeenAt": "2026-08-13T17:29:21.860Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "91:duck:holofoil duck:holofoil",
+      "spriteId": 91,
+      "familyKey": "duck",
+      "name": "Holofoil Duck",
+      "variant": "Holofoil",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-07-09T13:24:12.204Z",
+          "lastSeenAt": "2026-07-09T13:24:12.204Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "92:duck:cube duck:cube",
+      "spriteId": 92,
+      "familyKey": "duck",
+      "name": "Cube Duck",
+      "variant": "Cube",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-07-09T13:24:12.204Z",
+          "lastSeenAt": "2026-07-09T13:24:12.204Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "93:duck:quack duck:quack",
+      "spriteId": 93,
+      "familyKey": "duck",
+      "name": "Quack Duck",
+      "variant": "Quack",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-07-09T13:24:12.204Z",
+          "lastSeenAt": "2026-07-09T13:24:12.204Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "94:ghost:gem ghost:gem",
+      "spriteId": 94,
+      "familyKey": "ghost",
+      "name": "Gem Ghost",
+      "variant": "Gem",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-07-09T13:24:12.204Z",
+          "lastSeenAt": "2026-07-09T13:24:12.204Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "95:ghost:cube ghost:cube",
+      "spriteId": 95,
+      "familyKey": "ghost",
+      "name": "Cube Ghost",
+      "variant": "Cube",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-07-09T13:24:12.204Z",
+          "lastSeenAt": "2026-07-09T13:24:12.204Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "96:ghost:quack ghost:quack",
+      "spriteId": 96,
+      "familyKey": "ghost",
+      "name": "Quack Ghost",
+      "variant": "Quack",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-07-09T13:24:12.204Z",
+          "lastSeenAt": "2026-07-09T13:24:12.204Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "97:dream:gem dream:gem",
+      "spriteId": 97,
+      "familyKey": "dream",
+      "name": "Gem Dream",
+      "variant": "Gem",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-07-09T13:24:12.204Z",
+          "lastSeenAt": "2026-07-09T13:24:12.204Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "98:dream:holofoil dream:holofoil",
+      "spriteId": 98,
+      "familyKey": "dream",
+      "name": "Holofoil Dream",
+      "variant": "Holofoil",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-07-09T13:24:12.204Z",
+          "lastSeenAt": "2026-07-09T13:24:12.204Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "99:dream:cube dream:cube",
+      "spriteId": 99,
+      "familyKey": "dream",
+      "name": "Cube Dream",
+      "variant": "Cube",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-07-09T13:24:12.204Z",
+          "lastSeenAt": "2026-08-13T17:29:21.860Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "100:dream:quack dream:quack",
+      "spriteId": 100,
+      "familyKey": "dream",
+      "name": "Quack Dream",
+      "variant": "Quack",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-07-09T13:24:12.204Z",
+          "lastSeenAt": "2026-07-09T13:24:12.204Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "101:demon:holofoil demon:holofoil",
+      "spriteId": 101,
+      "familyKey": "demon",
+      "name": "Holofoil Demon",
+      "variant": "Holofoil",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-07-09T13:24:12.204Z",
+          "lastSeenAt": "2026-07-09T13:24:12.204Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "102:demon:cube demon:cube",
+      "spriteId": 102,
+      "familyKey": "demon",
+      "name": "Cube Demon",
+      "variant": "Cube",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-07-09T13:24:12.204Z",
+          "lastSeenAt": "2026-07-09T13:24:12.204Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "103:demon:quack demon:quack",
+      "spriteId": 103,
+      "familyKey": "demon",
+      "name": "Quack Demon",
+      "variant": "Quack",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-07-09T13:24:12.204Z",
+          "lastSeenAt": "2026-07-09T13:24:12.204Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "104:punk:gem punk:gem",
+      "spriteId": 104,
+      "familyKey": "punk",
+      "name": "Gem Punk",
+      "variant": "Gem",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-07-09T13:24:12.204Z",
+          "lastSeenAt": "2026-07-09T13:24:12.204Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "105:punk:holofoil punk:holofoil",
+      "spriteId": 105,
+      "familyKey": "punk",
+      "name": "Holofoil Punk",
+      "variant": "Holofoil",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-07-09T13:24:12.204Z",
+          "lastSeenAt": "2026-07-09T13:24:12.204Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "106:punk:cube punk:cube",
+      "spriteId": 106,
+      "familyKey": "punk",
+      "name": "Cube Punk",
+      "variant": "Cube",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-07-09T13:24:12.204Z",
+          "lastSeenAt": "2026-08-13T17:29:21.860Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "107:punk:quack punk:quack",
+      "spriteId": 107,
+      "familyKey": "punk",
+      "name": "Quack Punk",
+      "variant": "Quack",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-07-09T13:24:12.204Z",
+          "lastSeenAt": "2026-07-09T13:24:12.204Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "108:king:gem king:gem",
+      "spriteId": 108,
+      "familyKey": "king",
+      "name": "Gem King",
+      "variant": "Gem",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-07-09T13:24:12.204Z",
+          "lastSeenAt": "2026-07-09T13:24:12.204Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "109:king:cube king:cube",
+      "spriteId": 109,
+      "familyKey": "king",
+      "name": "Cube King",
+      "variant": "Cube",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-07-09T13:24:12.204Z",
+          "lastSeenAt": "2026-07-09T13:24:12.204Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "110:king:quack king:quack",
+      "spriteId": 110,
+      "familyKey": "king",
+      "name": "Quack King",
+      "variant": "Quack",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-07-09T13:24:12.204Z",
+          "lastSeenAt": "2026-07-09T13:24:12.204Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "111:zero-point:holofoil zero point:holofoil",
+      "spriteId": 111,
+      "familyKey": "zero-point",
+      "name": "Holofoil Zero Point",
+      "variant": "Holofoil",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-07-09T13:24:12.204Z",
+          "lastSeenAt": "2026-08-13T17:29:21.860Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "112:zero-point:cube zero point:cube",
+      "spriteId": 112,
+      "familyKey": "zero-point",
+      "name": "Cube Zero Point",
+      "variant": "Cube",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-07-09T13:24:12.204Z",
+          "lastSeenAt": "2026-08-13T17:29:21.860Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "113:zero-point:quack zero point:quack",
+      "spriteId": 113,
+      "familyKey": "zero-point",
+      "name": "Quack Zero Point",
+      "variant": "Quack",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-07-09T13:24:12.204Z",
+          "lastSeenAt": "2026-08-13T17:29:21.860Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "114:fishy:gem fishy:gem",
+      "spriteId": 114,
+      "familyKey": "fishy",
+      "name": "Gem Fishy",
+      "variant": "Gem",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-07-09T13:24:12.204Z",
+          "lastSeenAt": "2026-07-09T13:24:12.204Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "115:fishy:holofoil fishy:holofoil",
+      "spriteId": 115,
+      "familyKey": "fishy",
+      "name": "Holofoil Fishy",
+      "variant": "Holofoil",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-07-09T13:24:12.204Z",
+          "lastSeenAt": "2026-07-09T13:24:12.204Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "116:fishy:cube fishy:cube",
+      "spriteId": 116,
+      "familyKey": "fishy",
+      "name": "Cube Fishy",
+      "variant": "Cube",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-07-09T13:24:12.204Z",
+          "lastSeenAt": "2026-08-13T17:29:21.860Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "117:fishy:quack fishy:quack",
+      "spriteId": 117,
+      "familyKey": "fishy",
+      "name": "Quack Fishy",
+      "variant": "Quack",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-07-09T13:24:12.204Z",
+          "lastSeenAt": "2026-07-09T13:24:12.204Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "118:striker:gem striker:gem",
+      "spriteId": 118,
+      "familyKey": "striker",
+      "name": "Gem Striker",
+      "variant": "Gem",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-07-09T13:24:12.204Z",
+          "lastSeenAt": "2026-07-09T13:24:12.204Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "119:striker:cube striker:cube",
+      "spriteId": 119,
+      "familyKey": "striker",
+      "name": "Cube Striker",
+      "variant": "Cube",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-07-09T13:24:12.204Z",
+          "lastSeenAt": "2026-07-09T13:24:12.204Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "120:striker:quack striker:quack",
+      "spriteId": 120,
+      "familyKey": "striker",
+      "name": "Quack Striker",
+      "variant": "Quack",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-07-09T13:24:12.204Z",
+          "lastSeenAt": "2026-07-09T13:24:12.204Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "121:aura:holofoil aura:holofoil",
+      "spriteId": 121,
+      "familyKey": "aura",
+      "name": "Holofoil Aura",
+      "variant": "Holofoil",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-07-09T13:24:12.204Z",
+          "lastSeenAt": "2026-07-09T13:24:12.204Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "122:aura:cube aura:cube",
+      "spriteId": 122,
+      "familyKey": "aura",
+      "name": "Cube Aura",
+      "variant": "Cube",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-07-09T13:24:12.204Z",
+          "lastSeenAt": "2026-07-09T13:24:12.204Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "123:aura:quack aura:quack",
+      "spriteId": 123,
+      "familyKey": "aura",
+      "name": "Quack Aura",
+      "variant": "Quack",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-07-09T13:24:12.204Z",
+          "lastSeenAt": "2026-07-09T13:24:12.204Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "124:boss:gem boss:gem",
+      "spriteId": 124,
+      "familyKey": "boss",
+      "name": "Gem Boss",
+      "variant": "Gem",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-07-09T13:24:12.204Z",
+          "lastSeenAt": "2026-07-09T13:24:12.204Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "125:boss:holofoil boss:holofoil",
+      "spriteId": 125,
+      "familyKey": "boss",
+      "name": "Holofoil Boss",
+      "variant": "Holofoil",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-07-09T13:24:12.204Z",
+          "lastSeenAt": "2026-07-09T13:24:12.204Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "126:boss:cube boss:cube",
+      "spriteId": 126,
+      "familyKey": "boss",
+      "name": "Cube Boss",
+      "variant": "Cube",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-07-09T13:24:12.204Z",
+          "lastSeenAt": "2026-08-13T17:29:21.860Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "127:boss:quack boss:quack",
+      "spriteId": 127,
+      "familyKey": "boss",
+      "name": "Quack Boss",
+      "variant": "Quack",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-07-09T13:24:12.204Z",
+          "lastSeenAt": "2026-07-09T13:24:12.204Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "128:grim:gem grim:gem",
+      "spriteId": 128,
+      "familyKey": "grim",
+      "name": "Gem Grim",
+      "variant": "Gem",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-07-09T13:24:12.204Z",
+          "lastSeenAt": "2026-08-13T17:29:21.860Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "129:grim:holofoil grim:holofoil",
+      "spriteId": 129,
+      "familyKey": "grim",
+      "name": "Holofoil Grim",
+      "variant": "Holofoil",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-07-09T13:24:12.204Z",
+          "lastSeenAt": "2026-08-13T17:29:21.860Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "130:grim:cube grim:cube",
+      "spriteId": 130,
+      "familyKey": "grim",
+      "name": "Cube Grim",
+      "variant": "Cube",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-07-09T13:24:12.204Z",
+          "lastSeenAt": "2026-08-13T17:29:21.860Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "131:grim:quack grim:quack",
+      "spriteId": 131,
+      "familyKey": "grim",
+      "name": "Quack Grim",
+      "variant": "Quack",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-07-09T13:24:12.204Z",
+          "lastSeenAt": "2026-07-09T13:24:12.204Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "132:air:gem air:gem",
+      "spriteId": 132,
+      "familyKey": "air",
+      "name": "Gem Air",
+      "variant": "Gem",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-07-09T13:24:12.204Z",
+          "lastSeenAt": "2026-07-09T13:24:12.204Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "133:air:cube air:cube",
+      "spriteId": 133,
+      "familyKey": "air",
+      "name": "Cube Air",
+      "variant": "Cube",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-07-09T13:24:12.204Z",
+          "lastSeenAt": "2026-07-09T13:24:12.204Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "134:air:quack air:quack",
+      "spriteId": 134,
+      "familyKey": "air",
+      "name": "Quack Air",
+      "variant": "Quack",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-07-09T13:24:12.204Z",
+          "lastSeenAt": "2026-07-09T13:24:12.204Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "135:seven:gem seven:gem",
+      "spriteId": 135,
+      "familyKey": "seven",
+      "name": "Gem Seven",
+      "variant": "Gem",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-07-09T13:24:12.204Z",
+          "lastSeenAt": "2026-07-09T13:24:12.204Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "136:seven:cube seven:cube",
+      "spriteId": 136,
+      "familyKey": "seven",
+      "name": "Cube Seven",
+      "variant": "Cube",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-07-09T13:24:12.204Z",
+          "lastSeenAt": "2026-07-09T13:24:12.204Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "137:seven:quack seven:quack",
+      "spriteId": 137,
+      "familyKey": "seven",
+      "name": "Quack Seven",
+      "variant": "Quack",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-07-09T13:24:12.204Z",
+          "lastSeenAt": "2026-07-09T13:24:12.204Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "138:john-wick:john wick:base",
+      "spriteId": 138,
+      "familyKey": "john-wick",
+      "name": "John Wick",
+      "variant": "Base",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-07-09T13:24:12.204Z",
+          "lastSeenAt": "2026-08-13T17:29:21.860Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "139:batman:batman:base",
+      "spriteId": 139,
+      "familyKey": "batman",
+      "name": "Batman",
+      "variant": "Base",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-07-09T13:24:12.204Z",
+          "lastSeenAt": "2026-08-13T17:29:21.860Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "140:batman:gold batman:gold",
+      "spriteId": 140,
+      "familyKey": "batman",
+      "name": "Gold Batman",
+      "variant": "Gold",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-07-09T13:24:12.204Z",
+          "lastSeenAt": "2026-08-13T17:29:21.860Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "141:batman:gummy batman:candy",
+      "spriteId": 141,
+      "familyKey": "batman",
+      "name": "Gummy Batman",
+      "variant": "Candy",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-07-09T13:24:12.204Z",
+          "lastSeenAt": "2026-08-13T17:29:21.860Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "142:batman:galaxy batman:galaxy",
+      "spriteId": 142,
+      "familyKey": "batman",
+      "name": "Galaxy Batman",
+      "variant": "Galaxy",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-07-09T13:24:12.204Z",
+          "lastSeenAt": "2026-08-13T17:29:21.860Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "143:batman:gem batman:gem",
+      "spriteId": 143,
+      "familyKey": "batman",
+      "name": "Gem Batman",
+      "variant": "Gem",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-07-09T13:24:12.204Z",
+          "lastSeenAt": "2026-07-09T13:24:12.204Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "145:batman:holofoil batman:holofoil",
+      "spriteId": 145,
+      "familyKey": "batman",
+      "name": "Holofoil Batman",
+      "variant": "Holofoil",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-07-09T13:24:12.204Z",
+          "lastSeenAt": "2026-08-13T17:29:21.860Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "146:batman:cube batman:cube",
+      "spriteId": 146,
+      "familyKey": "batman",
+      "name": "Cube Batman",
+      "variant": "Cube",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-07-09T13:24:12.204Z",
+          "lastSeenAt": "2026-08-13T17:29:21.860Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "147:batman:quack batman:quack",
+      "spriteId": 147,
+      "familyKey": "batman",
+      "name": "Quack Batman",
+      "variant": "Quack",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-07-09T13:24:12.204Z",
+          "lastSeenAt": "2026-07-09T13:24:12.204Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "148:pollo:pollo:base",
+      "spriteId": 148,
+      "familyKey": "pollo",
+      "name": "Pollo",
+      "variant": "Base",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-08-13T17:13:03.512Z",
+          "lastSeenAt": "2026-08-13T17:29:21.860Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "149:vini-jr:vini jr.:base",
+      "spriteId": 149,
+      "familyKey": "vini-jr",
+      "name": "Vini Jr.",
+      "variant": "Base",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-08-13T17:13:03.512Z",
+          "lastSeenAt": "2026-08-13T17:29:21.860Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "150:ironmouse:ironmouse:base",
+      "spriteId": 150,
+      "familyKey": "ironmouse",
+      "name": "Ironmouse",
+      "variant": "Base",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-08-13T17:13:03.512Z",
+          "lastSeenAt": "2026-08-13T17:29:21.860Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "151:llama:llama:base",
+      "spriteId": 151,
+      "familyKey": "llama",
+      "name": "Llama",
+      "variant": "Base",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-08-13T17:13:03.512Z",
+          "lastSeenAt": "2026-08-13T17:29:21.860Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "152:llama:gold llama:gold",
+      "spriteId": 152,
+      "familyKey": "llama",
+      "name": "Gold Llama",
+      "variant": "Gold",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-08-13T17:13:03.512Z",
+          "lastSeenAt": "2026-08-13T17:29:21.860Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "153:llama:gummy llama:candy",
+      "spriteId": 153,
+      "familyKey": "llama",
+      "name": "Gummy Llama",
+      "variant": "Candy",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-08-13T17:13:03.512Z",
+          "lastSeenAt": "2026-08-13T17:29:21.860Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "154:llama:galaxy llama:galaxy",
+      "spriteId": 154,
+      "familyKey": "llama",
+      "name": "Galaxy Llama",
+      "variant": "Galaxy",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-08-13T17:13:03.512Z",
+          "lastSeenAt": "2026-08-13T17:29:21.860Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "155:llama:gem llama:gem",
+      "spriteId": 155,
+      "familyKey": "llama",
+      "name": "Gem Llama",
+      "variant": "Gem",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-08-13T17:13:03.512Z",
+          "lastSeenAt": "2026-08-13T17:29:21.860Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "156:peely:peely:base",
+      "spriteId": 156,
+      "familyKey": "peely",
+      "name": "Peely",
+      "variant": "Base",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-08-13T17:13:03.512Z",
+          "lastSeenAt": "2026-08-13T17:29:21.860Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "157:peely:gold peely:gold",
+      "spriteId": 157,
+      "familyKey": "peely",
+      "name": "Gold Peely",
+      "variant": "Gold",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-08-13T17:13:03.512Z",
+          "lastSeenAt": "2026-08-13T17:29:21.860Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "158:peely:gummy peely:candy",
+      "spriteId": 158,
+      "familyKey": "peely",
+      "name": "Gummy Peely",
+      "variant": "Candy",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-08-13T17:13:03.512Z",
+          "lastSeenAt": "2026-08-13T17:29:21.860Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "159:peely:galaxy peely:galaxy",
+      "spriteId": 159,
+      "familyKey": "peely",
+      "name": "Galaxy Peely",
+      "variant": "Galaxy",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-08-13T17:13:03.512Z",
+          "lastSeenAt": "2026-08-13T17:29:21.860Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "160:peely:holofoil peely:holofoil",
+      "spriteId": 160,
+      "familyKey": "peely",
+      "name": "Holofoil Peely",
+      "variant": "Holofoil",
+      "introducedSeasonId": "chapter-7-season-3",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-3",
+          "firstSeenAt": "2026-08-13T17:13:03.512Z",
+          "lastSeenAt": "2026-08-13T17:29:21.860Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "161:jackrabbit:jackrabbit:base",
+      "spriteId": 161,
+      "familyKey": "jackrabbit",
+      "name": "Jackrabbit",
+      "variant": "Base",
+      "introducedSeasonId": "chapter-7-season-4",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-4",
+          "firstSeenAt": "2026-08-20T20:43:28.900Z",
+          "lastSeenAt": "2026-08-20T20:50:54.851Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "162:jackrabbit:gold jackrabbit:gold",
+      "spriteId": 162,
+      "familyKey": "jackrabbit",
+      "name": "Gold Jackrabbit",
+      "variant": "Gold",
+      "introducedSeasonId": "chapter-7-season-4",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-4",
+          "firstSeenAt": "2026-08-20T20:43:28.900Z",
+          "lastSeenAt": "2026-08-20T20:50:54.851Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "163:jackrabbit:cheat master jackrabbit:cheatmaster",
+      "spriteId": 163,
+      "familyKey": "jackrabbit",
+      "name": "Cheat Master Jackrabbit",
+      "variant": "Cheatmaster",
+      "introducedSeasonId": "chapter-7-season-4",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-4",
+          "firstSeenAt": "2026-08-20T20:43:28.900Z",
+          "lastSeenAt": "2026-08-20T20:50:54.851Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "164:shadow:shadow:base",
+      "spriteId": 164,
+      "familyKey": "shadow",
+      "name": "Shadow",
+      "variant": "Base",
+      "introducedSeasonId": "chapter-7-season-4",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-4",
+          "firstSeenAt": "2026-08-20T20:43:28.900Z",
+          "lastSeenAt": "2026-08-20T20:50:54.851Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "165:shadow:cheat master shadow:cheatmaster",
+      "spriteId": 165,
+      "familyKey": "shadow",
+      "name": "Cheat Master Shadow",
+      "variant": "Cheatmaster",
+      "introducedSeasonId": "chapter-7-season-4",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-4",
+          "firstSeenAt": "2026-08-20T20:43:28.900Z",
+          "lastSeenAt": "2026-08-20T20:50:54.851Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "166:shadow:gold shadow:gold",
+      "spriteId": 166,
+      "familyKey": "shadow",
+      "name": "Gold Shadow",
+      "variant": "Gold",
+      "introducedSeasonId": "chapter-7-season-4",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-4",
+          "firstSeenAt": "2026-08-20T20:43:28.900Z",
+          "lastSeenAt": "2026-08-20T20:50:54.851Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "167:bush:bush:base",
+      "spriteId": 167,
+      "familyKey": "bush",
+      "name": "Bush",
+      "variant": "Base",
+      "introducedSeasonId": "chapter-7-season-4",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-4",
+          "firstSeenAt": "2026-08-20T20:43:28.900Z",
+          "lastSeenAt": "2026-08-20T20:50:54.851Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "168:bush:cheat master bush:cheatmaster",
+      "spriteId": 168,
+      "familyKey": "bush",
+      "name": "Cheat Master Bush",
+      "variant": "Cheatmaster",
+      "introducedSeasonId": "chapter-7-season-4",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-4",
+          "firstSeenAt": "2026-08-20T20:43:28.900Z",
+          "lastSeenAt": "2026-08-20T20:50:54.851Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "169:bush:gold bush:gold",
+      "spriteId": 169,
+      "familyKey": "bush",
+      "name": "Gold Bush",
+      "variant": "Gold",
+      "introducedSeasonId": "chapter-7-season-4",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-4",
+          "firstSeenAt": "2026-08-20T20:43:28.900Z",
+          "lastSeenAt": "2026-08-20T20:50:54.851Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "170:tails:tails:base",
+      "spriteId": 170,
+      "familyKey": "tails",
+      "name": "Tails",
+      "variant": "Base",
+      "introducedSeasonId": "chapter-7-season-4",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-4",
+          "firstSeenAt": "2026-08-20T20:43:28.900Z",
+          "lastSeenAt": "2026-08-20T20:50:54.851Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "171:tails:cheat master tails:cheatmaster",
+      "spriteId": 171,
+      "familyKey": "tails",
+      "name": "Cheat Master Tails",
+      "variant": "Cheatmaster",
+      "introducedSeasonId": "chapter-7-season-4",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-4",
+          "firstSeenAt": "2026-08-20T20:43:28.900Z",
+          "lastSeenAt": "2026-08-20T20:50:54.851Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "172:tails:gold tails:gold",
+      "spriteId": 172,
+      "familyKey": "tails",
+      "name": "Gold Tails",
+      "variant": "Gold",
+      "introducedSeasonId": "chapter-7-season-4",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-4",
+          "firstSeenAt": "2026-08-20T20:43:28.900Z",
+          "lastSeenAt": "2026-08-20T20:50:54.851Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "173:killswitch:killswitch:base",
+      "spriteId": 173,
+      "familyKey": "killswitch",
+      "name": "Killswitch",
+      "variant": "Base",
+      "introducedSeasonId": "chapter-7-season-4",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-4",
+          "firstSeenAt": "2026-08-20T20:43:28.900Z",
+          "lastSeenAt": "2026-08-20T20:50:54.851Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "174:killswitch:cheat master killswitch:cheatmaster",
+      "spriteId": 174,
+      "familyKey": "killswitch",
+      "name": "Cheat Master Killswitch",
+      "variant": "Cheatmaster",
+      "introducedSeasonId": "chapter-7-season-4",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-4",
+          "firstSeenAt": "2026-08-20T20:43:28.900Z",
+          "lastSeenAt": "2026-08-20T20:50:54.851Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "175:killswitch:gold killswitch:gold",
+      "spriteId": 175,
+      "familyKey": "killswitch",
+      "name": "Gold Killswitch",
+      "variant": "Gold",
+      "introducedSeasonId": "chapter-7-season-4",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-4",
+          "firstSeenAt": "2026-08-20T20:43:28.900Z",
+          "lastSeenAt": "2026-08-20T20:50:54.851Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "176:adventure:adventure:base",
+      "spriteId": 176,
+      "familyKey": "adventure",
+      "name": "Adventure",
+      "variant": "Base",
+      "introducedSeasonId": "chapter-7-season-4",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-4",
+          "firstSeenAt": "2026-08-20T20:43:28.900Z",
+          "lastSeenAt": "2026-08-20T20:50:54.851Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "177:adventure:cheat master adventure:cheatmaster",
+      "spriteId": 177,
+      "familyKey": "adventure",
+      "name": "Cheat Master Adventure",
+      "variant": "Cheatmaster",
+      "introducedSeasonId": "chapter-7-season-4",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-4",
+          "firstSeenAt": "2026-08-20T20:43:28.900Z",
+          "lastSeenAt": "2026-08-20T20:50:54.851Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "178:adventure:gold adventure:gold",
+      "spriteId": 178,
+      "familyKey": "adventure",
+      "name": "Gold Adventure",
+      "variant": "Gold",
+      "introducedSeasonId": "chapter-7-season-4",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-4",
+          "firstSeenAt": "2026-08-20T20:43:28.900Z",
+          "lastSeenAt": "2026-08-20T20:50:54.851Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "179:klombo:klombo:base",
+      "spriteId": 179,
+      "familyKey": "klombo",
+      "name": "Klombo",
+      "variant": "Base",
+      "introducedSeasonId": "chapter-7-season-4",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-4",
+          "firstSeenAt": "2026-08-20T20:43:28.900Z",
+          "lastSeenAt": "2026-08-20T20:50:54.851Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "180:klombo:cheat master klombo:cheatmaster",
+      "spriteId": 180,
+      "familyKey": "klombo",
+      "name": "Cheat Master Klombo",
+      "variant": "Cheatmaster",
+      "introducedSeasonId": "chapter-7-season-4",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-4",
+          "firstSeenAt": "2026-08-20T20:43:28.900Z",
+          "lastSeenAt": "2026-08-20T20:50:54.851Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "181:klombo:gold klombo:gold",
+      "spriteId": 181,
+      "familyKey": "klombo",
+      "name": "Gold Klombo",
+      "variant": "Gold",
+      "introducedSeasonId": "chapter-7-season-4",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-4",
+          "firstSeenAt": "2026-08-20T20:43:28.900Z",
+          "lastSeenAt": "2026-08-20T20:50:54.851Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "182:jonesy:jonesy:base",
+      "spriteId": 182,
+      "familyKey": "jonesy",
+      "name": "Jonesy",
+      "variant": "Base",
+      "introducedSeasonId": "chapter-7-season-4",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-4",
+          "firstSeenAt": "2026-08-20T20:43:28.900Z",
+          "lastSeenAt": "2026-08-20T20:50:54.851Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "183:jonesy:cheat master jonesy:cheatmaster",
+      "spriteId": 183,
+      "familyKey": "jonesy",
+      "name": "Cheat Master Jonesy",
+      "variant": "Cheatmaster",
+      "introducedSeasonId": "chapter-7-season-4",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-4",
+          "firstSeenAt": "2026-08-20T20:43:28.900Z",
+          "lastSeenAt": "2026-08-20T20:50:54.851Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "184:jonesy:gold jonesy:gold",
+      "spriteId": 184,
+      "familyKey": "jonesy",
+      "name": "Gold Jonesy",
+      "variant": "Gold",
+      "introducedSeasonId": "chapter-7-season-4",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-4",
+          "firstSeenAt": "2026-08-20T20:43:28.900Z",
+          "lastSeenAt": "2026-08-20T20:50:54.851Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "185:sonic:sonic:base",
+      "spriteId": 185,
+      "familyKey": "sonic",
+      "name": "Sonic",
+      "variant": "Base",
+      "introducedSeasonId": "chapter-7-season-4",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-4",
+          "firstSeenAt": "2026-08-20T20:43:28.900Z",
+          "lastSeenAt": "2026-08-20T20:50:54.851Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "186:sonic:cheat master sonic:cheatmaster",
+      "spriteId": 186,
+      "familyKey": "sonic",
+      "name": "Cheat Master Sonic",
+      "variant": "Cheatmaster",
+      "introducedSeasonId": "chapter-7-season-4",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-4",
+          "firstSeenAt": "2026-08-20T20:43:28.900Z",
+          "lastSeenAt": "2026-08-20T20:50:54.851Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "187:sonic:gold sonic:gold",
+      "spriteId": 187,
+      "familyKey": "sonic",
+      "name": "Gold Sonic",
+      "variant": "Gold",
+      "introducedSeasonId": "chapter-7-season-4",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-4",
+          "firstSeenAt": "2026-08-20T20:43:28.900Z",
+          "lastSeenAt": "2026-08-20T20:50:54.851Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "188:crown:crown:base",
+      "spriteId": 188,
+      "familyKey": "crown",
+      "name": "Crown",
+      "variant": "Base",
+      "introducedSeasonId": "chapter-7-season-4",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-4",
+          "firstSeenAt": "2026-08-20T20:43:28.900Z",
+          "lastSeenAt": "2026-08-20T20:50:54.851Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "189:crown:cheat master crown:cheatmaster",
+      "spriteId": 189,
+      "familyKey": "crown",
+      "name": "Cheat Master Crown",
+      "variant": "Cheatmaster",
+      "introducedSeasonId": "chapter-7-season-4",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-4",
+          "firstSeenAt": "2026-08-20T20:43:28.900Z",
+          "lastSeenAt": "2026-08-20T20:50:54.851Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "190:crown:gold crown:gold",
+      "spriteId": 190,
+      "familyKey": "crown",
+      "name": "Gold Crown",
+      "variant": "Gold",
+      "introducedSeasonId": "chapter-7-season-4",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-4",
+          "firstSeenAt": "2026-08-20T20:43:28.900Z",
+          "lastSeenAt": "2026-08-20T20:50:54.851Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "191:8-bit:8-bit:base",
+      "spriteId": 191,
+      "familyKey": "8-bit",
+      "name": "8-Bit",
+      "variant": "Base",
+      "introducedSeasonId": "chapter-7-season-4",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-4",
+          "firstSeenAt": "2026-08-20T20:43:28.900Z",
+          "lastSeenAt": "2026-08-20T20:50:54.851Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "192:8-bit:cheat master 8-bit:cheatmaster",
+      "spriteId": 192,
+      "familyKey": "8-bit",
+      "name": "Cheat Master 8-Bit",
+      "variant": "Cheatmaster",
+      "introducedSeasonId": "chapter-7-season-4",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-4",
+          "firstSeenAt": "2026-08-20T20:43:28.900Z",
+          "lastSeenAt": "2026-08-20T20:50:54.851Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "193:8-bit:gold 8-bit:gold",
+      "spriteId": 193,
+      "familyKey": "8-bit",
+      "name": "Gold 8-Bit",
+      "variant": "Gold",
+      "introducedSeasonId": "chapter-7-season-4",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-4",
+          "firstSeenAt": "2026-08-20T20:43:28.900Z",
+          "lastSeenAt": "2026-08-20T20:50:54.851Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "194:storm-scout:storm scout:base",
+      "spriteId": 194,
+      "familyKey": "storm-scout",
+      "name": "Storm Scout",
+      "variant": "Base",
+      "introducedSeasonId": "chapter-7-season-4",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-4",
+          "firstSeenAt": "2026-08-20T20:43:28.900Z",
+          "lastSeenAt": "2026-08-20T20:50:54.851Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "195:storm-scout:cheat master storm scout:cheatmaster",
+      "spriteId": 195,
+      "familyKey": "storm-scout",
+      "name": "Cheat Master Storm Scout",
+      "variant": "Cheatmaster",
+      "introducedSeasonId": "chapter-7-season-4",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-4",
+          "firstSeenAt": "2026-08-20T20:43:28.900Z",
+          "lastSeenAt": "2026-08-20T20:50:54.851Z"
+        }
+      ]
+    },
+    {
+      "identityKey": "196:storm-scout:gold storm scout:gold",
+      "spriteId": 196,
+      "familyKey": "storm-scout",
+      "name": "Gold Storm Scout",
+      "variant": "Gold",
+      "introducedSeasonId": "chapter-7-season-4",
+      "appearances": [
+        {
+          "seasonId": "chapter-7-season-4",
+          "firstSeenAt": "2026-08-20T20:43:28.900Z",
+          "lastSeenAt": "2026-08-20T20:50:54.851Z"
+        }
+      ]
+    }
+  ]
+}
