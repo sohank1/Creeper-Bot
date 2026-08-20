@@ -2190,10 +2190,10 @@ export class FortniteSprites {
                     .season-emoji {
                         display: inline-block;
                         margin-left: 0.24em;
-                        font-family: "Noto Color Emoji", "Apple Color Emoji", "Segoe UI Emoji", sans-serif;
-                        font-style: normal;
-                        font-weight: 400;
-                        line-height: 1;
+                        width: 1.05em;
+                        height: 1.05em;
+                        vertical-align: -0.14em;
+                        object-fit: contain;
                     }
                     .lede {
                         margin: 8px 0 0;
@@ -3204,7 +3204,16 @@ export class FortniteSprites {
         const emoji = parsed ? getFortniteSeasonEmoji(parsed.chapter, Number(parsed.season)) : undefined;
         if (!emoji || !label.endsWith(emoji)) return this.escapeHtml(label);
         const text = label.slice(0, -emoji.length).trimEnd();
-        return `${this.escapeHtml(text)} <span class="season-emoji">${this.escapeHtml(emoji)}</span>`;
+        const emojiUrl = this.getSeasonEmojiAssetUrl(emoji);
+        return `${this.escapeHtml(text)} <img class="season-emoji" src="${this.escapeHtml(emojiUrl)}" alt="${this.escapeHtml(emoji)}">`;
+    }
+
+    private getSeasonEmojiAssetUrl(emoji: string) {
+        const codepoints = Array.from(emoji)
+            .map(character => character.codePointAt(0)?.toString(16))
+            .filter(Boolean)
+            .join("-");
+        return `https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/svg/${codepoints}.svg`;
     }
 
     private renderSeasonCard(details: { introducedSeasonId?: string; availableSeasonIds: string[] }) {
