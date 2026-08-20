@@ -29,6 +29,8 @@ type MapHistoryItem = {
     parsedVersion?: { formatted: string, major: string, minor?: string, codename: string | null, isMajor: boolean };
 };
 
+const ARCHIVE_REFRESH_INTERVAL_MS = 5 * 60 * 1000;
+
 export class FortniteMap {
     private _data: MapHistoryItem[] = [];
     private fuse: Fuse<any>;
@@ -37,10 +39,15 @@ export class FortniteMap {
     private _seasonStarts: Map<string, MapHistoryItem> = new Map();
     private _chapterStarts: Map<number, MapHistoryItem> = new Map();
     private imageManifest: Record<string, MapImageManifestEntry> = {};
+    private archiveRefreshTimer?: NodeJS.Timeout;
+    private archiveRefreshInFlight = false;
 
     constructor(private client: Client) {
         registerComponent("fortniteMap", this);
-        this.loadData().then(() => this.syncLatestMap());
+        this.loadData().then(() => {
+            void this.syncLatestMap();
+            this.startArchiveRefresh();
+        });
 
         this.client.on("interactionCreate", (i) => {
             if (i.isAutocomplete() && i.commandName === "fortnite" && i.options.getSubcommandGroup(false) === "map") {
@@ -60,6 +67,37 @@ export class FortniteMap {
                 this.handleButton(i);
             }
         });
+    }
+
+    private startArchiveRefresh() {
+        if (this.archiveRefreshTimer) return;
+
+        this.archiveRefreshTimer = setInterval(() => {
+            void this.refreshArchiveData();
+        }, ARCHIVE_REFRESH_INTERVAL_MS);
+
+        // The Discord client is the process lifetime; this keeps unit/test
+        // processes from being held open by the refresh timer.
+        this.archiveRefreshTimer.unref();
+        console.log(`[FortniteMap] GitHub archive auto-refresh enabled (every ${ARCHIVE_REFRESH_INTERVAL_MS / 60000} minutes).`);
+    }
+
+    private async refreshArchiveData() {
+        if (this.archiveRefreshInFlight) return;
+
+        this.archiveRefreshInFlight = true;
+        const previousLatest = this._data[0]?.version;
+        const previousCount = this._data.length;
+
+        try {
+            await this.loadData();
+            const currentLatest = this._data[0]?.version;
+            if (currentLatest !== previousLatest || this._data.length !== previousCount) {
+                console.log(`[FortniteMap] Archive refresh applied: ${previousCount} -> ${this._data.length} versions (${previousLatest || "none"} -> ${currentLatest || "none"}).`);
+            }
+        } finally {
+            this.archiveRefreshInFlight = false;
+        }
     }
 
     public getDiagnostics() {
