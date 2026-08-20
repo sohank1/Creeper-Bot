@@ -2187,6 +2187,14 @@ export class FortniteSprites {
                         font-style: normal;
                         overflow-wrap: anywhere;
                     }
+                    .season-emoji {
+                        display: inline-block;
+                        margin-left: 0.24em;
+                        font-family: "Noto Color Emoji", "Apple Color Emoji", "Segoe UI Emoji", sans-serif;
+                        font-style: normal;
+                        font-weight: 400;
+                        line-height: 1;
+                    }
                     .lede {
                         margin: 8px 0 0;
                         max-width: 58ch;
@@ -2380,12 +2388,12 @@ export class FortniteSprites {
             const rowHeight = allSeasonsView ? 108 : 92;
             const height = Math.max(allSeasonsView ? 1500 : 1300, 520 + Math.max(renderFamilies.length, 1) * rowHeight);
             const deviceScaleFactor = allSeasonsView ? 2.1 : 2;
-            const tags = [
-                this.describeSeasonFilter(state.seasonFilter || "current"),
+            const tagSuffixes = [
                 state.searchQuery ? `Search: "${state.searchQuery}"` : null,
                 state.variantFilter && state.variantFilter !== "all" ? this.variantLabel(state.variantFilter) : null,
                 state.rarityFilter && state.rarityFilter !== "all" ? this.titleCase(state.rarityFilter) : null
-            ].filter(Boolean).join(" / ") || "All variants";
+            ].filter(Boolean) as string[];
+            const renderedTags = `<span class="meta-chip">${this.renderSeasonFilterHeading(state.seasonFilter || "current")}${tagSuffixes.length ? ` / ${tagSuffixes.map(tag => this.escapeHtml(tag)).join(" / ")}` : ""}</span>`;
 
             const html = this.buildRenderDocument(`
             <div class="sprite-render-root">
@@ -2394,12 +2402,12 @@ export class FortniteSprites {
                         <section class="page-head">
                             <div class="page-copy">
                                 <p class="eyebrow">Fortnite sprites</p>
-                                <h1 class="headline">${this.escapeHtml(this.describeSeasonFilter(state.seasonFilter || "current"))}</h1>
+                                <h1 class="headline">${this.renderSeasonFilterHeading(state.seasonFilter || "current")}</h1>
                             </div>
                             <div class="page-meta">
                                 ${this.renderMetaChip(`${renderFamilies.length} families`)}
                                 ${this.renderMetaChip(`${variants.length} shown`)}
-                                ${this.renderMetaChip(tags)}
+                                ${renderedTags}
                             </div>
                         </section>
 
@@ -3184,21 +3192,37 @@ export class FortniteSprites {
         return this.formatSeasonId(seasonFilter);
     }
 
+    private renderSeasonFilterHeading(seasonFilter: string) {
+        const label = this.describeSeasonFilter(seasonFilter);
+        const seasonId = seasonFilter === "current" ? this._data?.seasonContext?.id : seasonFilter;
+        return seasonFilter !== "all" && seasonId ? this.renderSeasonLabel(seasonId) : this.escapeHtml(label);
+    }
+
+    private renderSeasonLabel(id: string, compact = false) {
+        const label = compact ? this.formatCompactSeasonId(id) : this.formatSeasonId(id);
+        const parsed = this.parseSeasonId(id);
+        const emoji = parsed ? getFortniteSeasonEmoji(parsed.chapter, Number(parsed.season)) : undefined;
+        if (!emoji || !label.endsWith(emoji)) return this.escapeHtml(label);
+        const text = label.slice(0, -emoji.length).trimEnd();
+        return `${this.escapeHtml(text)} <span class="season-emoji">${this.escapeHtml(emoji)}</span>`;
+    }
+
     private renderSeasonCard(details: { introducedSeasonId?: string; availableSeasonIds: string[] }) {
         if (!details.introducedSeasonId && details.availableSeasonIds.length === 0) return "";
-        const introduced = details.introducedSeasonId ? this.formatSeasonId(details.introducedSeasonId) : "Unknown";
+        const introducedText = details.introducedSeasonId ? this.formatSeasonId(details.introducedSeasonId) : "Unknown";
+        const introduced = details.introducedSeasonId ? this.renderSeasonLabel(details.introducedSeasonId) : introducedText;
         const available = details.availableSeasonIds.map(id => this.formatSeasonId(id));
-        const duplicatesIntroduction = available.length === 1 && available[0] === introduced;
+        const duplicatesIntroduction = available.length === 1 && available[0] === introducedText;
         return `
             <div class="season-card">
                 <div class="season-detail">
                     <span class="metric-label">Introduced</span>
-                    <strong>${this.escapeHtml(introduced)}</strong>
+                    <strong>${introduced}</strong>
                 </div>
                 ${duplicatesIntroduction || available.length === 0 ? "" : `
                     <div class="season-detail">
                         <span class="metric-label">Available in</span>
-                        <div class="season-list">${details.availableSeasonIds.map((id, index) => `<span title="${this.escapeHtml(available[index])}">${this.escapeHtml(this.formatCompactSeasonId(id))}</span>`).join("")}</div>
+                        <div class="season-list">${details.availableSeasonIds.map((id, index) => `<span title="${this.escapeHtml(available[index])}">${this.renderSeasonLabel(id, true)}</span>`).join("")}</div>
                     </div>
                 `}
             </div>
@@ -3207,13 +3231,13 @@ export class FortniteSprites {
 
     private renderFamilyHistory(details: { introducedSeasonId?: string; availableSeasonIds: string[] }) {
         if (!details.introducedSeasonId && details.availableSeasonIds.length === 0) return "";
-        const introduced = details.introducedSeasonId ? this.formatSeasonId(details.introducedSeasonId) : "Unknown";
+        const introduced = details.introducedSeasonId ? this.renderSeasonLabel(details.introducedSeasonId) : "Unknown";
         const showAvailable = details.availableSeasonIds.length > 1
             || (details.availableSeasonIds.length === 1 && details.availableSeasonIds[0] !== details.introducedSeasonId);
         return `
             <div class="family-history">
-                <div class="family-history-row"><span>Introduced</span><strong>${this.escapeHtml(introduced)}</strong></div>
-                ${showAvailable ? `<div class="family-history-row"><span>Available in</span><div class="season-list">${details.availableSeasonIds.map(id => `<span title="${this.escapeHtml(this.formatSeasonId(id))}">${this.escapeHtml(this.formatCompactSeasonId(id))}</span>`).join("")}</div></div>` : ""}
+                <div class="family-history-row"><span>Introduced</span><strong>${introduced}</strong></div>
+                ${showAvailable ? `<div class="family-history-row"><span>Available in</span><div class="season-list">${details.availableSeasonIds.map(id => `<span title="${this.escapeHtml(this.formatSeasonId(id))}">${this.renderSeasonLabel(id, true)}</span>`).join("")}</div></div>` : ""}
             </div>
         `;
     }
@@ -3228,7 +3252,7 @@ export class FortniteSprites {
             .map(variant => variant.introducedSeasonId as string)) || [];
         const introducedSeasonId = this.sortSeasonIds([...historySeasonIds, ...dataSeasonIds])[0];
         if (!introducedSeasonId) return "";
-        return `<div class="variant-debut"><span class="variant-debut-label">Variant debut</span><div class="variant-debut-pills"><span class="variant-debut-pill">${this.escapeHtml(this.variantLabel(variantName))}</span><span class="variant-debut-pill" title="${this.escapeHtml(this.formatSeasonId(introducedSeasonId))}">${this.escapeHtml(this.formatCompactSeasonId(introducedSeasonId))}</span></div></div>`;
+        return `<div class="variant-debut"><span class="variant-debut-label">Variant debut</span><div class="variant-debut-pills"><span class="variant-debut-pill">${this.escapeHtml(this.variantLabel(variantName))}</span><span class="variant-debut-pill" title="${this.escapeHtml(this.formatSeasonId(introducedSeasonId))}">${this.renderSeasonLabel(introducedSeasonId, true)}</span></div></div>`;
     }
 
     private sortSeasonIds(ids: string[]) {
