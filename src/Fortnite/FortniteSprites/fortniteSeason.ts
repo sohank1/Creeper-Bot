@@ -35,7 +35,7 @@ function seasonId(chapter: number, season: string) {
 }
 
 function parseSeasonLabel(value: unknown): { chapter: number; season: string } | null {
-    const match = String(value || "").match(/Chapter\s*([0-9]+)\s*[,:-]?\s*Season\s*([A-Za-z0-9-]+)/i);
+    const match = String(value || "").match(/(?:Chapter|C)\s*([0-9]+)\s*[,:-]?\s*(?:Season|S)\s*([A-Za-z0-9-]+)/i);
     if (!match) return null;
     return { chapter: Number(match[1]), season: match[2] };
 }
@@ -59,11 +59,18 @@ async function fetchFortniteGgSeason(): Promise<SeasonCandidate> {
     // filter hides every card whose data-season differs from the selection.
     const $ = cheerio.load(spritesHtml);
     let selectedOption: { seasonKey: string; chapter: number; season: string } | undefined;
-    $(".filter-season [data-key='season']").each((_, element) => {
-        const chapter = Number($(element).attr("data-chapter"));
-        const seasonKey = String($(element).attr("data-val") || "").trim();
-        const season = normalizeSeason($(element).text());
-        if (!selectedOption && seasonKey && chapter === parsed.chapter && season === normalizeSeason(parsed.season)) {
+    $(".filter-season [data-key='season'], .filter-season [data-season], .filter-season option, [data-filter='season'][data-val]").each((_, element) => {
+        const optionLabel = parseSeasonLabel($(element).text());
+        const chapter = Number($(element).attr("data-chapter")) || optionLabel?.chapter || parsed.chapter;
+        const seasonKey = String(
+            $(element).attr("data-val")
+            || $(element).attr("data-value")
+            || $(element).attr("value")
+            || $(element).attr("data-season")
+            || ""
+        ).trim();
+        const season = optionLabel?.season || normalizeSeason($(element).text());
+        if (!selectedOption && seasonKey && chapter === parsed.chapter && normalizeSeason(season) === normalizeSeason(parsed.season)) {
             selectedOption = { seasonKey, chapter, season };
         }
     });
