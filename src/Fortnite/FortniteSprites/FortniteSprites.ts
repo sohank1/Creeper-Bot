@@ -3252,6 +3252,7 @@ export class FortniteSprites {
     }
 
     private renderVariantTypeDebutBadge(variantName: SpriteVariantName) {
+        if (variantName === "Base") return "";
         const historySeasonIds = this.spriteHistory.records
             .filter(record => record.variant === variantName)
             .map(record => record.introducedSeasonId)
