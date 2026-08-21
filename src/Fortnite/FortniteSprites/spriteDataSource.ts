@@ -405,10 +405,10 @@ export function validateSpriteData(data: SpriteDataFile) {
     }
 }
 
-export async function fetchSpriteData(delayMs = 150, seasonContext?: FortniteSeasonContext): Promise<SpriteDataFile> {
+export async function fetchSpriteData(delayMs = 150, seasonContext?: FortniteSeasonContext, fallbackSeasonContext?: FortniteSeasonContext): Promise<SpriteDataFile> {
     // Resolve the season before scraping the list so the stored context is
     // associated with this exact scrape.
-    const resolvedSeason = seasonContext || await resolveCurrentFortniteSeason();
+    const resolvedSeason = seasonContext || await resolveCurrentFortniteSeason(false, fallbackSeasonContext);
     const listHtml = await fetchHtml(SOURCE_URL);
     const list = parseListPage(listHtml, resolvedSeason.seasonKey);
 

@@ -454,7 +454,7 @@ export class FortniteSprites {
         let changed = false;
 
         try {
-            const latest = await fetchSpriteData();
+            const latest = await fetchSpriteData(150, undefined, this._data?.seasonContext);
             const nextHistory = updateSpriteHistory(this.spriteHistory, latest);
             const enrichedLatest = applySpriteHistory(latest, nextHistory);
             const latestJson = stableSpriteDataJson(enrichedLatest);

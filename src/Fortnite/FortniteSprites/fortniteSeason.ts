@@ -44,7 +44,7 @@ function normalizeSeason(value: string) {
     return value.replace(/^S/i, "").trim().toLowerCase();
 }
 
-async function fetchFortniteGgSeason(): Promise<SeasonCandidate> {
+async function fetchFortniteGgSeason(fallbackContext?: FortniteSeasonContext): Promise<SeasonCandidate> {
     const [countdownResponse, spritesResponse] = await Promise.all([
         axios.get(FORTNITE_GG_COUNTDOWN_URL, { timeout: 15_000, httpsAgent, headers: requestHeaders }),
         axios.get(FORTNITE_GG_SPRITES_URL, { timeout: 15_000, httpsAgent, headers: requestHeaders })
@@ -59,7 +59,7 @@ async function fetchFortniteGgSeason(): Promise<SeasonCandidate> {
     // filter hides every card whose data-season differs from the selection.
     const $ = cheerio.load(spritesHtml);
     let selectedOption: { seasonKey: string; chapter: number; season: string } | undefined;
-    $(".filter-season [data-key='season'], .filter-season [data-season], .filter-season option, [data-filter='season'][data-val]").each((_, element) => {
+    $(".filter-season [data-key='season'], .filter-season [data-season], .filter-season option, .filter-select-btn[data-key='season'], [data-filter='season'][data-val]").each((_, element) => {
         const optionLabel = parseSeasonLabel($(element).text());
         const chapter = Number($(element).attr("data-chapter")) || optionLabel?.chapter || parsed.chapter;
         const seasonKey = String(
@@ -74,6 +74,16 @@ async function fetchFortniteGgSeason(): Promise<SeasonCandidate> {
             selectedOption = { seasonKey, chapter, season };
         }
     });
+    if (!selectedOption && fallbackContext?.seasonKey && fallbackContext.id === seasonId(parsed.chapter, parsed.season)) {
+        // A transient challenge page or markup change can hide the filter controls.
+        // Reuse a key previously validated for this exact season only; never carry
+        // a prior-season key into a newly detected season.
+        selectedOption = {
+            seasonKey: fallbackContext.seasonKey,
+            chapter: parsed.chapter,
+            season: parsed.season
+        };
+    }
     if (!selectedOption) {
         throw new Error(`fortnite.gg sprite Season filter had no key for ${parsed.chapter}/${parsed.season}.`);
     }
@@ -92,14 +102,14 @@ async function fetchFortniteGgSeason(): Promise<SeasonCandidate> {
     return candidate;
 }
 
-export async function resolveCurrentFortniteSeason(forceRefresh = false): Promise<FortniteSeasonContext> {
+export async function resolveCurrentFortniteSeason(forceRefresh = false, fallbackContext?: FortniteSeasonContext): Promise<FortniteSeasonContext> {
     if (!forceRefresh && cachedContext && Date.now() - cachedAt < CACHE_TTL_MS) return cachedContext;
 
     // fortnite.gg is intentionally authoritative here: its Season filter is
     // the same source used to decide which cards belong to the current sprite
     // dataset. We fail closed if either the current title or filter key cannot
     // be read instead of guessing from an unrelated provider.
-    const candidate = await fetchFortniteGgSeason();
+    const candidate = await fetchFortniteGgSeason(fallbackContext);
     const context: FortniteSeasonContext = {
         ...candidate,
         validatedBy: ["fortnite-gg"]
