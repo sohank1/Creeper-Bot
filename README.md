@@ -1,7 +1,7 @@
 # Creeper-Bot
 
 - [Creeper Bot Roadmap](https://github.com/users/CreeperPlanet26/projects/2)
-- Current package version: `4.0.24-BETA`
+- Current package version: `4.0.25-BETA`
 
 ## Overview
 
@@ -91,7 +91,7 @@ Response:
 ```json
 {
   "serverStartedAt": "...",
-  "version": "v4.0.24-BETA"
+  "version": "v4.0.25-BETA"
 }
 ```
 
