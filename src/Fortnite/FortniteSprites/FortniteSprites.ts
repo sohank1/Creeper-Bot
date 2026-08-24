@@ -277,7 +277,6 @@ export class FortniteSprites {
     private browserPromise: Promise<Browser> | null = null;
     private renderPagePool: Page[] = [];
     private liveRenderPages = new Set<Page>();
-    private initializedRenderPages = new WeakSet<Page>();
     private pendingRenderPageAcquires: PendingRenderPageAcquire[] = [];
     private runtimeRefreshPromise: Promise<void> | null = null;
     private activeRefreshGeneration: number | null = null;
@@ -2855,12 +2854,6 @@ export class FortniteSprites {
 
     private async resetRenderPagePool(error: Error) {
         const pooledPages = this.renderPagePool.splice(0);
-        for (const page of pooledPages) {
-            this.initializedRenderPages.delete(page);
-        }
-        for (const page of this.liveRenderPages) {
-            this.initializedRenderPages.delete(page);
-        }
         this.liveRenderPages.clear();
 
         const waiters = this.pendingRenderPageAcquires.splice(0);
@@ -2892,7 +2885,6 @@ export class FortniteSprites {
     private async disposeRenderPage(page: Page) {
         this.removeRenderPageFromPool(page);
         this.liveRenderPages.delete(page);
-        this.initializedRenderPages.delete(page);
         if (!page.isClosed()) {
             await page.close().catch(() => { });
         }
@@ -2900,7 +2892,6 @@ export class FortniteSprites {
 
     private onRenderPageClosed(page: Page) {
         this.removeRenderPageFromPool(page);
-        this.initializedRenderPages.delete(page);
         const wasTracked = this.liveRenderPages.delete(page);
         if (wasTracked && this.pendingRenderPageAcquires.length > 0) {
             const waiter = this.pendingRenderPageAcquires.shift();
@@ -2970,34 +2961,6 @@ export class FortniteSprites {
         }
 
         this.renderPagePool.push(page);
-    }
-
-    private async setRenderPageContent(page: Page, html: string) {
-        const setFullPageContent = async () => {
-            await page.setContent(html, { waitUntil: "load", timeout: 15000 });
-            this.initializedRenderPages.add(page);
-        };
-
-        if (!this.initializedRenderPages.has(page)) {
-            await setFullPageContent();
-            return;
-        }
-
-        try {
-            // Keep the browser document alive between renders. This avoids a
-            // full navigation while preserving the existing HTML/CSS output.
-            await page.evaluate((nextHtml) => {
-                const parsed = new DOMParser().parseFromString(nextHtml, "text/html");
-                if (!parsed.documentElement || !parsed.head || !parsed.body) {
-                    throw new Error("Sprite render HTML did not contain a complete document.");
-                }
-                document.documentElement.innerHTML = parsed.documentElement.innerHTML;
-            }, html);
-        } catch {
-            // A page can become unusable between acquire and evaluate. Fall
-            // back to the normal navigation path so the render stays correct.
-            await setFullPageContent();
-        }
     }
 
     private async resolveSpriteImageSrc(
@@ -3220,7 +3183,9 @@ export class FortniteSprites {
                 "Accept-Language": "en-US,en;q=0.9"
             });
             await page.setViewport({ width, height, deviceScaleFactor });
-            await this.setRenderPageContent(page, html);
+            // Fully reset the document between renders. This keeps Chromium's
+            // memory and renderer state bounded during long pre-render runs.
+            await page.setContent(html, { waitUntil: "load", timeout: 15000 });
             await page.evaluate(async () => {
                 await (document as any).fonts?.ready;
                 const images = Array.from(document.images || []);
