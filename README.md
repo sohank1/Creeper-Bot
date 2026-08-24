@@ -1,7 +1,7 @@
 # Creeper-Bot
 
 - [Creeper Bot Roadmap](https://github.com/users/CreeperPlanet26/projects/2)
-- Current package version: `4.0.25-BETA`
+- Current package version: `4.0.26-BETA`
 
 ## Overview
 
@@ -91,7 +91,7 @@ Response:
 ```json
 {
   "serverStartedAt": "...",
-  "version": "v4.0.25-BETA"
+  "version": "v4.0.26-BETA"
 }
 ```
 
@@ -232,6 +232,7 @@ Current behavior:
 - each production asset namespace includes a manifest with the downloaded image hash and any Fortnite.GG `ETag`/`Last-Modified` validators
 - cache keys include the render schema, app version, render source/UI inputs, and the effective sprite catalog (including history-derived season availability)
 - render telemetry is appended as daily JSONL files under `.cache/fortnite-sprites/telemetry` and is never automatically deleted
+- generation telemetry records start, 30-second progress, completion, cancellation, and failure events with elapsed time, screens per second, task durations, bytes rendered, and the current screen
 
 That means cache invalidation happens automatically when relevant inputs change, such as:
 
@@ -272,8 +273,10 @@ namespaces while leaving telemetry intact.
 Each telemetry line is one JSON event containing the timestamp, app/build identity,
 event type, initiating Discord username, interacting Discord username, message ID,
 request ID, cache outcome, hashed cache/asset key, duration, page-queue wait,
-rendered pixels, Chromium RSS, and any failure message. Asset sync events also
-record whether Fortnite.GG data changed and how many assets succeeded or failed.
+rendered pixels, Chromium RSS, and any failure message. Generation events also
+persist progress and speed metrics, so a Discord embed edit is not the only record
+of how long a pre-render run took. Asset sync events also record whether Fortnite.GG
+data changed and how many assets succeeded or failed.
 The initial command writes a message-binding event after Discord assigns the actual
 message ID; subsequent interaction and refresh events include that message ID
 directly. Telemetry is production-only and remains in the Docker volume until

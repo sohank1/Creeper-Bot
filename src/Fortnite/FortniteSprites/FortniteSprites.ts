@@ -171,6 +171,9 @@ type RenderGenerationProgress = {
     completed: number;
     failed: number;
     current: string;
+    taskDurationMs: number;
+    lastTaskDurationMs: number;
+    renderedBytes: number;
 };
 
 type RenderTelemetryContext = {
@@ -369,6 +372,10 @@ export class FortniteSprites {
     private launchRenderGeneration(runId: number, reason: string) {
         const runPromise = this.runRenderGeneration(runId, reason)
             .catch((error) => {
+                const progress = this.renderGenerationProgress?.runId === runId
+                    ? this.renderGenerationProgress
+                    : null;
+                if (progress) this.recordRenderGenerationTelemetry(progress, "failure", error);
                 console.error("[FortniteSprites] Render cache generation failed:", error);
             });
         this.renderGenerationPromise = runPromise;
@@ -400,10 +407,13 @@ export class FortniteSprites {
             total: tasks.length,
             completed: 0,
             failed: 0,
-            current: "Preparing render queue"
+            current: "Preparing render queue",
+            taskDurationMs: 0,
+            lastTaskDurationMs: 0,
+            renderedBytes: 0
         };
         this.renderGenerationProgress = progress;
-        await this.updateRenderGenerationProgress();
+        await this.updateRenderGenerationProgress("running", "start");
         this.renderGenerationProgressTimer = setInterval(() => {
             void this.updateRenderGenerationProgress();
         }, 30 * 1000);
@@ -425,13 +435,17 @@ export class FortniteSprites {
                 }
 
                 progress.current = task.label;
+                const taskStartedAt = Date.now();
                 try {
-                    await task.render();
+                    const rendered = await task.render();
                     progress.completed++;
+                    progress.renderedBytes += rendered.byteLength;
                 } catch (error) {
                     progress.failed++;
                     console.warn(`[FortniteSprites] Failed to pre-render ${task.label}:`, error);
                 }
+                progress.lastTaskDurationMs = Math.max(0, Date.now() - taskStartedAt);
+                progress.taskDurationMs += progress.lastTaskDurationMs;
 
                 if (RENDER_GENERATION_DELAY_MS > 0) {
                     await new Promise(resolve => setTimeout(resolve, RENDER_GENERATION_DELAY_MS));
@@ -444,11 +458,17 @@ export class FortniteSprites {
             }
 
             const ownsProgress = this.renderGenerationProgress?.runId === runId;
-            if (!ownsProgress) return;
-            if (cancelled || this.renderGenerationRevision !== runId) return;
+            if (!ownsProgress) {
+                this.recordRenderGenerationTelemetry(progress, "cancelled");
+                return;
+            }
+            if (cancelled || this.renderGenerationRevision !== runId) {
+                this.recordRenderGenerationTelemetry(progress, "cancelled");
+                return;
+            }
 
             progress.current = "Complete";
-            await this.updateRenderGenerationProgress("complete");
+            await this.updateRenderGenerationProgress("complete", "complete");
             if (progress.failed === 0) {
                 await this.pruneRenderDiskCache(progress.dataFingerprint);
                 // Asset files are keyed by the catalog fingerprint. The render
@@ -652,7 +672,47 @@ export class FortniteSprites {
         });
     }
 
-    private async updateRenderGenerationProgress(status: "running" | "complete" = "running") {
+    private recordRenderGenerationTelemetry(
+        progress: RenderGenerationProgress,
+        phase: "start" | "progress" | "complete" | "cancelled" | "failure",
+        error?: unknown
+    ) {
+        const processed = progress.completed + progress.failed;
+        const elapsedMs = Math.max(0, Date.now() - progress.startedAt);
+        const elapsedSeconds = elapsedMs / 1000;
+        const remaining = Math.max(0, progress.total - processed);
+        const averageTaskDurationMs = processed > 0
+            ? progress.taskDurationMs / processed
+            : 0;
+
+        this.recordSpriteTelemetry({
+            type: "render-generation",
+            phase,
+            runId: progress.runId,
+            reason: progress.reason,
+            dataFingerprint: progress.dataFingerprint,
+            total: progress.total,
+            completed: progress.completed,
+            failed: progress.failed,
+            remaining,
+            current: progress.current,
+            durationMs: elapsedMs,
+            screensPerSecond: elapsedSeconds > 0 ? progress.completed / elapsedSeconds : 0,
+            processedPerSecond: elapsedSeconds > 0 ? processed / elapsedSeconds : 0,
+            averageTaskDurationMs,
+            lastTaskDurationMs: progress.lastTaskDurationMs,
+            renderedBytes: progress.renderedBytes,
+            estimatedRemainingMs: processed > 0
+                ? Math.round((elapsedMs / processed) * remaining)
+                : null,
+            ...(error ? { error: error instanceof Error ? error.message : String(error) } : {})
+        });
+    }
+
+    private async updateRenderGenerationProgress(
+        status: "running" | "complete" = "running",
+        telemetryPhase: "start" | "progress" | "complete" = status === "complete" ? "complete" : "progress"
+    ) {
         const progress = this.renderGenerationProgress;
         if (!progress) return;
 
@@ -668,6 +728,7 @@ export class FortniteSprites {
         const current = this.truncate(progress.current || "Waiting for the next screen", 900);
         const reason = this.truncate(progress.reason, 900);
         const progressDescription = `${progress.completed} of ${progress.total} screens are ready (${percent}%).`;
+        this.recordRenderGenerationTelemetry(progress, telemetryPhase);
         const progressEmbed = new MessageEmbed()
             .setColor(status === "complete" ? "#39B36B" : "#2186DB")
             .setTitle(`🖼️ Sprite image cache generation ${stateLabel}`)
@@ -3171,12 +3232,7 @@ export class FortniteSprites {
                     });
                 }));
             });
-            const screenshot = Buffer.from(await page.screenshot({
-                type: "png",
-                // Keep the existing high-resolution pixels while asking
-                // Chromium to spend less CPU optimizing PNG compression.
-                optimizeForSpeed: true
-            }));
+            const screenshot = Buffer.from(await page.screenshot({ type: "png" }));
             if (telemetry) {
                 telemetry.renderedPixels = Math.max(1, Math.round(width * deviceScaleFactor))
                     * Math.max(1, Math.round(height * deviceScaleFactor));
