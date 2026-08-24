@@ -1,7 +1,7 @@
 # Creeper-Bot
 
 - [Creeper Bot Roadmap](https://github.com/users/CreeperPlanet26/projects/2)
-- Current package version: `4.0.18-BETA`
+- Current package version: `4.0.24-BETA`
 
 ## Overview
 
@@ -91,7 +91,7 @@ Response:
 ```json
 {
   "serverStartedAt": "...",
-  "version": "v4.0.18-BETA"
+  "version": "v4.0.24-BETA"
 }
 ```
 
@@ -212,30 +212,72 @@ curl -i -H 'Host: <coolify-app-hostname>' http://127.0.0.1/
 
 ## Fortnite Sprite Cache Behavior
 
-The Fortnite sprite renderer keeps rendered images in an in-memory cache in [src/Fortnite/FortniteSprites/FortniteSprites.ts](C:/Users/Sohan/Desktop/Creeper-Bot/src/Fortnite/FortniteSprites/FortniteSprites.ts:142).
+The Fortnite sprite renderer keeps rendered images in memory everywhere, but only
+Linux production writes the rendered PNG cache to disk. The production cache is
+implemented in [src/Fortnite/FortniteSprites/FortniteSprites.ts](C:/Users/Sohan/Desktop/Creeper-Bot/src/Fortnite/FortniteSprites/FortniteSprites.ts:142).
+
+This behavior is independent of Coolify, Docker, Oracle, or any other hosting
+provider: any Linux process with `NODE_ENV=production` enables it. A persistent
+`.cache` mount is optional; without one, the bot safely rebuilds the cache after
+each restart.
 
 Current behavior:
 
-- cached rendered sprite images are stored in memory for the running process
-- cached raw sprite assets may be stored under `.cache/fortnite-sprites/assets`
-- render cache keys include a Fortnite sprite UI fingerprint
+- local and development environments render on demand and do not use the file cache
+- Linux production starts the finite pre-render queue after startup on every build
+- the queue uses one paced background render worker so interactive renders remain responsive
+- the original login/status message keeps its login text and receives an attached embed updated every 30 seconds with rendered, remaining, failed, elapsed, and ETA values
+- rendered PNGs are stored under `.cache/fortnite-sprites/renders`
+- raw downloaded sprite assets are stored as binary `.bin` files under `.cache/fortnite-sprites/assets` only in Linux production; the manifest remains JSON metadata
+- each production asset namespace includes a manifest with the downloaded image hash and any Fortnite.GG `ETag`/`Last-Modified` validators
+- cache keys include the render schema, app version, render source/UI inputs, and the effective sprite catalog (including history-derived season availability)
+- render telemetry is appended as daily JSONL files under `.cache/fortnite-sprites/telemetry` and is never automatically deleted
 
-That means Fortnite sprite UI/cache invalidation now happens automatically when sprite UI render inputs change, such as:
+That means cache invalidation happens automatically when relevant inputs change, such as:
 
 - sprite render code
 - `tokens.css`
 - sprite UI icon assets
+- a new app build/version
+- updated Fortnite.GG sprite data or history
+- changed sprite artwork at an unchanged Fortnite.GG image URL
 
-The cache is not invalidated just because the overall app version changes.
+Production revalidates the artwork during its startup and runtime refresh passes. It
+uses conditional HTTP requests when Fortnite.GG supplies validators, hashes any
+downloaded image bytes, and invalidates the current rendered-image namespace when
+the artwork hash changes. This means a URL-only cache hit cannot permanently hide a
+changed sprite image.
+
+When fresh data is found, active tracked messages first show `Sprite fetch in progress`.
+The most recently interacted page is refreshed first, followed by the remaining stale
+messages, and the background pre-render queue resumes afterward. Message state is
+kept in memory only; an interaction with an older message can reconstruct its view
+from the controls and request the current cached/on-demand image without a state JSON file.
 
 ## Persisting `.cache` In Coolify
 
-If you want the app-level `.cache` directory to survive redeploys, add a Coolify directory mount:
+The Compose file declares a named `creeper-bot-cache` volume mounted at
+`/app/.cache`. Coolify reuses that volume across production container
+replacements, so no separate directory mount is required.
 
-- source: `/data/coolify/applications/<app-id>/creeper-cache`
-- destination: `/app/.cache`
+If a host-directory bind mount is preferred, configure it in Coolify at the same
+container destination (`/app/.cache`) instead of using the named volume; do not
+configure both.
 
-For this bot, that mainly affects locally cached sprite assets.
+For this bot, the mount preserves downloaded sprite assets, rendered PNGs, and
+telemetry between production redeploys. A new UI/data fingerprint automatically
+selects a new cache namespace, and completed generations prune obsolete rendered
+namespaces while leaving telemetry intact.
+
+Each telemetry line is one JSON event containing the timestamp, app/build identity,
+event type, initiating Discord username, interacting Discord username, message ID,
+request ID, cache outcome, hashed cache/asset key, duration, page-queue wait,
+rendered pixels, Chromium RSS, and any failure message. Asset sync events also
+record whether Fortnite.GG data changed and how many assets succeeded or failed.
+The initial command writes a message-binding event after Discord assigns the actual
+message ID; subsequent interaction and refresh events include that message ID
+directly. Telemetry is production-only and remains in the Docker volume until
+manually removed.
 
 ## Repository Notes
 

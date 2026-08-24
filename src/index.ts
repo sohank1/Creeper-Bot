@@ -112,8 +112,10 @@ app.listen(port, () => {
 
       const instance = process.env.NODE_ENV === 'production' ? process.env.NODE_ENV : 'development';
 
-      console.log(c.name)
-      c.send(`${client.user.tag} has logged in at ${new Date().toLocaleString("en-US", { timeZone: "America/New_York" })}. Instance is on **${instance}**. Version is ${version}`);
+      console.log(c?.name)
+      const loggedOnMessage = c
+        ? await c.send(`${client.user.tag} has logged in at ${new Date().toLocaleString("en-US", { timeZone: "America/New_York" })}. Instance is on **${instance}**. Version is ${version}`)
+        : undefined;
       console.log(`${client.user.tag} has logged in at ${new Date().toLocaleString("en-US", { timeZone: "America/New_York" })}. Instance is on **${instance}**.`);
       client.user.setActivity(`${version}, c!creeper-bot-help`);
       try { new DeletedClient(client) } catch (e) { console.log("deleted client failed", e) };
@@ -126,9 +128,10 @@ app.listen(port, () => {
       new ShopSectionsTracker(client)
       new FortniteCosmetics(client)
       new FortniteMap(client)
-      new FortniteSprites(client)
+      const fortniteSprites = new FortniteSprites(client, loggedOnMessage)
       new FortniteSpriteCard(client)
       new MissingCosmetics(client)
+      fortniteSprites.startProductionRenderGeneration();
 
       // music = new Music(client);
       // new Teasers(client);

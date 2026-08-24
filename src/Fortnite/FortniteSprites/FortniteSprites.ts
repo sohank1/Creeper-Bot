@@ -64,6 +64,21 @@ type SpriteViewState =
 type SpriteAuthor = {
     name: string;
     iconURL?: string;
+    username?: string;
+};
+
+type SpriteTelemetryOrigin = {
+    initiatedByUsername: string | null;
+    interactedByUsername: string | null;
+    messageId: string | null;
+    requestId: string | null;
+};
+
+const BACKGROUND_TELEMETRY_ORIGIN: SpriteTelemetryOrigin = {
+    initiatedByUsername: null,
+    interactedByUsername: null,
+    messageId: null,
+    requestId: null
 };
 
 type SpriteSpawnRateEntry = {
@@ -83,6 +98,7 @@ type SpriteMessageState = {
     viewVersion: number;
     editToken: number;
     refreshGeneration: number | null;
+    renderDataFingerprint: string;
     updatedAt: number;
 };
 
@@ -99,11 +115,68 @@ type RenderedImageCacheEntry = {
 type SpriteAssetCacheEntry = {
     src: string;
     bytes: number;
+    dataFingerprint: string;
+};
+
+type SpriteAssetDiskEntry = {
+    resolvedUrl: string;
+    contentSha256: string;
+    contentType: string;
+    etag?: string;
+    lastModified?: string;
+    checkedAt: string;
+};
+
+type SpriteAssetDiskManifest = {
+    schemaVersion: number;
+    dataFingerprint: string;
+    assets: Record<string, SpriteAssetDiskEntry>;
+};
+
+type SpriteAssetDiskContent = {
+    buffer: Buffer;
+    contentType: string;
+};
+
+type SpriteAssetRefreshResult = {
+    src: string;
+    buffer: Buffer;
+    metadata: SpriteAssetDiskEntry;
+};
+
+type SpriteAssetSyncResult = {
+    changed: boolean;
+    checked: number;
+    failed: number;
+    dataFingerprint: string;
 };
 
 type PendingRenderPageAcquire = {
     resolve: (page: Page) => void;
     reject: (error: Error) => void;
+};
+
+type RenderGenerationTask = {
+    id: string;
+    label: string;
+    render: () => Promise<Buffer>;
+};
+
+type RenderGenerationProgress = {
+    runId: number;
+    reason: string;
+    startedAt: number;
+    dataFingerprint: string;
+    total: number;
+    completed: number;
+    failed: number;
+    current: string;
+};
+
+type RenderTelemetryContext = {
+    pageQueueWaitMs: number;
+    renderedPixels: number;
+    chromiumMemoryBytes: number | null;
 };
 
 const DATA_PATH = path.join(process.cwd(), "src", "Fortnite", "FortniteSprites", "spriteData.json");
@@ -125,7 +198,21 @@ const SPAWN_RATE_ICON_PATHS: Record<string, string> = {
     supplyDrop: path.join(process.cwd(), "assets", "drop-resized.png")
 };
 const SPRITE_ASSET_CACHE_DIR = path.join(process.cwd(), ".cache", "fortnite-sprites", "assets");
-const SPRITE_ASSET_CACHE_VERSION = "v3-hide-black-placeholder-assets";
+const SPRITE_ASSET_CACHE_VERSION = "v4-binary-assets";
+const SPRITE_ASSET_MANIFEST_VERSION = 2;
+const RENDER_CACHE_DIR = path.join(process.cwd(), ".cache", "fortnite-sprites", "renders");
+const SPRITE_TELEMETRY_DIR = path.join(process.cwd(), ".cache", "fortnite-sprites", "telemetry");
+const SPRITE_TELEMETRY_SCHEMA_VERSION = 1;
+const RENDER_CACHE_SCHEMA = "v1";
+const PRODUCTION_RENDER_CACHE_ENABLED = process.platform === "linux" && process.env.NODE_ENV === "production";
+const buildFingerprint = [
+    process.env.BUILD_ID,
+    process.env.COMMIT_SHA,
+    process.env.SOURCE_COMMIT,
+    process.env.GIT_COMMIT,
+    process.env.DEPLOYMENT_ID,
+    process.env.RELEASE_ID
+].filter(Boolean).join("|");
 const appVersion = `v${require("../../../package.json").version}`;
 const IMAGE_HTTPS_AGENT = new https.Agent({ keepAlive: true, maxSockets: 12 });
 const RARITY_ORDER: SpriteRarity[] = ["rare", "epic", "legendary", "mythic", "special"];
@@ -143,10 +230,12 @@ const RARITY_CSS_COLORS: Record<SpriteRarity, string> = {
     mythic: "var(--rarity-mythic)",
     special: "var(--rarity-special)"
 };
-const RENDER_PAGE_POOL_SIZE = 3;
+const RENDER_PAGE_POOL_SIZE = 2;
 const MAX_RENDERED_IMAGE_CACHE_BYTES = 96 * 1024 * 1024;
 const MAX_SPRITE_ASSET_CACHE_BYTES = 32 * 1024 * 1024;
-const SPRITE_IMAGE_PREWARM_CONCURRENCY = 6;
+const SPRITE_IMAGE_PREWARM_CONCURRENCY = 2;
+const RENDER_GENERATION_DELAY_MS = 250;
+const SPRITE_ASSET_SYNC_COOLDOWN_MS = 5 * 60 * 1000;
 export class FortniteSprites {
     private _data: SpriteDataFile | null = null;
     private spriteHistory: SpriteHistoryFile = { schemaVersion: 1, records: [] };
@@ -160,6 +249,25 @@ export class FortniteSprites {
     private spriteAssetCache = new Map<string, SpriteAssetCacheEntry>();
     private spriteAssetCacheBytes = 0;
     private pendingSpriteAssetLoads = new Map<string, Promise<string | null>>();
+    private telemetryWritePromise: Promise<void> = Promise.resolve();
+    private telemetryCounters = {
+        renderMemoryHits: 0,
+        renderDiskHits: 0,
+        renderPendingHits: 0,
+        renderColdRenders: 0,
+        renderFailures: 0,
+        assetMemoryHits: 0,
+        assetDiskHits: 0,
+        assetNetworkLoads: 0,
+        assetLocalLoads: 0,
+        assetMisses: 0,
+        assetFailures: 0,
+        assetSyncChecks: 0,
+        assetSyncFailures: 0,
+        totalRenderDurationMs: 0,
+        totalPageQueueWaitMs: 0,
+        totalRenderedPixels: 0
+    };
     private lastSuccessfulSyncAt: string | null = null;
     private lastSyncError: string | null = null;
     private browser: Browser | null = null;
@@ -172,10 +280,23 @@ export class FortniteSprites {
     private refreshGenerationCounter = 0;
     private lastRuntimeRefreshQueuedAt = 0;
     private readonly runtimeRefreshCooldownMs = 5 * 60 * 1000;
-    private readonly refreshEditConcurrency = 3;
+    private readonly refreshEditConcurrency = 1;
     private readonly maxTrackedMessages = 80;
     private trackedSpriteMessages = new Map<string, SpriteMessageState>();
     private messageEditPipelines = new Map<string, Promise<void>>();
+    private interactionSequenceCounter = 0;
+    private latestInteractionSequences = new Map<string, number>();
+    private startupSyncPromise: Promise<SpriteSyncResult> | null = null;
+    private renderGenerationPromise: Promise<void> | null = null;
+    private renderGenerationRevision = 0;
+    private pendingRenderGenerationReason: string | null = null;
+    private renderGenerationProgress: RenderGenerationProgress | null = null;
+    private renderGenerationProgressTimer?: NodeJS.Timeout;
+    private progressMessageEditPromise: Promise<void> = Promise.resolve();
+    private spriteAssetSyncPromise: Promise<SpriteAssetSyncResult> | null = null;
+    private lastSpriteAssetSyncAt = 0;
+    private lastSpriteAssetSyncDataFingerprint: string | null = null;
+    private spriteAssetContentFingerprint = "";
     private readonly renderTokensCss = fs.readFileSync(TOKENS_PATH, "utf8");
     private dustIconDataUrl = fs.existsSync(DUST_ICON_PATH)
         ? `data:image/png;base64,${fs.readFileSync(DUST_ICON_PATH).toString("base64")}`
@@ -188,16 +309,16 @@ export class FortniteSprites {
     }, {});
     private readonly renderUiFingerprint = this.computeRenderUiFingerprint();
 
-    constructor(private client: Client) {
+    constructor(private client: Client, private readonly progressMessage?: Message) {
         registerComponent("fortniteSprites", this);
         this.loadData();
         this.loadSpriteHistory();
         if (this.shouldSyncSprites()) {
-            createTrackedJob("fortnite-sprites-sync", "Fortnite Sprites Sync", "Daily and startup", () => this.syncLatestSprites())();
+            this.startupSyncPromise = createTrackedJob("fortnite-sprites-sync", "Fortnite Sprites Sync", "Daily and startup", () => this.syncLatestSprites())();
         } else {
             console.log("[FortniteSprites] Sprite data cache is fresh; skipping startup sync.");
         }
-        this.refreshTimer = setInterval(createTrackedJob("fortnite-sprites-sync", "Fortnite Sprites Sync", "Daily and startup", () => this.syncLatestSprites()), 24 * 60 * 60 * 1000);
+        this.refreshTimer = setInterval(createTrackedJob("fortnite-sprites-sync", "Fortnite Sprites Sync", "Daily and startup", () => this.maybeQueueRuntimeRefresh()), 24 * 60 * 60 * 1000);
 
         this.client.on("interactionCreate", (i) => {
             if (i.isAutocomplete() && i.commandName === "fortnite" && i.options.getSubcommand(false) === "sprites") {
@@ -215,6 +336,416 @@ export class FortniteSprites {
         });
     }
 
+    public startProductionRenderGeneration(reason = "startup build") {
+        if (!PRODUCTION_RENDER_CACHE_ENABLED) {
+            console.log("[FortniteSprites] Production render cache is disabled outside Linux production.");
+            return;
+        }
+        if (!this._data) {
+            if (this.startupSyncPromise) {
+                void this.startupSyncPromise.then(() => {
+                    if (this._data) this.startProductionRenderGeneration(reason);
+                }).catch(() => { });
+            }
+            console.warn("[FortniteSprites] Cannot start render cache generation before sprite data is loaded.");
+            return;
+        }
+
+        const runId = ++this.renderGenerationRevision;
+        if (this.renderGenerationPromise) {
+            this.pendingRenderGenerationReason = reason;
+            if (this.renderGenerationProgress) {
+                this.renderGenerationProgress.reason = reason;
+                this.renderGenerationProgress.current = "Fresh data detected; prioritizing active pages";
+                void this.updateRenderGenerationProgress();
+            }
+            return;
+        }
+
+        this.launchRenderGeneration(runId, reason);
+    }
+
+    private launchRenderGeneration(runId: number, reason: string) {
+        const runPromise = this.runRenderGeneration(runId, reason)
+            .catch((error) => {
+                console.error("[FortniteSprites] Render cache generation failed:", error);
+            });
+        this.renderGenerationPromise = runPromise;
+        void runPromise.finally(() => {
+            if (this.renderGenerationPromise !== runPromise) return;
+            this.renderGenerationPromise = null;
+            if (this.renderGenerationRevision === runId) return;
+
+            const nextReason = this.pendingRenderGenerationReason || "new sprite data";
+            this.pendingRenderGenerationReason = null;
+            this.launchRenderGeneration(this.renderGenerationRevision, nextReason);
+        });
+    }
+
+    private async runRenderGeneration(runId: number, reason: string) {
+        if (this.startupSyncPromise) {
+            await this.startupSyncPromise.catch(() => ({ changed: false, syncedAt: new Date().toISOString() }));
+            this.startupSyncPromise = null;
+        }
+        if (this.renderGenerationRevision !== runId || !this._data) return;
+
+        const tasks = this.buildRenderGenerationTasks();
+        const catalogDataFingerprint = this.getCatalogDataFingerprint();
+        const progress: RenderGenerationProgress = {
+            runId,
+            reason,
+            startedAt: Date.now(),
+            dataFingerprint: this.getRenderDataFingerprint(),
+            total: tasks.length,
+            completed: 0,
+            failed: 0,
+            current: "Preparing render queue"
+        };
+        this.renderGenerationProgress = progress;
+        await this.updateRenderGenerationProgress();
+        this.renderGenerationProgressTimer = setInterval(() => {
+            void this.updateRenderGenerationProgress();
+        }, 30 * 1000);
+
+        let cancelled = false;
+        try {
+            progress.current = "Checking Fortnite.GG sprite artwork for updates";
+            await this.syncProductionSpriteAssets(catalogDataFingerprint);
+            progress.dataFingerprint = this.getRenderDataFingerprint();
+            if (this.renderGenerationRevision !== runId) {
+                cancelled = true;
+                return;
+            }
+
+            for (const task of tasks) {
+                if (this.renderGenerationRevision !== runId) {
+                    cancelled = true;
+                    break;
+                }
+
+                progress.current = task.label;
+                try {
+                    await task.render();
+                    progress.completed++;
+                } catch (error) {
+                    progress.failed++;
+                    console.warn(`[FortniteSprites] Failed to pre-render ${task.label}:`, error);
+                }
+
+                if (RENDER_GENERATION_DELAY_MS > 0) {
+                    await new Promise(resolve => setTimeout(resolve, RENDER_GENERATION_DELAY_MS));
+                }
+            }
+        } finally {
+            if (this.renderGenerationProgressTimer) {
+                clearInterval(this.renderGenerationProgressTimer);
+                this.renderGenerationProgressTimer = undefined;
+            }
+
+            const ownsProgress = this.renderGenerationProgress?.runId === runId;
+            if (!ownsProgress) return;
+            if (cancelled || this.renderGenerationRevision !== runId) return;
+
+            progress.current = "Complete";
+            await this.updateRenderGenerationProgress("complete");
+            if (progress.failed === 0) {
+                await this.pruneRenderDiskCache(progress.dataFingerprint);
+                await this.pruneSpriteAssetDiskCache(progress.dataFingerprint);
+            }
+            this.renderGenerationProgress = null;
+        }
+    }
+
+    private buildRenderGenerationTasks(): RenderGenerationTask[] {
+        if (!this._data) return [];
+
+        const tasks: RenderGenerationTask[] = [];
+        const taskIds = new Set<string>();
+        const addTask = (id: string, label: string, render: () => Promise<Buffer>) => {
+            if (taskIds.has(id)) return;
+            taskIds.add(id);
+            tasks.push({ id, label, render });
+        };
+
+        const seasonFilters = Array.from(new Set([
+            "current",
+            "all",
+            ...this.getAvailableSeasonIds()
+        ]));
+        const variantFilters = ["all", ...this.getVariantNames()];
+        const rarityFilters: Array<"all" | SpriteRarity> = ["all", ...RARITY_ORDER];
+
+        for (const seasonFilter of seasonFilters) {
+            for (const variantFilter of variantFilters) {
+                for (const rarityFilter of rarityFilters) {
+                    const state: SpriteBrowserState = { seasonFilter, variantFilter, rarityFilter, familyPage: 0 };
+                    const families = this.getFilteredFamilies(state);
+                    if (families.length === 0) continue;
+                    addTask(
+                        `overview:${seasonFilter}:${variantFilter}:${rarityFilter}`,
+                        `Overview · ${this.describeSeasonFilter(seasonFilter)} · ${variantFilter}/${rarityFilter}`,
+                        () => this.renderOverviewImage(families, state)
+                    );
+                }
+            }
+        }
+
+        const displayFamilies = this.getDisplayFamilies(this._data.families);
+        for (const seasonFilter of seasonFilters) {
+            for (const sourceFamily of displayFamilies) {
+                const scopedFamily = this.filterFamilyBySeason(sourceFamily, seasonFilter);
+                const family = scopedFamily ? this.getDisplayFamilies([scopedFamily])[0] : undefined;
+                if (!family) continue;
+                const variantIds = family.variants.map(variant => variant.id).join(",");
+                addTask(
+                    `family:${seasonFilter}:${family.key}:${variantIds}`,
+                    `Family · ${family.displayName} · ${this.describeSeasonFilter(seasonFilter)}`,
+                    () => this.renderFamilyImage(family)
+                );
+            }
+        }
+
+        for (const family of displayFamilies) {
+            for (const variant of family.variants) {
+                addTask(
+                    `variant:${family.key}:${variant.id}`,
+                    `Variant · ${variant.name}`,
+                    () => this.renderVariantImage(family, variant)
+                );
+            }
+        }
+
+        return tasks;
+    }
+
+    private formatDuration(milliseconds: number) {
+        const totalSeconds = Math.max(0, Math.floor(milliseconds / 1000));
+        const hours = Math.floor(totalSeconds / 3600);
+        const minutes = Math.floor((totalSeconds % 3600) / 60);
+        const seconds = totalSeconds % 60;
+        if (hours > 0) return `${hours}h ${minutes}m ${seconds}s`;
+        if (minutes > 0) return `${minutes}m ${seconds}s`;
+        return `${seconds}s`;
+    }
+
+    private telemetryKeyHash(value: string) {
+        return crypto.createHash("sha1").update(value).digest("hex");
+    }
+
+    private getSpriteTelemetryLogPath(date = new Date()) {
+        return path.join(SPRITE_TELEMETRY_DIR, `events-${date.toISOString().slice(0, 10)}.jsonl`);
+    }
+
+    private recordSpriteTelemetry(event: Record<string, unknown>) {
+        if (!PRODUCTION_RENDER_CACHE_ENABLED) return;
+
+        const record = {
+            schemaVersion: SPRITE_TELEMETRY_SCHEMA_VERSION,
+            timestamp: new Date().toISOString(),
+            processId: process.pid,
+            appVersion,
+            buildFingerprint: buildFingerprint || null,
+            ...event
+        };
+        const line = `${JSON.stringify(record)}\n`;
+        this.telemetryWritePromise = this.telemetryWritePromise
+            .catch(() => { })
+            .then(async () => {
+                await fs.promises.mkdir(SPRITE_TELEMETRY_DIR, { recursive: true });
+                await fs.promises.appendFile(this.getSpriteTelemetryLogPath(), line, "utf8");
+            })
+            .catch(error => {
+                console.warn("[FortniteSprites] Failed to write sprite telemetry:", error?.message || error);
+            });
+    }
+
+    private recordRenderTelemetry(
+        outcome: "memory-hit" | "disk-hit" | "pending-hit" | "cold-render" | "failure",
+        cacheKey: string,
+        dataFingerprint: string,
+        startedAt: number,
+        metrics: RenderTelemetryContext,
+        telemetryOrigin: SpriteTelemetryOrigin,
+        error?: unknown
+    ) {
+        if (outcome === "memory-hit") this.telemetryCounters.renderMemoryHits++;
+        if (outcome === "disk-hit") this.telemetryCounters.renderDiskHits++;
+        if (outcome === "pending-hit") this.telemetryCounters.renderPendingHits++;
+        if (outcome === "cold-render") this.telemetryCounters.renderColdRenders++;
+        if (outcome === "failure") this.telemetryCounters.renderFailures++;
+
+        const durationMs = Math.max(0, Date.now() - startedAt);
+        const pageQueueWaitMs = Math.max(0, metrics.pageQueueWaitMs || 0);
+        const renderedPixels = Math.max(0, metrics.renderedPixels || 0);
+        this.telemetryCounters.totalRenderDurationMs += durationMs;
+        this.telemetryCounters.totalPageQueueWaitMs += pageQueueWaitMs;
+        this.telemetryCounters.totalRenderedPixels += renderedPixels;
+
+        this.recordSpriteTelemetry({
+            type: "render",
+            outcome,
+            cacheKeyHash: this.telemetryKeyHash(cacheKey),
+            dataFingerprint,
+            initiatedByUsername: telemetryOrigin.initiatedByUsername,
+            interactedByUsername: telemetryOrigin.interactedByUsername,
+            messageId: telemetryOrigin.messageId,
+            requestId: telemetryOrigin.requestId,
+            durationMs,
+            pageQueueWaitMs,
+            renderedPixels,
+            chromiumMemoryBytes: metrics.chromiumMemoryBytes,
+            ...(error ? { error: error instanceof Error ? error.message : String(error) } : {})
+        });
+    }
+
+    private recordAssetTelemetry(
+        outcome: "memory-hit" | "disk-hit" | "network" | "local" | "miss" | "failure",
+        imageUrl: string,
+        dataFingerprint: string,
+        startedAt: number,
+        telemetryOrigin: SpriteTelemetryOrigin,
+        error?: unknown
+    ) {
+        if (outcome === "memory-hit") this.telemetryCounters.assetMemoryHits++;
+        if (outcome === "disk-hit") this.telemetryCounters.assetDiskHits++;
+        if (outcome === "network") this.telemetryCounters.assetNetworkLoads++;
+        if (outcome === "local") this.telemetryCounters.assetLocalLoads++;
+        if (outcome === "miss") this.telemetryCounters.assetMisses++;
+        if (outcome === "failure") this.telemetryCounters.assetFailures++;
+
+        this.recordSpriteTelemetry({
+            type: "asset",
+            outcome,
+            assetKeyHash: this.telemetryKeyHash(imageUrl),
+            dataFingerprint,
+            initiatedByUsername: telemetryOrigin.initiatedByUsername,
+            interactedByUsername: telemetryOrigin.interactedByUsername,
+            messageId: telemetryOrigin.messageId,
+            requestId: telemetryOrigin.requestId,
+            durationMs: Math.max(0, Date.now() - startedAt),
+            ...(error ? { error: error instanceof Error ? error.message : String(error) } : {})
+        });
+    }
+
+    private recordAssetSyncTelemetry(
+        result: SpriteAssetSyncResult,
+        startedAt: number,
+        telemetryOrigin: SpriteTelemetryOrigin = BACKGROUND_TELEMETRY_ORIGIN
+    ) {
+        this.telemetryCounters.assetSyncChecks += result.checked;
+        this.telemetryCounters.assetSyncFailures += result.failed;
+        this.recordSpriteTelemetry({
+            type: "asset-sync",
+            dataFingerprint: result.dataFingerprint,
+            initiatedByUsername: telemetryOrigin.initiatedByUsername,
+            interactedByUsername: telemetryOrigin.interactedByUsername,
+            messageId: telemetryOrigin.messageId,
+            requestId: telemetryOrigin.requestId,
+            changed: result.changed,
+            checked: result.checked,
+            failed: result.failed,
+            durationMs: Math.max(0, Date.now() - startedAt)
+        });
+    }
+
+    private async updateRenderGenerationProgress(status: "running" | "complete" = "running") {
+        const progress = this.renderGenerationProgress;
+        if (!progress) return;
+
+        const processed = progress.completed + progress.failed;
+        const remaining = Math.max(0, progress.total - processed);
+        const elapsed = Date.now() - progress.startedAt;
+        const eta = processed > 0
+            ? this.formatDuration((elapsed / processed) * remaining)
+            : "estimating";
+        const percent = progress.total > 0 ? ((processed / progress.total) * 100).toFixed(1) : "100.0";
+        const stateLabel = status === "complete" ? "complete" : "in progress";
+        const startedAt = new Date(progress.startedAt).toLocaleString("en-US", { timeZone: "America/New_York" });
+        const current = this.truncate(progress.current || "Waiting for the next screen", 900);
+        const reason = this.truncate(progress.reason, 900);
+        const progressDescription = `${progress.completed} of ${progress.total} screens are ready (${percent}%).`;
+        const progressEmbed = new MessageEmbed()
+            .setColor(status === "complete" ? "#39B36B" : "#2186DB")
+            .setTitle(`🖼️ Sprite image cache generation ${stateLabel}`)
+            .setDescription(progressDescription)
+            .addFields(
+                { name: "Remaining", value: remaining.toLocaleString("en-US"), inline: true },
+                { name: "Failed", value: progress.failed.toLocaleString("en-US"), inline: true },
+                { name: "Elapsed", value: this.formatDuration(elapsed), inline: true },
+                { name: "ETA", value: status === "complete" ? "Done" : eta, inline: true },
+                { name: "Started", value: startedAt, inline: true },
+                { name: "Reason", value: reason || "Startup build", inline: true },
+                { name: "Current screen", value: current, inline: false }
+            )
+            .setFooter({ text: `1 background render worker · ${RENDER_GENERATION_DELAY_MS}ms pacing · active pages first` })
+            .setTimestamp();
+
+        console.log(`[FortniteSprites] ${[
+            `Sprite image cache generation ${stateLabel}`,
+            progressDescription,
+            `Remaining: ${remaining} · Failed: ${progress.failed}`,
+            `Started: ${startedAt}`,
+            `Elapsed: ${this.formatDuration(elapsed)} · ETA: ${status === "complete" ? "done" : eta}`,
+            `Current: ${current}`
+        ].join(" | ")}`);
+        if (this.progressMessage) {
+            const previous = this.progressMessageEditPromise;
+            const next = previous
+                .catch(() => { })
+                .then(async () => {
+                    await this.progressMessage!.edit({ embeds: [progressEmbed] }).catch((error) => {
+                        console.warn("[FortniteSprites] Failed to update sprite render progress message:", error?.message || error);
+                    });
+                });
+            this.progressMessageEditPromise = next;
+            await next;
+        }
+    }
+
+    private async pruneRenderDiskCache(dataFingerprint: string) {
+        if (!PRODUCTION_RENDER_CACHE_ENABLED) return;
+        try {
+            const currentUiRoot = path.join(RENDER_CACHE_DIR, this.renderUiFingerprint);
+            await fs.promises.mkdir(currentUiRoot, { recursive: true });
+            const uiEntries = await fs.promises.readdir(RENDER_CACHE_DIR, { withFileTypes: true });
+            await Promise.all(uiEntries
+                .filter(entry => entry.isDirectory() && entry.name !== this.renderUiFingerprint)
+                .map(entry => fs.promises.rm(path.join(RENDER_CACHE_DIR, entry.name), { recursive: true, force: true })));
+
+            const dataEntries = await fs.promises.readdir(currentUiRoot, { withFileTypes: true });
+            await Promise.all(dataEntries
+                .filter(entry => entry.isDirectory() && entry.name !== dataFingerprint)
+                .map(entry => fs.promises.rm(path.join(currentUiRoot, entry.name), { recursive: true, force: true })));
+        } catch (error) {
+            console.warn("[FortniteSprites] Failed to prune stale rendered image caches:", error?.message || error);
+        }
+    }
+
+    private async invalidateRenderedImageDiskCache(dataFingerprint: string) {
+        if (!PRODUCTION_RENDER_CACHE_ENABLED) return;
+        try {
+            await fs.promises.rm(
+                path.join(RENDER_CACHE_DIR, this.renderUiFingerprint, dataFingerprint),
+                { recursive: true, force: true }
+            );
+        } catch (error) {
+            console.warn("[FortniteSprites] Failed to invalidate rendered images after sprite artwork changed:", error?.message || error);
+        }
+    }
+
+    private async pruneSpriteAssetDiskCache(dataFingerprint: string) {
+        if (!PRODUCTION_RENDER_CACHE_ENABLED) return;
+        try {
+            await fs.promises.mkdir(SPRITE_ASSET_CACHE_DIR, { recursive: true });
+            const entries = await fs.promises.readdir(SPRITE_ASSET_CACHE_DIR, { withFileTypes: true });
+            await Promise.all(entries
+                .filter(entry => entry.isDirectory() && entry.name !== dataFingerprint)
+                .map(entry => fs.promises.rm(path.join(SPRITE_ASSET_CACHE_DIR, entry.name), { recursive: true, force: true })));
+        } catch (error) {
+            console.warn("[FortniteSprites] Failed to prune stale sprite asset caches:", error?.message || error);
+        }
+    }
+
     public getDiagnostics() {
         return {
             familiesLoaded: this._data?.families.length || 0,
@@ -228,8 +759,17 @@ export class FortniteSprites {
             spriteAssetBytes: this.spriteAssetCacheBytes,
             pendingImageRenders: this.pendingImageRenders.size,
             pendingAssetLoads: this.pendingSpriteAssetLoads.size,
+            productionRenderCacheEnabled: PRODUCTION_RENDER_CACHE_ENABLED,
+            renderGeneration: this.renderGenerationProgress,
             lastSuccessfulSyncAt: this.lastSuccessfulSyncAt,
             lastSyncError: this.lastSyncError,
+            telemetry: {
+                ...this.telemetryCounters,
+                persisted: PRODUCTION_RENDER_CACHE_ENABLED,
+                format: "jsonl",
+                directory: PRODUCTION_RENDER_CACHE_ENABLED ? SPRITE_TELEMETRY_DIR : null,
+                retention: "never automatically deleted"
+            },
         };
     }
 
@@ -708,8 +1248,11 @@ export class FortniteSprites {
         // Always perform the full cooldown-gated sync so detail-page-only changes
         // are picked up even when the main sprite list page has not changed.
         const syncResult = await this.syncLatestSprites();
-        if (syncResult?.changed) {
+        const assetSyncResult = await this.syncProductionSpriteAssets();
+        if (syncResult?.changed || assetSyncResult.changed) {
+            await this.markTrackedMessagesRefreshing(generation);
             await this.refreshTrackedMessages(generation, syncResult.syncedAt);
+            this.startProductionRenderGeneration("Fortnite data update");
         }
     }
 
@@ -747,7 +1290,24 @@ export class FortniteSprites {
         return next;
     }
 
-    private beginTrackedMessageTransition(message: Pick<Message, "id" | "channelId">, ownerId: string, author: SpriteAuthor, view: SpriteViewState, refreshGeneration: number | null) {
+    private beginInteraction(messageId: string) {
+        const sequence = ++this.interactionSequenceCounter;
+        this.latestInteractionSequences.set(messageId, sequence);
+        return sequence;
+    }
+
+    private isLatestInteraction(messageId: string, sequence: number) {
+        return this.latestInteractionSequences.get(messageId) === sequence;
+    }
+
+    private beginTrackedMessageTransition(
+        message: Pick<Message, "id" | "channelId">,
+        ownerId: string,
+        author: SpriteAuthor,
+        view: SpriteViewState,
+        refreshGeneration: number | null,
+        renderDataFingerprint = this.getRenderDataFingerprint()
+    ) {
         const previous = this.trackedSpriteMessages.get(message.id);
         const nextState: SpriteMessageState = {
             messageId: message.id,
@@ -757,7 +1317,8 @@ export class FortniteSprites {
             view,
             viewVersion: (previous?.viewVersion || 0) + 1,
             editToken: (previous?.editToken || 0) + 1,
-            refreshGeneration: refreshGeneration ?? previous?.refreshGeneration ?? this.activeRefreshGeneration ?? null,
+            refreshGeneration,
+            renderDataFingerprint,
             updatedAt: Date.now()
         };
         this.trackedSpriteMessages.set(message.id, nextState);
@@ -765,7 +1326,14 @@ export class FortniteSprites {
         return nextState;
     }
 
-    private rememberSpriteMessage(message: Message, ownerId: string, author: SpriteAuthor, view: SpriteViewState, refreshGeneration: number | null) {
+    private rememberSpriteMessage(
+        message: Message,
+        ownerId: string,
+        author: SpriteAuthor,
+        view: SpriteViewState,
+        refreshGeneration: number | null,
+        renderDataFingerprint = this.getRenderDataFingerprint()
+    ) {
         const previous = this.trackedSpriteMessages.get(message.id);
         this.trackedSpriteMessages.set(message.id, {
             messageId: message.id,
@@ -775,7 +1343,8 @@ export class FortniteSprites {
             view,
             viewVersion: (previous?.viewVersion || 0) + 1,
             editToken: previous?.editToken || 1,
-            refreshGeneration: refreshGeneration ?? previous?.refreshGeneration ?? this.activeRefreshGeneration ?? null,
+            refreshGeneration,
+            renderDataFingerprint,
             updatedAt: Date.now()
         });
         this.pruneTrackedMessages();
@@ -799,27 +1368,63 @@ export class FortniteSprites {
         await Promise.all(workers);
     }
 
+    private getRefreshTargets(generation: number) {
+        const currentFingerprint = this.getRenderDataFingerprint();
+        return [...this.trackedSpriteMessages.values()]
+            .filter(state => state.refreshGeneration === generation || state.renderDataFingerprint !== currentFingerprint)
+            .sort((a, b) => b.updatedAt - a.updatedAt);
+    }
+
+    private async markTrackedMessagesRefreshing(generation: number) {
+        const targets = this.getRefreshTargets(generation);
+        const targetIds = new Set(targets.map(state => state.messageId));
+        for (const state of targets) {
+            const liveState = this.trackedSpriteMessages.get(state.messageId);
+            if (!liveState || !targetIds.has(state.messageId)) continue;
+            const expectedVersion = liveState.viewVersion;
+            const expectedToken = liveState.editToken;
+            const message = await this.fetchTrackedMessage(liveState);
+            if (!message) continue;
+
+            await this.queueMessageEdit(state.messageId, async () => {
+                const queuedState = this.trackedSpriteMessages.get(state.messageId);
+                if (!queuedState || queuedState.viewVersion !== expectedVersion || queuedState.editToken !== expectedToken) return;
+                await message.edit({ content: "Sprite fetch in progress" }).catch((error) => {
+                    console.warn(`[FortniteSprites] Failed to mark tracked sprite message ${state.messageId} as refreshing:`, error);
+                });
+            });
+        }
+    }
+
     private async refreshTrackedMessages(generation: number, editedAt: string) {
-        const targets = [...this.trackedSpriteMessages.values()].filter(state => state.refreshGeneration === generation);
+        const targets = this.getRefreshTargets(generation);
         if (targets.length === 0) return;
 
-        await this.forEachConcurrent(targets, this.refreshEditConcurrency, async (state) => {
+        const refreshOne = async (state: SpriteMessageState) => {
             const liveState = this.trackedSpriteMessages.get(state.messageId);
-            if (!liveState || liveState.refreshGeneration !== generation) return;
+            const currentFingerprint = this.getRenderDataFingerprint();
+            if (!liveState || (liveState.refreshGeneration !== generation && liveState.renderDataFingerprint === currentFingerprint)) return;
             const expectedVersion = liveState.viewVersion;
             const expectedToken = liveState.editToken;
             const message = await this.fetchTrackedMessage(liveState);
             if (!message) return;
 
-            const response = await this.generateResponseForView(liveState.view, liveState.ownerId, liveState.author, editedAt);
+            const response = await this.generateResponseForView(
+                liveState.view,
+                liveState.ownerId,
+                liveState.author,
+                editedAt,
+                liveState.messageId
+            );
             const latestState = this.trackedSpriteMessages.get(state.messageId);
-            if (!latestState || latestState.refreshGeneration !== generation || latestState.viewVersion !== expectedVersion || latestState.editToken !== expectedToken) return;
+            if (!latestState || latestState.viewVersion !== expectedVersion || latestState.editToken !== expectedToken) return;
+            if (latestState.refreshGeneration !== generation && latestState.renderDataFingerprint === currentFingerprint) return;
 
             await this.queueMessageEdit(state.messageId, async () => {
                 const queuedState = this.trackedSpriteMessages.get(state.messageId);
-                if (!queuedState || queuedState.refreshGeneration !== generation || queuedState.viewVersion !== expectedVersion || queuedState.editToken !== expectedToken) return;
+                if (!queuedState || queuedState.viewVersion !== expectedVersion || queuedState.editToken !== expectedToken) return;
 
-                await message.edit({ ...response, attachments: [] } as any).catch((error) => {
+                await message.edit({ ...response, content: "", attachments: [] } as any).catch((error) => {
                     console.warn(`[FortniteSprites] Failed to refresh tracked sprite message ${state.messageId}:`, error);
                 });
             });
@@ -828,34 +1433,69 @@ export class FortniteSprites {
                 this.trackedSpriteMessages.set(state.messageId, {
                     ...refreshedState,
                     refreshGeneration: null,
+                    renderDataFingerprint: this.getRenderDataFingerprint(),
                     updatedAt: Date.now()
                 });
             }
-        });
+        };
+
+        // The newest page is the user's active page. Finish it first, then let
+        // the remaining stale messages drain without racing that first refresh.
+        const [priority, ...remaining] = targets;
+        if (priority) await refreshOne(priority);
+        await this.forEachConcurrent(remaining, this.refreshEditConcurrency, refreshOne);
     }
 
-    private createAuthor(displayName: string, iconURL?: string): SpriteAuthor {
-        return { name: displayName, iconURL };
+    private createAuthor(displayName: string, iconURL?: string, username?: string): SpriteAuthor {
+        return { name: displayName, iconURL, username };
+    }
+
+    private createTelemetryOrigin(
+        username?: string | null,
+        messageId?: string | null,
+        requestId?: string | null,
+        interactedByUsername?: string | null
+    ): SpriteTelemetryOrigin {
+        return {
+            initiatedByUsername: username || null,
+            interactedByUsername: interactedByUsername || username || null,
+            messageId: messageId || null,
+            requestId: requestId || null
+        };
+    }
+
+    private getTelemetryOrigin(user: User | SpriteAuthor, messageId?: string, requestId?: string) {
+        const username = "username" in user && user.username
+            ? user.username
+            : "name" in user ? user.name : null;
+        return this.createTelemetryOrigin(username, messageId, requestId);
     }
 
     private getAuthorIconURL(user: User | SpriteAuthor) {
         return "displayAvatarURL" in user ? user.displayAvatarURL({ dynamic: true }) : user.iconURL;
     }
 
-    private async generateResponseForView(view: SpriteViewState, ownerId: string, author: SpriteAuthor, editedAt?: string) {
+    private async generateResponseForView(
+        view: SpriteViewState,
+        ownerId: string,
+        author: SpriteAuthor,
+        editedAt?: string,
+        messageId?: string
+    ) {
+        const telemetryOrigin = this.getTelemetryOrigin(author, messageId);
         if (view.kind === "family") {
-            return this.generateFamilyResponse(view.familyKey, ownerId, author, author.name, editedAt, view.state || {});
+            return this.generateFamilyResponse(view.familyKey, ownerId, author, author.name, editedAt, view.state || {}, telemetryOrigin);
         }
 
         if (view.kind === "detail") {
             const match = this.findVariantInFamily(view.familyKey, view.variantId);
             if (!match) {
-                return this.generateOverviewResponse({}, ownerId, author, author.name, editedAt);
+                return this.generateOverviewResponse({}, ownerId, author, author.name, editedAt, telemetryOrigin);
             }
-            return this.generateDetailResponse(match.family, match.variant, ownerId, author, author.name, editedAt, view.state || {});
+            return this.generateDetailResponse(match.family, match.variant, ownerId, author, author.name, editedAt, view.state || {}, telemetryOrigin);
         }
 
-        return this.generateOverviewResponse(view.state, ownerId, author, author.name, editedAt);
+        return this.generateOverviewResponse(view.state, ownerId, author, author.name, editedAt, telemetryOrigin);
     }
 
     private getFamilyAliases(familyKey?: string) {
@@ -1294,8 +1934,9 @@ export class FortniteSprites {
         }
 
         const displayName = await this.getDisplayName(i as CommandInteraction<CacheType>);
-        const author = this.createAuthor(displayName, i.user.displayAvatarURL({ dynamic: true }));
-        const refreshGeneration = this.maybeQueueRuntimeRefresh();
+        const author = this.createAuthor(displayName, i.user.displayAvatarURL({ dynamic: true }), i.user.username);
+        const telemetryOrigin = this.createTelemetryOrigin(i.user.username, null, i.id);
+        const responseDataFingerprint = this.getRenderDataFingerprint();
         const result = this.resolveSearchIntent(search);
         const seasonFilter = requestedSeason
             ? this.normalizeSeasonFilter(requestedSeason)
@@ -1310,22 +1951,30 @@ export class FortniteSprites {
             if (!match) return i.editReply({ content: "I could not find that sprite variant." });
             if (!this.variantMatchesSeason(match.variant, seasonFilter)) return i.editReply({ content: `That sprite was not recorded in ${this.describeSeasonFilter(seasonFilter)}.` });
             view = { kind: "detail", familyKey: match.family.key, variantId: match.variant.id, state: { seasonFilter } };
-            response = await this.generateDetailResponse(match.family, match.variant, i.user.id, i.user as User, displayName, undefined, { seasonFilter });
+            response = await this.generateDetailResponse(match.family, match.variant, i.user.id, i.user as User, displayName, undefined, { seasonFilter }, telemetryOrigin);
         } else if (result.kind === "family") {
             const family = this.findFamily(result.familyKey);
             if (!family) return i.editReply({ content: "I could not find that sprite family." });
             const filteredFamily = this.filterFamilyBySeason(family, seasonFilter);
             if (!filteredFamily) return i.editReply({ content: `That sprite family was not recorded in ${this.describeSeasonFilter(seasonFilter)}.` });
             view = { kind: "family", familyKey: family.key, state: { seasonFilter } };
-            response = await this.generateFamilyResponse(family.key, i.user.id, i.user as User, displayName, undefined, { seasonFilter });
+            response = await this.generateFamilyResponse(family.key, i.user.id, i.user as User, displayName, undefined, { seasonFilter }, telemetryOrigin);
         } else {
             const state = { ...result.state, seasonFilter };
             view = { kind: "overview", state };
-            response = await this.generateOverviewResponse(state, i.user.id, i.user as User, displayName);
+            response = await this.generateOverviewResponse(state, i.user.id, i.user as User, displayName, undefined, telemetryOrigin);
         }
 
         const message = await i.editReply(response as any) as Message;
-        this.rememberSpriteMessage(message, i.user.id, author, view, refreshGeneration);
+        this.recordSpriteTelemetry({
+            type: "message-binding",
+            initiatedByUsername: telemetryOrigin.initiatedByUsername,
+            interactedByUsername: telemetryOrigin.interactedByUsername,
+            messageId: message.id,
+            requestId: telemetryOrigin.requestId
+        });
+        this.rememberSpriteMessage(message, i.user.id, author, view, null, responseDataFingerprint);
+        this.maybeQueueRuntimeRefresh();
         return message;
     }
 
@@ -1364,9 +2013,16 @@ export class FortniteSprites {
         return `${appVersion} | ${seasonText}Data fetched ${fetchedAt}${editedText}${syncText}`;
     }
 
-    private async generateOverviewResponse(state: SpriteBrowserState, ownerId: string, user: User | SpriteAuthor, displayName: string, editedAt?: string) {
+    private async generateOverviewResponse(
+        state: SpriteBrowserState,
+        ownerId: string,
+        user: User | SpriteAuthor,
+        displayName: string,
+        editedAt?: string,
+        telemetryOrigin: SpriteTelemetryOrigin = this.getTelemetryOrigin(user)
+    ) {
         const families = this.getFilteredFamilies(state);
-        const image = await this.renderOverviewImage(families, state);
+        const image = await this.renderOverviewImage(families, state, telemetryOrigin);
         const attachment = new MessageAttachment(image, "sprites-overview.png");
         const summary = this.describeOverviewState(state);
 
@@ -1385,14 +2041,22 @@ export class FortniteSprites {
         };
     }
 
-    private async generateFamilyResponse(familyKey: string, ownerId: string, user: User | SpriteAuthor, displayName: string, editedAt?: string, state: SpriteBrowserState = {}) {
+    private async generateFamilyResponse(
+        familyKey: string,
+        ownerId: string,
+        user: User | SpriteAuthor,
+        displayName: string,
+        editedAt?: string,
+        state: SpriteBrowserState = {},
+        telemetryOrigin: SpriteTelemetryOrigin = this.getTelemetryOrigin(user)
+    ) {
         const sourceFamily = this.findFamily(familyKey);
         const family = sourceFamily ? this.filterFamilyBySeason(sourceFamily, state.seasonFilter || "current") : undefined;
         if (!family) return { content: "Sprite family not found.", components: [] };
         const displayFamily = this.getDisplayFamilies([family])[0];
         if (!displayFamily) return { content: "That sprite family does not have released artwork yet.", components: this.generateOverviewComponents({}, ownerId) };
 
-        const image = await this.renderFamilyImage(displayFamily);
+        const image = await this.renderFamilyImage(displayFamily, telemetryOrigin);
         const attachment = new MessageAttachment(image, `sprites-family-${displayFamily.key}.png`);
 
         const embed = new MessageEmbed()
@@ -1408,12 +2072,21 @@ export class FortniteSprites {
         };
     }
 
-    private async generateDetailResponse(family: SpriteFamily, variant: SpriteVariant, ownerId: string, user: User | SpriteAuthor, displayName: string, editedAt?: string, state: SpriteBrowserState = {}) {
-        if (!await this.hasRenderableSpriteArtwork(variant)) {
+    private async generateDetailResponse(
+        family: SpriteFamily,
+        variant: SpriteVariant,
+        ownerId: string,
+        user: User | SpriteAuthor,
+        displayName: string,
+        editedAt?: string,
+        state: SpriteBrowserState = {},
+        telemetryOrigin: SpriteTelemetryOrigin = this.getTelemetryOrigin(user)
+    ) {
+        if (!await this.hasRenderableSpriteArtwork(variant, telemetryOrigin)) {
             return { content: "That sprite variant does not have released artwork yet.", components: this.generateOverviewComponents({}, ownerId) };
         }
 
-        const image = await this.renderVariantImage(family, variant);
+        const image = await this.renderVariantImage(family, variant, telemetryOrigin);
         const attachment = new MessageAttachment(image, `sprites-variant-${variant.id}.png`);
 
         const embed = new MessageEmbed()
@@ -1644,10 +2317,26 @@ export class FortniteSprites {
 
     private computeRenderUiFingerprint() {
         return crypto.createHash("sha1")
+            .update(RENDER_CACHE_SCHEMA)
+            .update(appVersion)
+            .update(buildFingerprint)
             .update(fs.readFileSync(__filename, "utf8"))
             .update(this.renderTokensCss)
             .update(this.dustIconDataUrl || "")
             .update(JSON.stringify(this.spawnRateIconDataUrls))
+            .digest("hex");
+    }
+
+    private getCatalogDataFingerprint() {
+        return crypto.createHash("sha1")
+            .update(JSON.stringify(this._data ? { ...this._data, fetchedAt: "" } : null))
+            .digest("hex");
+    }
+
+    private getRenderDataFingerprint() {
+        return crypto.createHash("sha1")
+            .update(this.getCatalogDataFingerprint())
+            .update(this.spriteAssetContentFingerprint)
             .digest("hex");
     }
 
@@ -1690,7 +2379,7 @@ export class FortniteSprites {
         }
     }
 
-    private setSpriteAssetCacheEntry(key: string, src: string) {
+    private setSpriteAssetCacheEntry(key: string, src: string, dataFingerprint = this.getCatalogDataFingerprint()) {
         const existing = this.spriteAssetCache.get(key);
         if (existing) {
             this.spriteAssetCacheBytes -= existing.bytes;
@@ -1698,7 +2387,8 @@ export class FortniteSprites {
 
         const entry: SpriteAssetCacheEntry = {
             src,
-            bytes: this.cacheBytesForText(src)
+            bytes: this.cacheBytesForText(src),
+            dataFingerprint
         };
         this.touchCacheEntry(this.spriteAssetCache, key, entry);
         this.spriteAssetCacheBytes += entry.bytes;
@@ -1716,26 +2406,385 @@ export class FortniteSprites {
         }
     }
 
-    private getSpriteAssetDiskCachePath(imageUrl: string) {
-        const cacheKey = crypto.createHash("sha1").update(`${SPRITE_ASSET_CACHE_VERSION}:${imageUrl}`).digest("hex");
-        return path.join(SPRITE_ASSET_CACHE_DIR, `${cacheKey}.txt`);
+    private getSpriteAssetDiskCachePath(imageUrl: string, dataFingerprint = this.getCatalogDataFingerprint()) {
+        const cacheKey = crypto.createHash("sha1")
+            .update(`${SPRITE_ASSET_CACHE_VERSION}:${dataFingerprint}:${imageUrl}`)
+            .digest("hex");
+        return path.join(SPRITE_ASSET_CACHE_DIR, dataFingerprint, `${cacheKey}.bin`);
     }
 
-    private async readSpriteAssetFromDisk(imageUrl: string) {
+    private getSpriteAssetManifestPath(dataFingerprint = this.getCatalogDataFingerprint()) {
+        return path.join(SPRITE_ASSET_CACHE_DIR, dataFingerprint, "manifest.json");
+    }
+
+    private async readSpriteAssetManifest(dataFingerprint: string): Promise<SpriteAssetDiskManifest> {
+        const emptyManifest: SpriteAssetDiskManifest = {
+            schemaVersion: SPRITE_ASSET_MANIFEST_VERSION,
+            dataFingerprint,
+            assets: {}
+        };
+        if (!PRODUCTION_RENDER_CACHE_ENABLED) return emptyManifest;
+
         try {
-            const cached = await fs.promises.readFile(this.getSpriteAssetDiskCachePath(imageUrl), "utf8");
-            return cached.startsWith("data:image/") ? cached : null;
+            const parsed = JSON.parse(await fs.promises.readFile(this.getSpriteAssetManifestPath(dataFingerprint), "utf8")) as SpriteAssetDiskManifest;
+            if (
+                parsed?.schemaVersion !== SPRITE_ASSET_MANIFEST_VERSION
+                || parsed.dataFingerprint !== dataFingerprint
+                || !parsed.assets
+                || typeof parsed.assets !== "object"
+            ) {
+                return emptyManifest;
+            }
+            return parsed;
+        } catch {
+            return emptyManifest;
+        }
+    }
+
+    private async persistSpriteAssetManifest(manifest: SpriteAssetDiskManifest) {
+        if (!PRODUCTION_RENDER_CACHE_ENABLED) return;
+
+        const targetPath = this.getSpriteAssetManifestPath(manifest.dataFingerprint);
+        const tempPath = `${targetPath}.tmp-${process.pid}-${Date.now()}`;
+        await fs.promises.mkdir(path.dirname(targetPath), { recursive: true });
+        await fs.promises.writeFile(tempPath, `${JSON.stringify(manifest, null, 2)}\n`, "utf8");
+        await fs.promises.rename(tempPath, targetPath);
+    }
+
+    private getResponseHeader(response: any, name: string): string | undefined {
+        const value = response?.headers?.[name.toLowerCase()] ?? response?.headers?.[name];
+        if (Array.isArray(value)) return value[0] ? String(value[0]) : undefined;
+        return value == null || value === "" ? undefined : String(value);
+    }
+
+    private normalizeSpriteContentType(contentType: string | undefined) {
+        const normalized = String(contentType || "").split(";", 1)[0].trim().toLowerCase();
+        return normalized.startsWith("image/") ? normalized : null;
+    }
+
+    private inferSpriteContentType(buffer: Buffer) {
+        if (
+            buffer.length >= 8
+            && buffer[0] === 0x89
+            && buffer[1] === 0x50
+            && buffer[2] === 0x4e
+            && buffer[3] === 0x47
+        ) return "image/png";
+        if (buffer.length >= 3 && buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff) return "image/jpeg";
+        if (buffer.length >= 12 && buffer.toString("ascii", 0, 4) === "RIFF" && buffer.toString("ascii", 8, 12) === "WEBP") return "image/webp";
+        return null;
+    }
+
+    private spriteAssetDataUrl(contentType: string, buffer: Buffer) {
+        return `data:${contentType};base64,${buffer.toString("base64")}`;
+    }
+
+    private hashSpriteAsset(buffer: Buffer) {
+        return crypto.createHash("sha256").update(buffer).digest("hex");
+    }
+
+    private getSpriteAssetContentFingerprint(assets: Record<string, SpriteAssetDiskEntry>) {
+        return crypto.createHash("sha1")
+            .update(JSON.stringify(Object.keys(assets).sort().map(imageUrl => [imageUrl, assets[imageUrl]?.contentSha256 || ""])))
+            .digest("hex");
+    }
+
+    private inferLocalSpriteAssetType(localPath: string) {
+        const extension = path.extname(localPath).toLowerCase();
+        if (extension === ".png") return "image/png";
+        if (extension === ".jpg" || extension === ".jpeg") return "image/jpeg";
+        return "image/webp";
+    }
+
+    private async fetchSpriteAssetCandidate(
+        imageUrl: string,
+        dataFingerprint: string,
+        candidateUrl: string,
+        previous: SpriteAssetDiskEntry | undefined
+    ): Promise<SpriteAssetRefreshResult | null> {
+        const cached = await this.readSpriteAssetBytesFromDisk(imageUrl, dataFingerprint, previous?.contentType);
+        const canValidateWithCache = !!cached
+            && !!previous
+            && previous.resolvedUrl === candidateUrl
+            && !!(previous.etag || previous.lastModified)
+            && (!previous.contentSha256 || this.hashSpriteAsset(cached.buffer) === previous.contentSha256);
+
+        const request = (useValidators: boolean) => {
+            const headers: Record<string, string> = {
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0 Safari/537.36",
+                Accept: "image/avif,image/webp,image/png,image/apng,image/*,*/*;q=0.8",
+                "Cache-Control": "no-cache",
+                Pragma: "no-cache"
+            };
+            if (useValidators && previous?.etag) headers["If-None-Match"] = previous.etag;
+            if (useValidators && previous?.lastModified) headers["If-Modified-Since"] = previous.lastModified;
+
+            return axios.get<ArrayBuffer>(candidateUrl, {
+                responseType: "arraybuffer",
+                timeout: 15_000,
+                maxContentLength: 30 * 1024 * 1024,
+                httpsAgent: IMAGE_HTTPS_AGENT,
+                headers,
+                validateStatus: status => status === 200 || status === 304 || status === 404
+            });
+        };
+
+        let response = await request(canValidateWithCache);
+        if (response.status === 404) return null;
+
+        if (response.status === 304) {
+            if (cached && previous?.contentSha256 && this.hashSpriteAsset(cached.buffer) === previous.contentSha256) {
+                return {
+                    src: this.spriteAssetDataUrl(cached.contentType, cached.buffer),
+                    buffer: cached.buffer,
+                    metadata: {
+                        ...previous,
+                        resolvedUrl: candidateUrl,
+                        checkedAt: new Date().toISOString()
+                    }
+                };
+            }
+
+            // A validator survived but the corresponding asset file did not.
+            // Retry without validators so a 304 cannot leave us without usable artwork.
+            response = await request(false);
+            if (response.status !== 200) return null;
+        }
+
+        if (response.status !== 200) return null;
+        const contentType = (this.getResponseHeader(response, "content-type") || "").split(";", 1)[0].toLowerCase();
+        if (!contentType.startsWith("image/")) return null;
+
+        const imageBuffer = Buffer.from(response.data as any);
+        if (!await this.isUsableSpriteArtwork(imageBuffer)) return null;
+
+        const contentSha256 = this.hashSpriteAsset(imageBuffer);
+        const src = `data:${contentType};base64,${imageBuffer.toString("base64")}`;
+
+        const etag = this.getResponseHeader(response, "etag");
+        const lastModified = this.getResponseHeader(response, "last-modified");
+        return {
+            src,
+            buffer: imageBuffer,
+            metadata: {
+                resolvedUrl: candidateUrl,
+                contentSha256,
+                contentType,
+                ...(etag ? { etag } : {}),
+                ...(lastModified ? { lastModified } : {}),
+                checkedAt: new Date().toISOString()
+            }
+        };
+    }
+
+    private async refreshSpriteAsset(
+        imageUrl: string,
+        dataFingerprint: string,
+        previous: SpriteAssetDiskEntry | undefined
+    ): Promise<SpriteAssetRefreshResult | null> {
+        let localPath = imageUrl;
+        if (imageUrl.startsWith("file://")) {
+            try {
+                localPath = fileURLToPath(imageUrl);
+            } catch {
+                localPath = imageUrl;
+            }
+        }
+
+        if (path.isAbsolute(localPath)) {
+            try {
+                const imageBuffer = await fs.promises.readFile(localPath);
+                if (!await this.isUsableSpriteArtwork(imageBuffer)) return null;
+                const contentType = this.inferLocalSpriteAssetType(localPath);
+                const contentSha256 = this.hashSpriteAsset(imageBuffer);
+                return {
+                    src: `data:${contentType};base64,${imageBuffer.toString("base64")}`,
+                    buffer: imageBuffer,
+                    metadata: {
+                        resolvedUrl: imageUrl,
+                        contentSha256,
+                        contentType,
+                        checkedAt: new Date().toISOString()
+                    }
+                };
+            } catch {
+                return null;
+            }
+        }
+
+        const candidates = this.getSpriteImageUrlCandidates(imageUrl);
+        if (previous?.resolvedUrl) {
+            candidates.unshift(previous.resolvedUrl);
+        }
+
+        for (const candidateUrl of Array.from(new Set(candidates))) {
+            try {
+                const refreshed = await this.fetchSpriteAssetCandidate(imageUrl, dataFingerprint, candidateUrl, previous);
+                if (refreshed) return refreshed;
+            } catch {
+                // Try the next known image extension before retaining the prior asset.
+            }
+        }
+
+        return null;
+    }
+
+    private syncProductionSpriteAssets(dataFingerprint = this.getCatalogDataFingerprint()): Promise<SpriteAssetSyncResult> {
+        const emptyResult = {
+            changed: false,
+            checked: 0,
+            failed: 0,
+            dataFingerprint
+        };
+        if (!PRODUCTION_RENDER_CACHE_ENABLED || !this._data) return Promise.resolve(emptyResult);
+
+        if (
+            this.lastSpriteAssetSyncDataFingerprint === dataFingerprint
+            && Date.now() - this.lastSpriteAssetSyncAt < SPRITE_ASSET_SYNC_COOLDOWN_MS
+        ) {
+            return Promise.resolve(emptyResult);
+        }
+        if (this.spriteAssetSyncPromise) return this.spriteAssetSyncPromise;
+
+        const syncPromise = this.runProductionSpriteAssetSync(dataFingerprint).catch(error => {
+            console.warn("[FortniteSprites] Sprite artwork sync failed:", error?.message || error);
+            return {
+                ...emptyResult,
+                failed: 1
+            };
+        });
+        this.spriteAssetSyncPromise = syncPromise;
+        void syncPromise.finally(() => {
+            if (this.spriteAssetSyncPromise === syncPromise) this.spriteAssetSyncPromise = null;
+        });
+        return syncPromise;
+    }
+
+    private async runProductionSpriteAssetSync(dataFingerprint: string): Promise<SpriteAssetSyncResult> {
+        const syncStartedAt = Date.now();
+        const previousManifest = await this.readSpriteAssetManifest(dataFingerprint);
+        const previousAssetContentFingerprint = this.getSpriteAssetContentFingerprint(previousManifest.assets);
+        this.spriteAssetContentFingerprint = previousAssetContentFingerprint;
+        const previousRenderDataFingerprint = this.getRenderDataFingerprint();
+        const imageUrls = Array.from(new Set(
+            this.getAllVariants()
+                .map(variant => variant.imageUrl)
+                .filter((imageUrl): imageUrl is string => !!imageUrl)
+        ));
+        const nextAssets: Record<string, SpriteAssetDiskEntry> = {};
+        let checked = 0;
+        let failed = 0;
+
+        await this.forEachConcurrent(imageUrls, SPRITE_IMAGE_PREWARM_CONCURRENCY, async imageUrl => {
+            const previous = previousManifest.assets[imageUrl];
+            try {
+                const refreshed = await this.refreshSpriteAsset(imageUrl, dataFingerprint, previous);
+                if (!refreshed) {
+                    failed++;
+                    if (previous) nextAssets[imageUrl] = previous;
+                    return;
+                }
+
+                checked++;
+                nextAssets[imageUrl] = refreshed.metadata;
+                await this.persistSpriteAssetToDisk(
+                    imageUrl,
+                    refreshed.buffer,
+                    refreshed.metadata.contentType,
+                    dataFingerprint
+                );
+                this.setSpriteAssetCacheEntry(imageUrl, refreshed.src, dataFingerprint);
+            } catch (error) {
+                failed++;
+                if (previous) nextAssets[imageUrl] = previous;
+                console.warn(`[FortniteSprites] Failed to sync sprite artwork ${imageUrl}:`, error?.message || error);
+            }
+        });
+
+        const nextAssetContentFingerprint = this.getSpriteAssetContentFingerprint(nextAssets);
+        const assetContentChanged = previousAssetContentFingerprint !== nextAssetContentFingerprint;
+        this.spriteAssetContentFingerprint = nextAssetContentFingerprint;
+
+        try {
+            await this.persistSpriteAssetManifest({
+                schemaVersion: SPRITE_ASSET_MANIFEST_VERSION,
+                dataFingerprint,
+                assets: nextAssets
+            });
+        } catch (error) {
+            failed++;
+            console.warn("[FortniteSprites] Failed to persist sprite artwork manifest:", error?.message || error);
+        }
+
+        this.lastSpriteAssetSyncAt = Date.now();
+        this.lastSpriteAssetSyncDataFingerprint = dataFingerprint;
+
+        if (assetContentChanged) {
+            // The rendered PNG cache has no safe way to know which screen used a
+            // changed asset, so invalidate the current data namespace as a unit.
+            this.imageCache.clear();
+            this.imageCacheBytes = 0;
+            await this.invalidateRenderedImageDiskCache(previousRenderDataFingerprint);
+        }
+
+        console.log(`[FortniteSprites] Sprite artwork sync checked ${checked}/${imageUrls.length} assets; ${assetContentChanged ? "changes detected" : "no changes detected"}${failed ? `; ${failed} failed` : ""}.`);
+        const result = { changed: assetContentChanged, checked, failed, dataFingerprint };
+        this.recordAssetSyncTelemetry(result, syncStartedAt);
+        return result;
+    }
+
+    private async readSpriteAssetBytesFromDisk(
+        imageUrl: string,
+        dataFingerprint: string,
+        contentType?: string
+    ): Promise<SpriteAssetDiskContent | null> {
+        if (!PRODUCTION_RENDER_CACHE_ENABLED) return null;
+
+        try {
+            const buffer = await fs.promises.readFile(this.getSpriteAssetDiskCachePath(imageUrl, dataFingerprint));
+            if (buffer.length === 0) return null;
+            const normalizedContentType = this.normalizeSpriteContentType(contentType) || this.inferSpriteContentType(buffer);
+            return normalizedContentType ? { buffer, contentType: normalizedContentType } : null;
         } catch {
             return null;
         }
     }
 
-    private async persistSpriteAssetToDisk(imageUrl: string, src: string) {
+    private async readSpriteAssetFromDisk(imageUrl: string, dataFingerprint?: string) {
+        if (!PRODUCTION_RENDER_CACHE_ENABLED) return null;
+        const resolvedDataFingerprint = dataFingerprint || this.getCatalogDataFingerprint();
+        const manifest = await this.readSpriteAssetManifest(resolvedDataFingerprint);
+        const metadata = manifest.assets[imageUrl];
+
+        const cached = await this.readSpriteAssetBytesFromDisk(
+            imageUrl,
+            resolvedDataFingerprint,
+            metadata?.contentType
+        );
+        if (!cached) return null;
+        if (metadata?.contentSha256 && this.hashSpriteAsset(cached.buffer) !== metadata.contentSha256) return null;
+        return this.spriteAssetDataUrl(cached.contentType, cached.buffer);
+    }
+
+    private async persistSpriteAssetToDisk(
+        imageUrl: string,
+        buffer: Buffer,
+        contentType: string,
+        dataFingerprint?: string
+    ) {
+        if (!PRODUCTION_RENDER_CACHE_ENABLED) return;
+        const normalizedContentType = this.normalizeSpriteContentType(contentType);
+        if (!normalizedContentType) return;
+
+        const targetPath = this.getSpriteAssetDiskCachePath(imageUrl, dataFingerprint);
+        const tempPath = `${targetPath}.tmp-${process.pid}-${Date.now()}-${crypto.randomBytes(4).toString("hex")}`;
         try {
-            await fs.promises.mkdir(SPRITE_ASSET_CACHE_DIR, { recursive: true });
-            await fs.promises.writeFile(this.getSpriteAssetDiskCachePath(imageUrl), src, "utf8");
+            await fs.promises.mkdir(path.dirname(targetPath), { recursive: true });
+            await fs.promises.writeFile(tempPath, buffer);
+            await fs.promises.rename(tempPath, targetPath);
         } catch (error) {
             console.warn(`[FortniteSprites] Failed to persist sprite asset cache for ${imageUrl}:`, error);
+            await fs.promises.rm(tempPath, { force: true }).catch(() => { });
         }
     }
 
@@ -1850,13 +2899,24 @@ export class FortniteSprites {
         this.renderPagePool.push(page);
     }
 
-    private async resolveSpriteImageSrc(imageUrl: string | undefined): Promise<string | undefined> {
+    private async resolveSpriteImageSrc(
+        imageUrl: string | undefined,
+        telemetryOrigin: SpriteTelemetryOrigin = BACKGROUND_TELEMETRY_ORIGIN
+    ): Promise<string | undefined> {
         if (!imageUrl) return undefined;
+
+        const dataFingerprint = this.getCatalogDataFingerprint();
+        const assetStartedAt = Date.now();
 
         const cached = this.spriteAssetCache.get(imageUrl);
         if (cached) {
-            this.touchCacheEntry(this.spriteAssetCache, imageUrl, cached);
-            return cached.src;
+            if (cached.dataFingerprint === dataFingerprint) {
+                this.touchCacheEntry(this.spriteAssetCache, imageUrl, cached);
+                this.recordAssetTelemetry("memory-hit", imageUrl, dataFingerprint, assetStartedAt, telemetryOrigin);
+                return cached.src;
+            }
+            this.spriteAssetCache.delete(imageUrl);
+            this.spriteAssetCacheBytes -= cached.bytes;
         }
 
         const pending = this.pendingSpriteAssetLoads.get(imageUrl);
@@ -1870,15 +2930,19 @@ export class FortniteSprites {
                 const localPath = imageUrl.startsWith("file://") ? fileURLToPath(imageUrl) : imageUrl;
                 if (path.isAbsolute(localPath)) {
                     const buffer = await fs.promises.readFile(localPath);
+                    if (dataFingerprint !== this.getCatalogDataFingerprint()) return null;
                     const extension = path.extname(localPath).toLowerCase();
                     const mime = extension === ".png" ? "image/png" : extension === ".jpg" || extension === ".jpeg" ? "image/jpeg" : "image/webp";
                     const src = `data:${mime};base64,${buffer.toString("base64")}`;
-                    this.setSpriteAssetCacheEntry(imageUrl, src);
+                    this.setSpriteAssetCacheEntry(imageUrl, src, dataFingerprint);
+                    this.recordAssetTelemetry("local", imageUrl, dataFingerprint, assetStartedAt, telemetryOrigin);
                     return src;
                 }
-                const diskCached = await this.readSpriteAssetFromDisk(imageUrl);
+                const diskCached = await this.readSpriteAssetFromDisk(imageUrl, dataFingerprint);
                 if (diskCached) {
-                    this.setSpriteAssetCacheEntry(imageUrl, diskCached);
+                    if (dataFingerprint !== this.getCatalogDataFingerprint()) return null;
+                    this.setSpriteAssetCacheEntry(imageUrl, diskCached, dataFingerprint);
+                    this.recordAssetTelemetry("disk-hit", imageUrl, dataFingerprint, assetStartedAt, telemetryOrigin);
                     return diskCached;
                 }
 
@@ -1901,18 +2965,22 @@ export class FortniteSprites {
                         if (!await this.isUsableSpriteArtwork(imageBuffer)) {
                             continue;
                         }
+                        if (dataFingerprint !== this.getCatalogDataFingerprint()) return null;
                         const mimeType = contentType.includes("image/") ? contentType.split(";")[0] : "image/png";
                         const dataUrl = `data:${mimeType};base64,${imageBuffer.toString("base64")}`;
-                        this.setSpriteAssetCacheEntry(imageUrl, dataUrl);
-                        await this.persistSpriteAssetToDisk(imageUrl, dataUrl);
+                        this.setSpriteAssetCacheEntry(imageUrl, dataUrl, dataFingerprint);
+                        await this.persistSpriteAssetToDisk(imageUrl, imageBuffer, mimeType, dataFingerprint);
+                        this.recordAssetTelemetry("network", imageUrl, dataFingerprint, assetStartedAt, telemetryOrigin);
                         return dataUrl;
                     } catch {
                         // Try the next known Fortnite image extension before giving up.
                     }
                 }
 
+                this.recordAssetTelemetry("miss", imageUrl, dataFingerprint, assetStartedAt, telemetryOrigin);
                 return null;
-            } catch {
+            } catch (error) {
+                this.recordAssetTelemetry("failure", imageUrl, dataFingerprint, assetStartedAt, telemetryOrigin, error);
                 return null;
             }
         })().finally(() => {
@@ -1924,15 +2992,24 @@ export class FortniteSprites {
         return resolved || undefined;
     }
 
-    private async prewarmSpriteImages(imageUrls: Array<string | undefined>) {
+    private async prewarmSpriteImages(
+        imageUrls: Array<string | undefined>,
+        telemetryOrigin: SpriteTelemetryOrigin = BACKGROUND_TELEMETRY_ORIGIN
+    ) {
         const uniqueUrls = Array.from(new Set(imageUrls.filter((url): url is string => !!url)));
+        const resolvedAssets = new Map<string, string>();
         await this.forEachConcurrent(uniqueUrls, SPRITE_IMAGE_PREWARM_CONCURRENCY, async (url) => {
-            await this.resolveSpriteImageSrc(url);
+            const src = await this.resolveSpriteImageSrc(url, telemetryOrigin);
+            if (src) resolvedAssets.set(url, src);
         });
+        return resolvedAssets;
     }
 
-    private async hasRenderableSpriteArtwork(variant: SpriteVariant) {
-        return !!await this.resolveSpriteImageSrc(variant.imageUrl);
+    private async hasRenderableSpriteArtwork(
+        variant: SpriteVariant,
+        telemetryOrigin: SpriteTelemetryOrigin = BACKGROUND_TELEMETRY_ORIGIN
+    ) {
+        return !!await this.resolveSpriteImageSrc(variant.imageUrl, telemetryOrigin);
     }
 
     private async isUsableSpriteArtwork(imageBuffer: Buffer) {
@@ -1986,8 +3063,56 @@ export class FortniteSprites {
         return Array.from(new Set([webpUrl, imageUrl, pngUrl]));
     }
 
-    private async renderHtmlToBuffer(html: string, width: number, height: number, deviceScaleFactor = 2): Promise<Buffer> {
+    private async readChromiumProcessMemoryBytes() {
+        if (process.platform !== "linux") return null;
+
+        const browserProcess = this.browser?.process?.();
+        const rootPid = browserProcess?.pid;
+        if (!rootPid) return null;
+
+        const pendingPids = [rootPid];
+        const visited = new Set<number>();
+        let totalBytes = 0;
+
+        while (pendingPids.length > 0) {
+            const pid = pendingPids.shift();
+            if (!pid || visited.has(pid)) continue;
+            visited.add(pid);
+
+            try {
+                const status = await fs.promises.readFile(`/proc/${pid}/status`, "utf8");
+                const rssMatch = status.match(/^VmRSS:\s+(\d+)\s+kB$/m);
+                if (rssMatch) totalBytes += Number(rssMatch[1]) * 1024;
+            } catch {
+                continue;
+            }
+
+            try {
+                const children = await fs.promises.readFile(`/proc/${pid}/task/${pid}/children`, "utf8");
+                for (const child of children.trim().split(/\s+/)) {
+                    const childPid = Number(child);
+                    if (Number.isInteger(childPid) && childPid > 0) pendingPids.push(childPid);
+                }
+            } catch {
+                // The process may exit between reading its status and children.
+            }
+        }
+
+        return totalBytes || null;
+    }
+
+    private async renderHtmlToBuffer(
+        html: string,
+        width: number,
+        height: number,
+        deviceScaleFactor = 2,
+        telemetry?: RenderTelemetryContext
+    ): Promise<Buffer> {
+        const pageAcquireStartedAt = Date.now();
+        const wasQueued = this.pendingRenderPageAcquires.length > 0
+            || (this.liveRenderPages.size >= RENDER_PAGE_POOL_SIZE && this.renderPagePool.length === 0);
         const page = await this.acquireRenderPage();
+        if (telemetry) telemetry.pageQueueWaitMs = wasQueued ? Math.max(0, Date.now() - pageAcquireStartedAt) : 0;
         try {
             await page.setExtraHTTPHeaders({
                 "Referer": "https://fortnite.gg/",
@@ -2006,7 +3131,13 @@ export class FortniteSprites {
                     });
                 }));
             });
-            return Buffer.from(await page.screenshot({ type: "png" }));
+            const screenshot = Buffer.from(await page.screenshot({ type: "png" }));
+            if (telemetry) {
+                telemetry.renderedPixels = Math.max(1, Math.round(width * deviceScaleFactor))
+                    * Math.max(1, Math.round(height * deviceScaleFactor));
+                telemetry.chromiumMemoryBytes = await this.readChromiumProcessMemoryBytes();
+            }
+            return screenshot;
         } finally {
             await this.releaseRenderPage(page);
         }
@@ -2038,8 +3169,15 @@ export class FortniteSprites {
         return `<span class="rarity-pill" style="--rarity-color:${color}; --rarity-bg:${this.alphaColor(color, 16)}">${this.escapeHtml(rarity)}</span>`;
     }
 
-    private renderSpriteThumb(imageUrl: string | undefined, className: string, fallback = "No asset") {
-        const resolvedSrc = imageUrl ? this.spriteAssetCache.get(imageUrl)?.src : undefined;
+    private renderSpriteThumb(
+        imageUrl: string | undefined,
+        className: string,
+        fallback = "No asset",
+        resolvedAssets?: ReadonlyMap<string, string>
+    ) {
+        const resolvedSrc = imageUrl
+            ? resolvedAssets?.get(imageUrl) || this.spriteAssetCache.get(imageUrl)?.src
+            : undefined;
         return `
             <div class="sprite-thumb ${className}">
                 ${resolvedSrc ? `<img src="${this.escapeHtml(resolvedSrc)}" alt="">` : `<span class="metric-label">${this.escapeHtml(fallback)}</span>`}
@@ -2347,21 +3485,74 @@ export class FortniteSprites {
         `;
     }
 
-    private async getOrRenderImage(cacheKey: string, render: () => Promise<Buffer>) {
+    private async getOrRenderImage(
+        cacheKey: string,
+        render: (telemetry: RenderTelemetryContext) => Promise<Buffer>,
+        dataFingerprint = this.getRenderDataFingerprint(),
+        telemetryOrigin: SpriteTelemetryOrigin = BACKGROUND_TELEMETRY_ORIGIN
+    ) {
+        if (PRODUCTION_RENDER_CACHE_ENABLED && this.spriteAssetSyncPromise) {
+            await this.spriteAssetSyncPromise.catch(() => undefined);
+        }
+
+        const cacheLookupStartedAt = Date.now();
         const cached = this.imageCache.get(cacheKey);
         if (cached) {
             this.touchCacheEntry(this.imageCache, cacheKey, cached);
+            this.recordRenderTelemetry(
+                "memory-hit",
+                cacheKey,
+                dataFingerprint,
+                cacheLookupStartedAt,
+                { pageQueueWaitMs: 0, renderedPixels: 0, chromiumMemoryBytes: null },
+                telemetryOrigin
+            );
             return cached.buffer;
         }
 
         const pending = this.pendingImageRenders.get(cacheKey);
-        if (pending) return pending;
+        if (pending) {
+            this.recordRenderTelemetry(
+                "pending-hit",
+                cacheKey,
+                dataFingerprint,
+                cacheLookupStartedAt,
+                { pageQueueWaitMs: 0, renderedPixels: 0, chromiumMemoryBytes: null },
+                telemetryOrigin
+            );
+            return pending;
+        }
 
-        const renderPromise = render()
-            .then((buffer) => {
+        const renderPromise = (async () => {
+            const renderStartedAt = Date.now();
+            const telemetry: RenderTelemetryContext = {
+                pageQueueWaitMs: 0,
+                renderedPixels: 0,
+                chromiumMemoryBytes: null
+            };
+
+            try {
+                if (PRODUCTION_RENDER_CACHE_ENABLED) {
+                    const diskCached = await this.readRenderedImageFromDisk(cacheKey, dataFingerprint);
+                    if (diskCached) {
+                        this.setRenderedImageCacheEntry(cacheKey, diskCached);
+                        this.recordRenderTelemetry("disk-hit", cacheKey, dataFingerprint, renderStartedAt, telemetry, telemetryOrigin);
+                        return diskCached;
+                    }
+                }
+
+                const buffer = await render(telemetry);
                 this.setRenderedImageCacheEntry(cacheKey, buffer);
+                if (PRODUCTION_RENDER_CACHE_ENABLED) {
+                    await this.persistRenderedImageToDisk(cacheKey, buffer, dataFingerprint);
+                }
+                this.recordRenderTelemetry("cold-render", cacheKey, dataFingerprint, renderStartedAt, telemetry, telemetryOrigin);
                 return buffer;
-            })
+            } catch (error) {
+                this.recordRenderTelemetry("failure", cacheKey, dataFingerprint, renderStartedAt, telemetry, telemetryOrigin, error);
+                throw error;
+            }
+        })()
             .finally(() => {
                 this.pendingImageRenders.delete(cacheKey);
             });
@@ -2370,15 +3561,75 @@ export class FortniteSprites {
         return renderPromise;
     }
 
-    private async renderOverviewImage(families: SpriteFamily[], state: SpriteBrowserState): Promise<Buffer> {
-        const cacheKey = `overview:${this.renderUiFingerprint}:${this._data?.fetchedAt}:${state.seasonFilter || "current"}:${state.variantFilter || "all"}:${state.rarityFilter || "all"}:${state.searchQuery || ""}`;
-        return this.getOrRenderImage(cacheKey, async () => {
+    private getRenderedImageDiskCachePath(cacheKey: string, dataFingerprint = this.getRenderDataFingerprint()) {
+        const digest = crypto.createHash("sha1").update(cacheKey).digest("hex");
+        return path.join(RENDER_CACHE_DIR, this.renderUiFingerprint, dataFingerprint, `${digest}.png`);
+    }
+
+    private async readRenderedImageFromDisk(cacheKey: string, dataFingerprint?: string) {
+        try {
+            const buffer = await fs.promises.readFile(this.getRenderedImageDiskCachePath(cacheKey, dataFingerprint));
+            const isPng = buffer.length >= 8
+                && buffer[0] === 0x89
+                && buffer[1] === 0x50
+                && buffer[2] === 0x4e
+                && buffer[3] === 0x47;
+            return isPng ? buffer : null;
+        } catch {
+            return null;
+        }
+    }
+
+    private async persistRenderedImageToDisk(cacheKey: string, buffer: Buffer, dataFingerprint?: string) {
+        try {
+            const targetPath = this.getRenderedImageDiskCachePath(cacheKey, dataFingerprint);
+            await fs.promises.mkdir(path.dirname(targetPath), { recursive: true });
+            const tempPath = `${targetPath}.tmp-${process.pid}-${Date.now()}`;
+            await fs.promises.writeFile(tempPath, buffer);
+            await fs.promises.rename(tempPath, targetPath);
+        } catch (error) {
+            console.warn(`[FortniteSprites] Failed to persist rendered image cache:`, error?.message || error);
+        }
+    }
+
+    private getCanonicalOverviewCacheKey(state: SpriteBrowserState, dataFingerprint: string) {
+        const variantFilter = state.variantFilter && state.variantFilter !== "all"
+            ? this.getVariantNames().find(variant => variant.toLowerCase() === state.variantFilter!.toLowerCase()) || state.variantFilter
+            : "all";
+        const rarityFilter = state.rarityFilter && state.rarityFilter !== "all"
+            ? RARITY_ORDER.find(rarity => rarity.toLowerCase() === state.rarityFilter!.toLowerCase()) || state.rarityFilter.toLowerCase()
+            : "all";
+        const searchQuery = state.searchQuery
+            ? this.expandSearchQuery(this.normalizeWhitespace(state.searchQuery))
+            : "";
+
+        return `overview:${JSON.stringify({
+            ui: this.renderUiFingerprint,
+            data: dataFingerprint,
+            season: this.normalizeSeasonFilter(state.seasonFilter || "current"),
+            variant: variantFilter,
+            rarity: rarityFilter,
+            search: searchQuery
+        })}`;
+    }
+
+    private async renderOverviewImage(
+        families: SpriteFamily[],
+        state: SpriteBrowserState,
+        telemetryOrigin: SpriteTelemetryOrigin = BACKGROUND_TELEMETRY_ORIGIN
+    ): Promise<Buffer> {
+        const dataFingerprint = this.getRenderDataFingerprint();
+        const cacheKey = this.getCanonicalOverviewCacheKey(state, dataFingerprint);
+        return this.getOrRenderImage(cacheKey, async (telemetry) => {
             const displayFamilies = this.getDisplayFamilies(families);
-            await this.prewarmSpriteImages(displayFamilies.flatMap(family => family.variants.map(variant => variant.imageUrl)));
+            const resolvedAssets = await this.prewarmSpriteImages(
+                displayFamilies.flatMap(family => family.variants.map(variant => variant.imageUrl)),
+                telemetryOrigin
+            );
             const renderFamilies = displayFamilies
                 .map(family => ({
                     ...family,
-                    variants: family.variants.filter(variant => this.spriteAssetCache.has(variant.imageUrl))
+                    variants: family.variants.filter(variant => !!variant.imageUrl && resolvedAssets.has(variant.imageUrl))
                 }))
                 .filter(family => family.variants.length > 0);
             const variants = renderFamilies.flatMap(family => family.variants.map(variant => ({ family, variant })));
@@ -2436,7 +3687,7 @@ export class FortniteSprites {
                     }
                     return `
                                                                 <div class="variant-cell">
-                                                                    ${this.renderSpriteThumb(variant.imageUrl, "overview-variant-thumb")}
+                                                                    ${this.renderSpriteThumb(variant.imageUrl, "overview-variant-thumb", "No asset", resolvedAssets)}
                                                                     <div class="overview-variant-copy">
                                                                         <h4>${this.escapeHtml(variant.name)}</h4>
                                                                         <p>${this.escapeHtml(this.formatChance(variant))}</p>
@@ -2567,16 +3818,21 @@ export class FortniteSprites {
                 font-size: 0.88rem;
             }
         `);
-            return this.renderHtmlToBuffer(html, width, height, deviceScaleFactor);
-        });
+            return this.renderHtmlToBuffer(html, width, height, deviceScaleFactor, telemetry);
+        }, dataFingerprint, telemetryOrigin);
     }
-    private async renderVariantImage(family: SpriteFamily, variant: SpriteVariant): Promise<Buffer> {
-        const cacheKey = `variant:${this.renderUiFingerprint}:${this._data?.fetchedAt}:${family.key}:${variant.id}:${variant.name}`;
-        return this.getOrRenderImage(cacheKey, async () => {
+    private async renderVariantImage(
+        family: SpriteFamily,
+        variant: SpriteVariant,
+        telemetryOrigin: SpriteTelemetryOrigin = BACKGROUND_TELEMETRY_ORIGIN
+    ): Promise<Buffer> {
+        const dataFingerprint = this.getRenderDataFingerprint();
+        const cacheKey = `variant:${this.renderUiFingerprint}:${dataFingerprint}:${family.key}:${variant.id}:${variant.name}`;
+        return this.getOrRenderImage(cacheKey, async (telemetry) => {
             const width = 1000;
             const seasonCount = this.getVariantSeasonDetails(variant).availableSeasonIds.length;
             const height = 760 + Math.max(0, Math.ceil((seasonCount - 3) / 3)) * 20;
-            await this.prewarmSpriteImages([variant.imageUrl]);
+            const resolvedAssets = await this.prewarmSpriteImages([variant.imageUrl], telemetryOrigin);
             const rarityColor = RARITY_CSS_COLORS[variant.rarity];
             const effect = variant.effectText || family.effectSummary || "No effect description available.";
             const perk = variant.specialEffectText || "";
@@ -2602,7 +3858,7 @@ export class FortniteSprites {
                         <section class="variant-main">
                             <article class="panel variant-art-card">
                                 <div class="variant-art-stage">
-                                    ${this.renderSpriteThumb(variant.imageUrl, "variant-art")}
+                            ${this.renderSpriteThumb(variant.imageUrl, "variant-art", "No asset", resolvedAssets)}
                                 </div>
                                 <div class="variant-stat-strip">
                                     <div class="unique-banner">
@@ -2925,16 +4181,21 @@ export class FortniteSprites {
                 background: linear-gradient(90deg, color-mix(in srgb, ${rarityColor} 9%, transparent), var(--color-panel));
             }
         `);
-            return this.renderHtmlToBuffer(html, width, height);
-        });
+            return this.renderHtmlToBuffer(html, width, height, 2, telemetry);
+        }, dataFingerprint, telemetryOrigin);
     }
 
-    private async renderFamilyImage(family: SpriteFamily): Promise<Buffer> {
-        const cacheKey = `family:${this.renderUiFingerprint}:${this._data?.fetchedAt}:${family.key}`;
-        return this.getOrRenderImage(cacheKey, async () => {
+    private async renderFamilyImage(
+        family: SpriteFamily,
+        telemetryOrigin: SpriteTelemetryOrigin = BACKGROUND_TELEMETRY_ORIGIN
+    ): Promise<Buffer> {
+        const variantIds = family.variants.map(variant => variant.id).join(",");
+        const dataFingerprint = this.getRenderDataFingerprint();
+        const cacheKey = `family:${this.renderUiFingerprint}:${dataFingerprint}:${family.key}:${variantIds}`;
+        return this.getOrRenderImage(cacheKey, async (telemetry) => {
             const width = 1200;
-            await this.prewarmSpriteImages(family.variants.map(variant => variant.imageUrl));
-            const renderVariants = family.variants.filter(variant => this.spriteAssetCache.has(variant.imageUrl));
+            const resolvedAssets = await this.prewarmSpriteImages(family.variants.map(variant => variant.imageUrl), telemetryOrigin);
+            const renderVariants = family.variants.filter(variant => !!variant.imageUrl && resolvedAssets.has(variant.imageUrl));
             const sortedVariants = [...renderVariants].sort((a, b) => {
                 if (a.variant === "Base" && b.variant !== "Base") return -1;
                 if (a.variant !== "Base" && b.variant === "Base") return 1;
@@ -2964,7 +4225,7 @@ export class FortniteSprites {
 
                         <section class="family-main">
                             <article class="panel family-card">
-                                ${this.renderSpriteThumb(baseVariant?.imageUrl, "featured-thumb")}
+                                ${this.renderSpriteThumb(baseVariant?.imageUrl, "featured-thumb", "No asset", resolvedAssets)}
                                 <div class="family-summary">
                                     ${baseVariant ? this.renderRarityPill(baseVariant.rarity) : ""}
                                     <span>${sortedVariants.length} variants</span>
@@ -2989,7 +4250,7 @@ export class FortniteSprites {
                                     ${sortedVariants.map(variant => {
                 return `
                                             <li class="variant-row">
-                                                ${this.renderSpriteThumb(variant.imageUrl, "variant-thumb")}
+                                                ${this.renderSpriteThumb(variant.imageUrl, "variant-thumb", "No asset", resolvedAssets)}
                                                 <div class="variant-copy">
                                                     <h3>${this.escapeHtml(variant.name)}</h3>
                                                     <p>${this.escapeHtml(this.formatChance(variant))} chance</p>
@@ -3130,8 +4391,8 @@ export class FortniteSprites {
                 color: var(--color-ink);
             }
         `);
-            return this.renderHtmlToBuffer(html, width, height);
-        });
+            return this.renderHtmlToBuffer(html, width, height, 2, telemetry);
+        }, dataFingerprint, telemetryOrigin);
     }
     private getFamilyColor(family: SpriteFamily): string {
         const base = family.variants.find(v => v.variant === "Base") || family.variants[0];
@@ -3515,11 +4776,19 @@ export class FortniteSprites {
             await i.deferUpdate();
         }
 
+        const interactionSequence = this.beginInteraction(i.message.id);
         const displayName = await this.getDisplayName(i);
-        const author = this.createAuthor(displayName, i.user.displayAvatarURL({ dynamic: true }));
+        const author = this.createAuthor(displayName, i.user.displayAvatarURL({ dynamic: true }), i.user.username);
         const responseOwnerId = isOriginalUser ? ownerId : i.user.id;
+        const responseDataFingerprint = this.getRenderDataFingerprint();
 
         const trackedMessage = this.trackedSpriteMessages.get(i.message.id);
+        const telemetryOrigin = this.createTelemetryOrigin(
+            trackedMessage?.author.username || i.user.username,
+            i.message.id,
+            i.id,
+            i.user.username
+        );
         const currentState = trackedMessage && 'state' in trackedMessage.view ? (trackedMessage.view.state || {}) : {};
 
         let response: any;
@@ -3539,10 +4808,10 @@ export class FortniteSprites {
             
             if (targetVariant) {
                 view = { kind: "detail", familyKey, variantId: targetVariant.id, state: currentState };
-                response = await this.generateDetailResponse(family!, targetVariant, responseOwnerId, i.user, displayName, undefined, currentState);
+                response = await this.generateDetailResponse(family!, targetVariant, responseOwnerId, i.user, displayName, undefined, currentState, telemetryOrigin);
             } else {
                 view = { kind: "family", familyKey, state: currentState };
-                response = await this.generateFamilyResponse(familyKey, responseOwnerId, i.user, displayName, undefined, currentState);
+                response = await this.generateFamilyResponse(familyKey, responseOwnerId, i.user, displayName, undefined, currentState, telemetryOrigin);
             }
         } else if (rawId.startsWith("fn_sprites_variant_select_")) {
             const id = parseInt(i.values[0], 10);
@@ -3552,11 +4821,11 @@ export class FortniteSprites {
             const variant = family?.variants.find(candidate => candidate.id === id);
             if (!family || !variant) return i.editReply({ content: "That sprite variant is not available in the selected season.", components: [] });
             view = { kind: "detail", familyKey: family.key, variantId: variant.id, state: currentState };
-            response = await this.generateDetailResponse(family, variant, responseOwnerId, i.user, displayName, undefined, currentState);
+            response = await this.generateDetailResponse(family, variant, responseOwnerId, i.user, displayName, undefined, currentState, telemetryOrigin);
         } else if (rawId === "fn_sprites_quick_filter") {
             const state = { ...currentState, ...this.stateFromQuickFilter(i.values[0]), familyPage: 0 };
             view = { kind: "overview", state };
-            response = await this.generateOverviewResponse(state, responseOwnerId, i.user, displayName);
+            response = await this.generateOverviewResponse(state, responseOwnerId, i.user, displayName, undefined, telemetryOrigin);
         } else if (rawId === "fn_sprites_season_filter") {
             const state = {
                 ...currentState,
@@ -3568,15 +4837,15 @@ export class FortniteSprites {
                 familyPage: 0
             };
             view = { kind: "overview", state };
-            response = await this.generateOverviewResponse(state, responseOwnerId, i.user, displayName);
+            response = await this.generateOverviewResponse(state, responseOwnerId, i.user, displayName, undefined, telemetryOrigin);
         } else if (rawId === "fn_sprites_variant_filter") {
             const state = { ...currentState, variantFilter: i.values[0] as any, familyPage: 0 };
             view = { kind: "overview", state };
-            response = await this.generateOverviewResponse(state, responseOwnerId, i.user, displayName);
+            response = await this.generateOverviewResponse(state, responseOwnerId, i.user, displayName, undefined, telemetryOrigin);
         } else if (rawId === "fn_sprites_rarity_filter") {
             const state = { ...currentState, rarityFilter: i.values[0] as any, familyPage: 0 };
             view = { kind: "overview", state };
-            response = await this.generateOverviewResponse(state, responseOwnerId, i.user, displayName);
+            response = await this.generateOverviewResponse(state, responseOwnerId, i.user, displayName, undefined, telemetryOrigin);
         }
 
         if (!response) {
@@ -3587,15 +4856,20 @@ export class FortniteSprites {
         if (spawnsNewPage || !isOriginalUser) {
             const message = await i.editReply(response) as Message;
             if (view && (spawnsNewPage || isOriginalUser)) {
-                this.rememberSpriteMessage(message, responseOwnerId, author, view, null);
+                this.rememberSpriteMessage(message, responseOwnerId, author, view, null, responseDataFingerprint);
             }
+            this.maybeQueueRuntimeRefresh();
             return message;
         }
 
-        const trackedState = view ? this.beginTrackedMessageTransition({ id: i.message.id, channelId: i.channelId }, responseOwnerId, author, view, null) : null;
+        if (!this.isLatestInteraction(i.message.id, interactionSequence)) return i.message as Message;
+        const trackedState = view
+            ? this.beginTrackedMessageTransition({ id: i.message.id, channelId: i.channelId }, responseOwnerId, author, view, null, responseDataFingerprint)
+            : null;
         let message: Message | null = null;
         await this.queueMessageEdit(i.message.id, async () => {
             const latestState = trackedState ? this.trackedSpriteMessages.get(i.message.id) : null;
+            if (!this.isLatestInteraction(i.message.id, interactionSequence)) return;
             if (trackedState && (!latestState || latestState.editToken !== trackedState.editToken || latestState.viewVersion !== trackedState.viewVersion)) return;
             message = await i.editReply({ ...response, attachments: [] } as any) as Message;
         });
@@ -3613,6 +4887,7 @@ export class FortniteSprites {
                 updatedAt: Date.now()
             });
         }
+        this.maybeQueueRuntimeRefresh();
         return message;
     }
 
@@ -3628,10 +4903,18 @@ export class FortniteSprites {
             await i.deferReply();
         }
 
+        const interactionSequence = this.beginInteraction(i.message.id);
         const displayName = await this.getDisplayName(i);
-        const author = this.createAuthor(displayName, i.user.displayAvatarURL({ dynamic: true }));
+        const author = this.createAuthor(displayName, i.user.displayAvatarURL({ dynamic: true }), i.user.username);
         const responseOwnerId = isOriginalUser ? ownerId : i.user.id;
+        const responseDataFingerprint = this.getRenderDataFingerprint();
         const trackedMessage = this.trackedSpriteMessages.get(i.message.id);
+        const telemetryOrigin = this.createTelemetryOrigin(
+            trackedMessage?.author.username || i.user.username,
+            i.message.id,
+            i.id,
+            i.user.username
+        );
         const currentState = trackedMessage && 'state' in trackedMessage.view ? (trackedMessage.view.state || {}) : {};
         const currentFamilyKey = trackedMessage?.view.kind === "family" || trackedMessage?.view.kind === "detail" ? trackedMessage.view.familyKey : null;
 
@@ -3640,12 +4923,12 @@ export class FortniteSprites {
 
         if (rawId === "fn_sprites_overview") {
             view = { kind: "overview", state: currentState };
-            response = await this.generateOverviewResponse(currentState, responseOwnerId, i.user, displayName);
+            response = await this.generateOverviewResponse(currentState, responseOwnerId, i.user, displayName, undefined, telemetryOrigin);
         } else if (rawId.startsWith("fn_sprites_family_page_")) {
             const page = parseInt(rawId.replace("fn_sprites_family_page_", ""), 10);
             const state = { ...currentState, familyPage: Number.isFinite(page) ? page : 0 };
             view = { kind: "overview", state };
-            response = await this.generateOverviewResponse(state, responseOwnerId, i.user, displayName);
+                response = await this.generateOverviewResponse(state, responseOwnerId, i.user, displayName, undefined, telemetryOrigin);
         } else if (rawId.startsWith("fn_sprites_family_")) {
             const familyKey = rawId.replace("fn_sprites_family_", "");
             const sourceFamily = this.findFamily(familyKey);
@@ -3661,22 +4944,23 @@ export class FortniteSprites {
 
             if (targetVariant) {
                 view = { kind: "detail", familyKey, variantId: targetVariant.id, state: currentState };
-                response = await this.generateDetailResponse(family!, targetVariant, responseOwnerId, i.user, displayName, undefined, currentState);
+                response = await this.generateDetailResponse(family!, targetVariant, responseOwnerId, i.user, displayName, undefined, currentState, telemetryOrigin);
             } else {
                 view = { kind: "family", familyKey, state: currentState };
-                response = await this.generateFamilyResponse(familyKey, responseOwnerId, i.user, displayName, undefined, currentState);
+                response = await this.generateFamilyResponse(familyKey, responseOwnerId, i.user, displayName, undefined, currentState, telemetryOrigin);
             }
         } else if (rawId.startsWith("fn_sprites_variant_")) {
             const id = parseInt(rawId.replace("fn_sprites_variant_", ""), 10);
-            const sourceFamily = currentFamilyKey ? this.findFamily(currentFamilyKey) : undefined;
+            const fallbackVariant = this.findVariant(id);
+            const sourceFamily = currentFamilyKey ? this.findFamily(currentFamilyKey) : fallbackVariant?.family;
             const family = sourceFamily ? this.filterFamilyBySeason(sourceFamily, currentState.seasonFilter || "current") : undefined;
-            const variant = family?.variants.find(candidate => candidate.id === id);
+            const variant = family?.variants.find(candidate => candidate.id === id) || (fallbackVariant?.family.key === family?.key ? fallbackVariant.variant : undefined);
             if (!family || !variant) {
                 if (isOriginalUser) return i.followUp({ content: "Sprite variant not found.", ephemeral: true });
                 return i.editReply({ content: "Sprite variant not found.", components: [] });
             }
             view = { kind: "detail", familyKey: family.key, variantId: variant.id, state: currentState };
-            response = await this.generateDetailResponse(family, variant, responseOwnerId, i.user, displayName, undefined, currentState);
+            response = await this.generateDetailResponse(family, variant, responseOwnerId, i.user, displayName, undefined, currentState, telemetryOrigin);
         } else if (rawId === "fn_sprites_quick_rarest") {
             const filteredFamilies = this.getFilteredFamilies(currentState);
             const filteredVariants = filteredFamilies.flatMap(family => family.variants);
@@ -3684,7 +4968,7 @@ export class FortniteSprites {
             const family = variant ? filteredFamilies.find(candidate => candidate.variants.includes(variant)) : undefined;
             if (family && variant) {
                 view = { kind: "detail", familyKey: family.key, variantId: variant.id, state: currentState };
-                response = await this.generateDetailResponse(family, variant, responseOwnerId, i.user, displayName, undefined, currentState);
+                response = await this.generateDetailResponse(family, variant, responseOwnerId, i.user, displayName, undefined, currentState, telemetryOrigin);
             }
         } else if (rawId === "fn_sprites_quick_cost") {
             const filteredFamilies = this.getFilteredFamilies(currentState);
@@ -3692,7 +4976,7 @@ export class FortniteSprites {
             const family = variant ? filteredFamilies.find(candidate => candidate.variants.includes(variant)) : undefined;
             if (family && variant) {
                 view = { kind: "detail", familyKey: family.key, variantId: variant.id, state: currentState };
-                response = await this.generateDetailResponse(family, variant, responseOwnerId, i.user, displayName, undefined, currentState);
+                response = await this.generateDetailResponse(family, variant, responseOwnerId, i.user, displayName, undefined, currentState, telemetryOrigin);
             }
         } else if (rawId === "fn_sprites_quick_random") {
             const filteredFamilies = this.getFilteredFamilies(currentState);
@@ -3701,7 +4985,7 @@ export class FortniteSprites {
             const family = variant ? filteredFamilies.find(candidate => candidate.variants.includes(variant)) : undefined;
             if (family && variant) {
                 view = { kind: "detail", familyKey: family.key, variantId: variant.id, state: currentState };
-                response = await this.generateDetailResponse(family, variant, responseOwnerId, i.user, displayName, undefined, currentState);
+                response = await this.generateDetailResponse(family, variant, responseOwnerId, i.user, displayName, undefined, currentState, telemetryOrigin);
             }
         }
 
@@ -3713,15 +4997,20 @@ export class FortniteSprites {
         if (!isOriginalUser) {
             const message = await i.editReply(response) as Message;
             if (view) {
-                this.rememberSpriteMessage(message, responseOwnerId, author, view, null);
+                this.rememberSpriteMessage(message, responseOwnerId, author, view, null, responseDataFingerprint);
             }
+            this.maybeQueueRuntimeRefresh();
             return message;
         }
 
-        const trackedState = view ? this.beginTrackedMessageTransition({ id: i.message.id, channelId: i.channelId }, responseOwnerId, author, view, null) : null;
+        if (!this.isLatestInteraction(i.message.id, interactionSequence)) return i.message as Message;
+        const trackedState = view
+            ? this.beginTrackedMessageTransition({ id: i.message.id, channelId: i.channelId }, responseOwnerId, author, view, null, responseDataFingerprint)
+            : null;
         let message: Message | null = null;
         await this.queueMessageEdit(i.message.id, async () => {
             const latestState = trackedState ? this.trackedSpriteMessages.get(i.message.id) : null;
+            if (!this.isLatestInteraction(i.message.id, interactionSequence)) return;
             if (trackedState && (!latestState || latestState.editToken !== trackedState.editToken || latestState.viewVersion !== trackedState.viewVersion)) return;
             message = await i.editReply({ ...response, attachments: [] } as any) as Message;
         });
@@ -3739,6 +5028,7 @@ export class FortniteSprites {
                 updatedAt: Date.now()
             });
         }
+        this.maybeQueueRuntimeRefresh();
         return message;
     }
 }

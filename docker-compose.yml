@@ -6,6 +6,9 @@ services:
     pid: host
     init: true
     restart: unless-stopped
+    # Persist downloaded sprite assets and rendered PNGs across redeploys.
+    volumes:
+      - creeper-bot-cache:/app/.cache
     expose:
       - "3001"
     # Coolify writes all runtime-enabled application variables to this file
@@ -25,3 +28,6 @@ services:
       start_period: 30s
       retries: 3
     stop_grace_period: 30s
+
+volumes:
+  creeper-bot-cache:
