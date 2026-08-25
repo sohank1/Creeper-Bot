@@ -210,11 +210,12 @@ const SPAWN_RATE_ICON_PATHS: Record<string, string> = {
     chest: path.join(process.cwd(), "assets", "chest-resized.png"),
     supplyDrop: path.join(process.cwd(), "assets", "drop-resized.png")
 };
-const SPRITE_ASSET_CACHE_DIR = path.join(process.cwd(), ".cache", "fortnite-sprites", "assets");
+const SPRITE_CACHE_ROOT_DIR = path.join(process.cwd(), ".cache", "fortnite-sprites");
+const SPRITE_ASSET_CACHE_DIR = path.join(SPRITE_CACHE_ROOT_DIR, "assets");
 const SPRITE_ASSET_CACHE_VERSION = "v4-binary-assets";
 const SPRITE_ASSET_MANIFEST_VERSION = 2;
-const RENDER_CACHE_DIR = path.join(process.cwd(), ".cache", "fortnite-sprites", "renders");
-const SPRITE_TELEMETRY_DIR = path.join(process.cwd(), ".cache", "fortnite-sprites", "telemetry");
+const RENDER_CACHE_DIR = path.join(SPRITE_CACHE_ROOT_DIR, "renders");
+const SPRITE_TELEMETRY_DIR = path.join(SPRITE_CACHE_ROOT_DIR, "telemetry");
 const SPRITE_TELEMETRY_SCHEMA_VERSION = 1;
 const RENDER_CACHE_SCHEMA = "v2";
 const PRODUCTION_RENDER_CACHE_ENABLED = process.platform === "linux" && process.env.NODE_ENV === "production";
@@ -263,6 +264,7 @@ export class FortniteSprites {
     private spriteAssetCacheBytes = 0;
     private pendingSpriteAssetLoads = new Map<string, Promise<string | null>>();
     private telemetryWritePromise: Promise<void> = Promise.resolve();
+    private telemetryMigrationPromise: Promise<void> = Promise.resolve();
     private telemetryCounters = {
         renderMemoryHits: 0,
         renderDiskHits: 0,
@@ -330,6 +332,7 @@ export class FortniteSprites {
         registerComponent("fortniteSprites", this);
         this.loadData();
         this.loadSpriteHistory();
+        this.telemetryMigrationPromise = this.migrateLegacySpriteTelemetryLogs();
         this.startupSyncPromise = createTrackedJob(
             "fortnite-sprites-sync",
             "Fortnite Sprites Sync",
@@ -588,6 +591,90 @@ export class FortniteSprites {
         return crypto.createHash("sha1").update(value).digest("hex");
     }
 
+    private async migrateLegacySpriteTelemetryLogs() {
+        if (!PRODUCTION_RENDER_CACHE_ENABLED) return;
+
+        try {
+            const legacyLogPaths: string[] = [];
+            const telemetryDirectory = path.resolve(SPRITE_TELEMETRY_DIR);
+
+            const visit = async (directory: string): Promise<void> => {
+                let entries: fs.Dirent[];
+                try {
+                    entries = await fs.promises.readdir(directory, { withFileTypes: true });
+                } catch (error) {
+                    if (error?.code === "ENOENT") return;
+                    throw error;
+                }
+
+                for (const entry of entries) {
+                    const entryPath = path.join(directory, entry.name);
+                    if (entry.isDirectory()) {
+                        if (path.resolve(entryPath) !== telemetryDirectory) {
+                            await visit(entryPath);
+                        }
+                        continue;
+                    }
+                    if (entry.isFile() && /^events-\d{4}-\d{2}-\d{2}\.jsonl$/.test(entry.name)) {
+                        legacyLogPaths.push(entryPath);
+                    }
+                }
+            };
+
+            await visit(SPRITE_CACHE_ROOT_DIR);
+            if (legacyLogPaths.length === 0) return;
+
+            await fs.promises.mkdir(SPRITE_TELEMETRY_DIR, { recursive: true });
+            let migratedFiles = 0;
+            for (const sourcePath of legacyLogPaths) {
+                const targetPath = path.join(SPRITE_TELEMETRY_DIR, path.basename(sourcePath));
+                if (path.resolve(sourcePath) === path.resolve(targetPath)) continue;
+
+                let targetExists = true;
+                try {
+                    await fs.promises.access(targetPath, fs.constants.F_OK);
+                } catch (error) {
+                    if (error?.code === "ENOENT") {
+                        targetExists = false;
+                    } else {
+                        throw error;
+                    }
+                }
+
+                if (!targetExists) {
+                    try {
+                        await fs.promises.copyFile(sourcePath, targetPath, fs.constants.COPYFILE_EXCL);
+                        await fs.promises.rm(sourcePath, { force: true });
+                        migratedFiles++;
+                        continue;
+                    } catch (error) {
+                        if (error?.code !== "EEXIST") throw error;
+                    }
+                }
+
+                const [sourceContent, targetContent] = await Promise.all([
+                    fs.promises.readFile(sourcePath, "utf8"),
+                    fs.promises.readFile(targetPath, "utf8")
+                ]);
+                const existingLines = new Set(targetContent.split(/\r?\n/).filter(Boolean));
+                const missingLines = sourceContent
+                    .split(/\r?\n/)
+                    .filter(line => line && !existingLines.has(line));
+                if (missingLines.length > 0) {
+                    await fs.promises.appendFile(targetPath, `${missingLines.join("\n")}\n`, "utf8");
+                }
+                await fs.promises.rm(sourcePath, { force: true });
+                migratedFiles++;
+            }
+
+            if (migratedFiles > 0) {
+                console.log(`[FortniteSprites] Consolidated ${migratedFiles} legacy telemetry log(s) into ${SPRITE_TELEMETRY_DIR}.`);
+            }
+        } catch (error) {
+            console.warn("[FortniteSprites] Failed to migrate legacy sprite telemetry logs:", error?.message || error);
+        }
+    }
+
     private getSpriteTelemetryLogPath(date = new Date()) {
         return path.join(SPRITE_TELEMETRY_DIR, `events-${date.toISOString().slice(0, 10)}.jsonl`);
     }
@@ -606,6 +693,7 @@ export class FortniteSprites {
         const line = `${JSON.stringify(record)}\n`;
         this.telemetryWritePromise = this.telemetryWritePromise
             .catch(() => { })
+            .then(() => this.telemetryMigrationPromise)
             .then(async () => {
                 await fs.promises.mkdir(SPRITE_TELEMETRY_DIR, { recursive: true });
                 await fs.promises.appendFile(this.getSpriteTelemetryLogPath(), line, "utf8");
