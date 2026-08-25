@@ -844,7 +844,15 @@ export class FortniteSprites {
             .setColor(status === "complete" ? "#39B36B" : "#2186DB")
             .setTitle(`🖼️ Sprite image cache ${stateLabel}`)
             .setDescription(progressDescription)
-            .addFields(
+            .setFooter({
+                text: cacheAlreadyFull
+                    ? "Startup validation · Fortnite.GG data and artwork checked"
+                    : `1 background render worker · ${RENDER_GENERATION_DELAY_MS}ms pacing · active pages first`
+            })
+            .setTimestamp();
+
+        if (!cacheAlreadyFull) {
+            progressEmbed.addFields(
                 { name: "Remaining", value: remaining.toLocaleString("en-US"), inline: true },
                 { name: "Failed", value: progress.failed.toLocaleString("en-US"), inline: true },
                 { name: "Elapsed", value: this.formatDuration(elapsed), inline: true },
@@ -852,13 +860,8 @@ export class FortniteSprites {
                 { name: "Started", value: startedAt, inline: true },
                 { name: "Reason", value: reason || "Startup build", inline: true },
                 { name: "Current screen", value: current, inline: false }
-            )
-            .setFooter({
-                text: cacheAlreadyFull
-                    ? "Startup validation · Fortnite.GG data and artwork checked"
-                    : `1 background render worker · ${RENDER_GENERATION_DELAY_MS}ms pacing · active pages first`
-            })
-            .setTimestamp();
+            );
+        }
 
         console.log(`[FortniteSprites] ${[
             `Sprite image cache ${stateLabel}`,
