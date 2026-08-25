@@ -249,6 +249,8 @@ const MAX_RENDERED_IMAGE_CACHE_BYTES = 96 * 1024 * 1024;
 const MAX_SPRITE_ASSET_CACHE_BYTES = 32 * 1024 * 1024;
 const SPRITE_IMAGE_PREWARM_CONCURRENCY = 2;
 const RENDER_GENERATION_DELAY_MS = 250;
+const RENDER_GENERATION_RETRY_LIMIT = 2;
+const RENDER_PROTOCOL_TIMEOUT_MS = 30 * 1000;
 const SPRITE_ASSET_SYNC_COOLDOWN_MS = 5 * 60 * 1000;
 export class FortniteSprites {
     private _data: SpriteDataFile | null = null;
@@ -452,13 +454,11 @@ export class FortniteSprites {
                 progress.current = "Existing render cache verified";
                 console.log(`[FortniteSprites] Existing render cache verified for ${tasks.length} screens; skipping Chromium rendering.`);
             } else {
-                for (const task of tasks) {
-                    if (this.renderGenerationRevision !== runId) {
-                        cancelled = true;
-                        break;
-                    }
-
-                    progress.current = task.label;
+                let failedTasks: RenderGenerationTask[] = [];
+                const renderTask = async (task: RenderGenerationTask, failedTarget: RenderGenerationTask[], attempt: number) => {
+                    progress.current = attempt > 1
+                        ? `Retry ${attempt}/${RENDER_GENERATION_RETRY_LIMIT + 1} · ${task.label}`
+                        : task.label;
                     const taskStartedAt = Date.now();
                     try {
                         const rendered = await task.render();
@@ -466,13 +466,39 @@ export class FortniteSprites {
                         progress.renderedBytes += rendered.byteLength;
                     } catch (error) {
                         progress.failed++;
-                        console.warn(`[FortniteSprites] Failed to pre-render ${task.label}:`, error);
+                        failedTarget.push(task);
+                        console.warn(`[FortniteSprites] Failed to pre-render ${task.label} (attempt ${attempt}):`, error);
                     }
                     progress.lastTaskDurationMs = Math.max(0, Date.now() - taskStartedAt);
                     progress.taskDurationMs += progress.lastTaskDurationMs;
 
                     if (RENDER_GENERATION_DELAY_MS > 0) {
                         await new Promise(resolve => setTimeout(resolve, RENDER_GENERATION_DELAY_MS));
+                    }
+                };
+
+                for (const task of tasks) {
+                    if (this.renderGenerationRevision !== runId) {
+                        cancelled = true;
+                        break;
+                    }
+
+                    await renderTask(task, failedTasks, 1);
+                }
+
+                for (let retry = 2; !cancelled && failedTasks.length > 0 && retry <= RENDER_GENERATION_RETRY_LIMIT + 1; retry++) {
+                    const retryTasks = failedTasks;
+                    failedTasks = [];
+                    progress.failed = 0;
+                    progress.current = `Retrying ${retryTasks.length} failed screens`;
+                    await this.updateRenderGenerationProgress("running", "progress");
+
+                    for (const task of retryTasks) {
+                        if (this.renderGenerationRevision !== runId) {
+                            cancelled = true;
+                            break;
+                        }
+                        await renderTask(task, failedTasks, retry);
                     }
                 }
             }
@@ -494,7 +520,9 @@ export class FortniteSprites {
 
             progress.current = progress.reusedExistingCache
                 ? "Cache already full; no rendering needed"
-                : "Complete";
+                : progress.failed > 0
+                    ? `Complete with ${progress.failed} failed screens`
+                    : "Complete";
             await this.updateRenderGenerationProgress("complete", "complete");
             if (progress.failed === 0) {
                 await this.pruneRenderDiskCache(progress.dataFingerprint);
@@ -827,7 +855,7 @@ export class FortniteSprites {
         const eta = processed > 0
             ? this.formatDuration((elapsed / processed) * remaining)
             : "estimating";
-        const percent = progress.total > 0 ? ((processed / progress.total) * 100).toFixed(1) : "100.0";
+        const percent = progress.total > 0 ? ((progress.completed / progress.total) * 100).toFixed(1) : "100.0";
         const cacheAlreadyFull = status === "complete" && progress.reusedExistingCache;
         const stateLabel = cacheAlreadyFull ? "already full" : status === "complete" ? "complete" : "in progress";
         const startedAt = new Date(progress.startedAt).toLocaleString("en-US", { timeZone: "America/New_York" });
@@ -2581,6 +2609,7 @@ export class FortniteSprites {
             const browser = await puppeteerModule.launch({
                 headless: true,
                 executablePath: this.getChromiumExecutablePath(),
+                protocolTimeout: RENDER_PROTOCOL_TIMEOUT_MS,
                 args: ['--no-sandbox', '--disable-setuid-sandbox']
             });
             browser.on("disconnected", () => {
@@ -3495,6 +3524,7 @@ export class FortniteSprites {
             || (this.liveRenderPages.size >= RENDER_PAGE_POOL_SIZE && this.renderPagePool.length === 0);
         const page = await this.acquireRenderPage();
         if (telemetry) telemetry.pageQueueWaitMs = wasQueued ? Math.max(0, Date.now() - pageAcquireStartedAt) : 0;
+        let pageHealthy = true;
         try {
             await page.setExtraHTTPHeaders({
                 "Referer": "https://fortnite.gg/",
@@ -3522,8 +3552,17 @@ export class FortniteSprites {
                 telemetry.chromiumMemoryBytes = await this.readChromiumProcessMemoryBytes();
             }
             return screenshot;
+        } catch (error) {
+            // A timed-out Page.captureScreenshot can leave the renderer/page
+            // busy even though Puppeteer reports the promise as rejected.
+            // Never return that page to the pool; retries must get a clean page.
+            pageHealthy = false;
+            await this.disposeRenderPage(page);
+            throw error;
         } finally {
-            await this.releaseRenderPage(page);
+            if (pageHealthy) {
+                await this.releaseRenderPage(page);
+            }
         }
     }
 
