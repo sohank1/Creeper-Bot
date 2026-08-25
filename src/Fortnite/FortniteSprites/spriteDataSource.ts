@@ -291,9 +291,13 @@ async function fetchDetail(item: SpriteListItem): Promise<SpriteVariantDetail> {
             spawnRates,
             variant,
             summonCost,
+            // Fortnite.GG has used both a separate level-scaling block and a
+            // single block containing the complete description. Keep the
+            // first block as the effect and preserve every remaining block in
+            // levelScaling so both layouts render completely.
             effectText: descriptions[0] || "",
             specialEffectText,
-            levelScaling: descriptions[1] || "",
+            levelScaling: descriptions.slice(1).join(" "),
             location: facts["Location"] || "",
             familyName: inferFamilyName(item.name, variant, relatedNames),
             detailStatus: "complete"
@@ -357,7 +361,7 @@ function buildFamilies(variants: SpriteVariantDetail[]): SpriteFamily[] {
             key,
             displayName: base.familyName,
             effectSummary: base.effectText || familyVariants.find(v => v.effectText)?.effectText || "No effect description available.",
-            levelScaling: base.levelScaling || familyVariants.find(v => v.levelScaling)?.levelScaling || "No level scaling available.",
+            levelScaling: base.levelScaling || familyVariants.find(v => v.levelScaling)?.levelScaling || "",
             location: base.location || familyVariants.find(v => v.location)?.location || "Unknown",
             variants: familyVariants.map(({ familyName, location, levelScaling, ...variant }) => variant)
         };

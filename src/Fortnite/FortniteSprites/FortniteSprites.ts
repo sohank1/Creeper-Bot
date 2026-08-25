@@ -3531,6 +3531,17 @@ export class FortniteSprites {
         return this.renderTokensCss;
     }
 
+    private getDistinctSpriteSupplemental(primary: string | undefined, supplemental: string | undefined): string {
+        const main = String(primary || "").trim();
+        const extra = String(supplemental || "").trim();
+
+        if (!extra || /^No level scaling available\.?$/i.test(extra) || !main) return extra;
+
+        const normalizedMain = main.replace(/\s+/g, " ").toLowerCase();
+        const normalizedExtra = extra.replace(/\s+/g, " ").toLowerCase();
+        return normalizedMain.includes(normalizedExtra) ? "" : extra;
+    }
+
     private escapeHtml(value: string | number | null | undefined): string {
         return String(value ?? "")
             .replace(/&/g, "&amp;")
@@ -4231,6 +4242,7 @@ export class FortniteSprites {
             const resolvedAssets = await this.prewarmSpriteImages([variant.imageUrl], telemetryOrigin);
             const rarityColor = RARITY_CSS_COLORS[variant.rarity];
             const effect = variant.effectText || family.effectSummary || "No effect description available.";
+            const levelScaling = this.getDistinctSpriteSupplemental(effect, family.levelScaling);
             const perk = variant.specialEffectText || "";
             const location = family.location || "Unknown location";
             const bannerChance = this.formatChance(variant);
@@ -4292,10 +4304,12 @@ export class FortniteSprites {
                                     </div>
                                 ` : ""}
 
-                                <div class="copy-block copy-block--scaling">
-                                    <h3 class="copy-title">Level scaling</h3>
-                                    <p>${this.escapeHtml(family.levelScaling || "No level scaling available.")}</p>
-                                </div>
+                                ${levelScaling ? `
+                                    <div class="copy-block copy-block--scaling">
+                                        <h3 class="copy-title">Level scaling</h3>
+                                        <p>${this.escapeHtml(levelScaling)}</p>
+                                    </div>
+                                ` : ""}
 
                                 ${this.renderSpawnRateStack(variant)}
                             </article>
@@ -4602,6 +4616,8 @@ export class FortniteSprites {
             const height = Math.max(820, 590 + sortedVariants.length * 124);
             const baseVariant = sortedVariants.find(variant => variant.variant === "Base") || sortedVariants[0];
             const familySeasonDetails = this.getFamilySeasonDetails(sortedVariants);
+            const effect = family.effectSummary || "No effect description available.";
+            const levelScaling = this.getDistinctSpriteSupplemental(effect, family.levelScaling);
 
             const html = this.buildRenderDocument(`
             <div class="sprite-render-root">
@@ -4628,9 +4644,11 @@ export class FortniteSprites {
                                 </div>
                                 <div class="family-copy">
                                     <h3 class="copy-title">Effect</h3>
-                                    <p>${this.escapeHtml(family.effectSummary)}</p>
-                                    <h3 class="copy-title">Level scaling</h3>
-                                    <p>${this.escapeHtml(family.levelScaling)}</p>
+                                    <p>${this.escapeHtml(effect)}</p>
+                                    ${levelScaling ? `
+                                        <h3 class="copy-title">Level scaling</h3>
+                                        <p>${this.escapeHtml(levelScaling)}</p>
+                                    ` : ""}
                                 </div>
                                 ${this.renderFamilyHistory(familySeasonDetails)}
                             </article>
