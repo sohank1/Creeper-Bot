@@ -264,7 +264,6 @@ export class FortniteSprites {
     private spriteAssetCacheBytes = 0;
     private pendingSpriteAssetLoads = new Map<string, Promise<string | null>>();
     private telemetryWritePromise: Promise<void> = Promise.resolve();
-    private telemetryMigrationPromise: Promise<void> = Promise.resolve();
     private telemetryCounters = {
         renderMemoryHits: 0,
         renderDiskHits: 0,
@@ -332,7 +331,6 @@ export class FortniteSprites {
         registerComponent("fortniteSprites", this);
         this.loadData();
         this.loadSpriteHistory();
-        this.telemetryMigrationPromise = this.migrateLegacySpriteTelemetryLogs();
         this.startupSyncPromise = createTrackedJob(
             "fortnite-sprites-sync",
             "Fortnite Sprites Sync",
@@ -494,7 +492,9 @@ export class FortniteSprites {
                 return;
             }
 
-            progress.current = "Complete";
+            progress.current = progress.reusedExistingCache
+                ? "Cache already full; no rendering needed"
+                : "Complete";
             await this.updateRenderGenerationProgress("complete", "complete");
             if (progress.failed === 0) {
                 await this.pruneRenderDiskCache(progress.dataFingerprint);
@@ -591,90 +591,6 @@ export class FortniteSprites {
         return crypto.createHash("sha1").update(value).digest("hex");
     }
 
-    private async migrateLegacySpriteTelemetryLogs() {
-        if (!PRODUCTION_RENDER_CACHE_ENABLED) return;
-
-        try {
-            const legacyLogPaths: string[] = [];
-            const telemetryDirectory = path.resolve(SPRITE_TELEMETRY_DIR);
-
-            const visit = async (directory: string): Promise<void> => {
-                let entries: fs.Dirent[];
-                try {
-                    entries = await fs.promises.readdir(directory, { withFileTypes: true });
-                } catch (error) {
-                    if (error?.code === "ENOENT") return;
-                    throw error;
-                }
-
-                for (const entry of entries) {
-                    const entryPath = path.join(directory, entry.name);
-                    if (entry.isDirectory()) {
-                        if (path.resolve(entryPath) !== telemetryDirectory) {
-                            await visit(entryPath);
-                        }
-                        continue;
-                    }
-                    if (entry.isFile() && /^events-\d{4}-\d{2}-\d{2}\.jsonl$/.test(entry.name)) {
-                        legacyLogPaths.push(entryPath);
-                    }
-                }
-            };
-
-            await visit(SPRITE_CACHE_ROOT_DIR);
-            if (legacyLogPaths.length === 0) return;
-
-            await fs.promises.mkdir(SPRITE_TELEMETRY_DIR, { recursive: true });
-            let migratedFiles = 0;
-            for (const sourcePath of legacyLogPaths) {
-                const targetPath = path.join(SPRITE_TELEMETRY_DIR, path.basename(sourcePath));
-                if (path.resolve(sourcePath) === path.resolve(targetPath)) continue;
-
-                let targetExists = true;
-                try {
-                    await fs.promises.access(targetPath, fs.constants.F_OK);
-                } catch (error) {
-                    if (error?.code === "ENOENT") {
-                        targetExists = false;
-                    } else {
-                        throw error;
-                    }
-                }
-
-                if (!targetExists) {
-                    try {
-                        await fs.promises.copyFile(sourcePath, targetPath, fs.constants.COPYFILE_EXCL);
-                        await fs.promises.rm(sourcePath, { force: true });
-                        migratedFiles++;
-                        continue;
-                    } catch (error) {
-                        if (error?.code !== "EEXIST") throw error;
-                    }
-                }
-
-                const [sourceContent, targetContent] = await Promise.all([
-                    fs.promises.readFile(sourcePath, "utf8"),
-                    fs.promises.readFile(targetPath, "utf8")
-                ]);
-                const existingLines = new Set(targetContent.split(/\r?\n/).filter(Boolean));
-                const missingLines = sourceContent
-                    .split(/\r?\n/)
-                    .filter(line => line && !existingLines.has(line));
-                if (missingLines.length > 0) {
-                    await fs.promises.appendFile(targetPath, `${missingLines.join("\n")}\n`, "utf8");
-                }
-                await fs.promises.rm(sourcePath, { force: true });
-                migratedFiles++;
-            }
-
-            if (migratedFiles > 0) {
-                console.log(`[FortniteSprites] Consolidated ${migratedFiles} legacy telemetry log(s) into ${SPRITE_TELEMETRY_DIR}.`);
-            }
-        } catch (error) {
-            console.warn("[FortniteSprites] Failed to migrate legacy sprite telemetry logs:", error?.message || error);
-        }
-    }
-
     private getSpriteTelemetryLogPath(date = new Date()) {
         return path.join(SPRITE_TELEMETRY_DIR, `events-${date.toISOString().slice(0, 10)}.jsonl`);
     }
@@ -693,7 +609,6 @@ export class FortniteSprites {
         const line = `${JSON.stringify(record)}\n`;
         this.telemetryWritePromise = this.telemetryWritePromise
             .catch(() => { })
-            .then(() => this.telemetryMigrationPromise)
             .then(async () => {
                 await fs.promises.mkdir(SPRITE_TELEMETRY_DIR, { recursive: true });
                 await fs.promises.appendFile(this.getSpriteTelemetryLogPath(), line, "utf8");
@@ -913,15 +828,21 @@ export class FortniteSprites {
             ? this.formatDuration((elapsed / processed) * remaining)
             : "estimating";
         const percent = progress.total > 0 ? ((processed / progress.total) * 100).toFixed(1) : "100.0";
-        const stateLabel = status === "complete" ? "complete" : "in progress";
+        const cacheAlreadyFull = status === "complete" && progress.reusedExistingCache;
+        const stateLabel = cacheAlreadyFull ? "already full" : status === "complete" ? "complete" : "in progress";
         const startedAt = new Date(progress.startedAt).toLocaleString("en-US", { timeZone: "America/New_York" });
-        const current = this.truncate(progress.current || "Waiting for the next screen", 900);
+        const current = this.truncate(
+            cacheAlreadyFull ? "Cache already full; no rendering needed" : progress.current || "Waiting for the next screen",
+            900
+        );
         const reason = this.truncate(progress.reason, 900);
-        const progressDescription = `${progress.completed} of ${progress.total} screens are ready (${percent}%).`;
+        const progressDescription = cacheAlreadyFull
+            ? `${progress.completed} of ${progress.total} screens are ready (${percent}%). Existing images were verified; no new images were rendered.`
+            : `${progress.completed} of ${progress.total} screens are ready (${percent}%).`;
         this.recordRenderGenerationTelemetry(progress, telemetryPhase);
         const progressEmbed = new MessageEmbed()
             .setColor(status === "complete" ? "#39B36B" : "#2186DB")
-            .setTitle(`🖼️ Sprite image cache generation ${stateLabel}`)
+            .setTitle(`🖼️ Sprite image cache ${stateLabel}`)
             .setDescription(progressDescription)
             .addFields(
                 { name: "Remaining", value: remaining.toLocaleString("en-US"), inline: true },
@@ -932,11 +853,15 @@ export class FortniteSprites {
                 { name: "Reason", value: reason || "Startup build", inline: true },
                 { name: "Current screen", value: current, inline: false }
             )
-            .setFooter({ text: `1 background render worker · ${RENDER_GENERATION_DELAY_MS}ms pacing · active pages first` })
+            .setFooter({
+                text: cacheAlreadyFull
+                    ? "Startup validation · Fortnite.GG data and artwork checked"
+                    : `1 background render worker · ${RENDER_GENERATION_DELAY_MS}ms pacing · active pages first`
+            })
             .setTimestamp();
 
         console.log(`[FortniteSprites] ${[
-            `Sprite image cache generation ${stateLabel}`,
+            `Sprite image cache ${stateLabel}`,
             progressDescription,
             `Remaining: ${remaining} · Failed: ${progress.failed}`,
             `Started: ${startedAt}`,
