@@ -1080,7 +1080,12 @@ export class FortniteSprites {
             } else if (this._data) {
                 this._data = applySpriteHistory(this._data, nextHistory);
                 this.buildSearchIndex();
-                this.clearRenderCaches();
+                // The scrape completed successfully, but the normalized catalog
+                // is unchanged. Keep the memory/deduplication caches warm so a
+                // background refresh does not turn a RAM hit into a disk read or
+                // discard an in-flight render. Render caches are invalidated by
+                // loadData() when the catalog actually changes, and artwork sync
+                // invalidates the affected render namespace separately.
             }
 
             this.lastSuccessfulSyncAt = new Date().toISOString();
