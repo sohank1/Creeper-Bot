@@ -3045,7 +3045,11 @@ export class FortniteSprites {
         this.spriteAssetContentFingerprint = previousAssetContentFingerprint;
         const previousRenderDataFingerprint = this.getRenderDataFingerprint();
         const imageUrls = Array.from(new Set(
-            this.getAllVariants()
+            // Prewarm only artwork that can appear in the rendered UI. Archived
+            // variants with temporary placeholder URLs remain in the catalog for
+            // history/search, but must not create repeated startup misses.
+            this.getDisplayFamilies(this._data.families)
+                .flatMap(family => family.variants)
                 .map(variant => variant.imageUrl)
                 .filter((imageUrl): imageUrl is string => !!imageUrl)
         ));
