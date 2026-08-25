@@ -215,7 +215,9 @@ const SPRITE_ASSET_CACHE_DIR = path.join(SPRITE_CACHE_ROOT_DIR, "assets");
 const SPRITE_ASSET_CACHE_VERSION = "v4-binary-assets";
 const SPRITE_ASSET_MANIFEST_VERSION = 2;
 const RENDER_CACHE_DIR = path.join(SPRITE_CACHE_ROOT_DIR, "renders");
-const SPRITE_TELEMETRY_DIR = path.join(SPRITE_CACHE_ROOT_DIR, "telemetry");
+const SPRITE_TELEMETRY_DIR = process.env.FORTNITE_SPRITE_TELEMETRY_DIR
+    ? path.resolve(process.env.FORTNITE_SPRITE_TELEMETRY_DIR)
+    : path.join(SPRITE_CACHE_ROOT_DIR, "telemetry");
 const SPRITE_TELEMETRY_SCHEMA_VERSION = 1;
 const RENDER_CACHE_SCHEMA = "v2";
 const PRODUCTION_RENDER_CACHE_ENABLED = process.platform === "linux" && process.env.NODE_ENV === "production";
@@ -5216,15 +5218,17 @@ export class FortniteSprites {
     }
 
     private async handleSelectMenu(i: SelectMenuInteraction<CacheType>) {
-        if (!this._data) return i.reply({ content: "Sprite data is not loaded yet.", ephemeral: true });
+        if (!this._data) return i.reply({ content: "Sprite data is not loaded yet." });
 
         const rawId = this.stripOwnerId(i.customId);
         const ownerId = this.extractOwnerId(i.customId) || i.user.id;
         const isOriginalUser = i.user.id === ownerId;
-        const spawnsNewPage = rawId === "fn_sprites_family_select" || rawId.startsWith("fn_sprites_variant_select_");
+        // Selecting a family from the overview opens a new public page. Variant
+        // selectors belong to an existing family/detail page and should edit it.
+        const spawnsNewPage = rawId === "fn_sprites_family_select";
 
         if (spawnsNewPage || !isOriginalUser) {
-            await i.deferReply({ ephemeral: !isOriginalUser && !spawnsNewPage });
+            await i.deferReply();
         } else {
             await i.deferUpdate();
         }
@@ -5303,7 +5307,7 @@ export class FortniteSprites {
 
         if (!response) {
             if (spawnsNewPage || !isOriginalUser) return i.editReply({ content: "That sprite control is no longer available.", components: [] });
-            return i.followUp({ content: "That sprite control is no longer available.", ephemeral: true });
+            return i.followUp({ content: "That sprite control is no longer available." });
         }
 
         if (spawnsNewPage || !isOriginalUser) {
@@ -5345,7 +5349,7 @@ export class FortniteSprites {
     }
 
     private async handleButton(i: ButtonInteraction<CacheType>) {
-        if (!this._data) return i.reply({ content: "Sprite data is not loaded yet.", ephemeral: true });
+        if (!this._data) return i.reply({ content: "Sprite data is not loaded yet." });
 
         const rawId = this.stripOwnerId(i.customId);
         const ownerId = this.extractOwnerId(i.customId) || i.user.id;
@@ -5409,7 +5413,7 @@ export class FortniteSprites {
             const family = sourceFamily ? this.filterFamilyBySeason(sourceFamily, currentState.seasonFilter || "current") : undefined;
             const variant = family?.variants.find(candidate => candidate.id === id) || (fallbackVariant?.family.key === family?.key ? fallbackVariant.variant : undefined);
             if (!family || !variant) {
-                if (isOriginalUser) return i.followUp({ content: "Sprite variant not found.", ephemeral: true });
+                if (isOriginalUser) return i.followUp({ content: "Sprite variant not found." });
                 return i.editReply({ content: "Sprite variant not found.", components: [] });
             }
             view = { kind: "detail", familyKey: family.key, variantId: variant.id, state: currentState };
@@ -5443,7 +5447,7 @@ export class FortniteSprites {
         }
 
         if (!response) {
-            if (isOriginalUser) return i.followUp({ content: "That sprite control is no longer available.", ephemeral: true });
+            if (isOriginalUser) return i.followUp({ content: "That sprite control is no longer available." });
             return i.editReply({ content: "That sprite control is no longer available.", components: [] });
         }
 

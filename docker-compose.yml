@@ -9,6 +9,9 @@ services:
     # Persist downloaded sprite assets and rendered PNGs across redeploys.
     volumes:
       - creeper-bot-cache:/app/.cache
+      - creeper-bot-telemetry:/app/.telemetry
+    environment:
+      FORTNITE_SPRITE_TELEMETRY_DIR: /app/.telemetry/fortnite-sprites
     expose:
       - "3001"
     # Coolify writes all runtime-enabled application variables to this file
@@ -31,3 +34,4 @@ services:
 
 volumes:
   creeper-bot-cache:
+  creeper-bot-telemetry:

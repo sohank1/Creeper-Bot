@@ -258,17 +258,20 @@ from the controls and request the current cached/on-demand image without a state
 ## Persisting `.cache` In Coolify
 
 The Compose file declares a named `creeper-bot-cache` volume mounted at
-`/app/.cache`. Coolify reuses that volume across production container
-replacements, so no separate directory mount is required.
+`/app/.cache` and a separate `creeper-bot-telemetry` volume mounted at
+`/app/.telemetry`. Coolify reuses both volumes across production container
+replacements.
 
-If a host-directory bind mount is preferred, configure it in Coolify at the same
-container destination (`/app/.cache`) instead of using the named volume; do not
-configure both.
+If host-directory bind mounts are preferred, configure them in Coolify at the
+same container destinations (`/app/.cache` and `/app/.telemetry`) instead of
+using the named volumes; do not configure both for either path.
 
-For this bot, the mount preserves downloaded sprite assets, rendered PNGs, and
-telemetry between production redeploys. A new UI/data fingerprint automatically
-selects a new cache namespace, and completed generations prune obsolete rendered
-namespaces while leaving telemetry intact.
+For this bot, the cache mount preserves downloaded sprite assets and rendered
+PNGs, while the telemetry mount preserves JSONL diagnostics independently. The
+cache volume may be cleared when troubleshooting without deleting telemetry.
+A new UI/data fingerprint automatically selects a new cache namespace, and
+completed generations prune obsolete rendered namespaces while leaving telemetry
+intact.
 
 Each telemetry line is one JSON event containing the timestamp, app/build identity,
 event type, initiating Discord username, interacting Discord username, message ID,
@@ -279,8 +282,10 @@ of how long a pre-render run took. Asset sync events also record whether Fortnit
 data changed and how many assets succeeded or failed.
 The initial command writes a message-binding event after Discord assigns the actual
 message ID; subsequent interaction and refresh events include that message ID
-directly. Telemetry is production-only and remains in the Docker volume until
-manually removed.
+directly. Telemetry is production-only and remains in its dedicated Docker volume
+until manually removed. To clear disposable cache without touching telemetry,
+remove only the `creeper-bot-cache` volume; do not remove
+`creeper-bot-telemetry`.
 
 ## Repository Notes
 
