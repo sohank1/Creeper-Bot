@@ -107,6 +107,14 @@ type SpriteSyncResult = {
     syncedAt: string;
 };
 
+type SpriteSyncTrigger = "startup" | "command" | "interaction" | "daily-timer";
+
+type SpriteCatalogChangeSummary = {
+    changedVariants: number;
+    changedFieldCounts: Record<string, number>;
+    examples: Array<Record<string, unknown>>;
+};
+
 type RenderedImageCacheEntry = {
     buffer: Buffer;
     bytes: number;
@@ -159,6 +167,7 @@ type PendingRenderPageAcquire = {
 type RenderGenerationTask = {
     id: string;
     label: string;
+    cacheKey: (dataFingerprint: string) => string;
     render: () => Promise<Buffer>;
 };
 
@@ -174,6 +183,7 @@ type RenderGenerationProgress = {
     taskDurationMs: number;
     lastTaskDurationMs: number;
     renderedBytes: number;
+    reusedExistingCache: boolean;
 };
 
 type RenderTelemetryContext = {
@@ -206,7 +216,7 @@ const SPRITE_ASSET_MANIFEST_VERSION = 2;
 const RENDER_CACHE_DIR = path.join(process.cwd(), ".cache", "fortnite-sprites", "renders");
 const SPRITE_TELEMETRY_DIR = path.join(process.cwd(), ".cache", "fortnite-sprites", "telemetry");
 const SPRITE_TELEMETRY_SCHEMA_VERSION = 1;
-const RENDER_CACHE_SCHEMA = "v1";
+const RENDER_CACHE_SCHEMA = "v2";
 const PRODUCTION_RENDER_CACHE_ENABLED = process.platform === "linux" && process.env.NODE_ENV === "production";
 const buildFingerprint = [
     process.env.BUILD_ID,
@@ -267,6 +277,10 @@ export class FortniteSprites {
         assetFailures: 0,
         assetSyncChecks: 0,
         assetSyncFailures: 0,
+        catalogSyncRuns: 0,
+        catalogSyncFailures: 0,
+        catalogDetailPages: 0,
+        catalogDetailFailures: 0,
         totalRenderDurationMs: 0,
         totalPageQueueWaitMs: 0,
         totalRenderedPixels: 0
@@ -316,12 +330,13 @@ export class FortniteSprites {
         registerComponent("fortniteSprites", this);
         this.loadData();
         this.loadSpriteHistory();
-        if (this.shouldSyncSprites()) {
-            this.startupSyncPromise = createTrackedJob("fortnite-sprites-sync", "Fortnite Sprites Sync", "Daily and startup", () => this.syncLatestSprites())();
-        } else {
-            console.log("[FortniteSprites] Sprite data cache is fresh; skipping startup sync.");
-        }
-        this.refreshTimer = setInterval(createTrackedJob("fortnite-sprites-sync", "Fortnite Sprites Sync", "Daily and startup", () => this.maybeQueueRuntimeRefresh()), 24 * 60 * 60 * 1000);
+        this.startupSyncPromise = createTrackedJob(
+            "fortnite-sprites-sync",
+            "Fortnite Sprites Sync",
+            "Startup validation",
+            () => this.syncLatestSprites(BACKGROUND_TELEMETRY_ORIGIN, "startup")
+        )();
+        this.refreshTimer = setInterval(createTrackedJob("fortnite-sprites-sync", "Fortnite Sprites Sync", "Daily and startup", () => this.maybeQueueRuntimeRefresh(BACKGROUND_TELEMETRY_ORIGIN, "daily-timer")), 24 * 60 * 60 * 1000);
 
         this.client.on("interactionCreate", (i) => {
             if (i.isAutocomplete() && i.commandName === "fortnite" && i.options.getSubcommand(false) === "sprites") {
@@ -409,7 +424,8 @@ export class FortniteSprites {
             current: "Preparing render queue",
             taskDurationMs: 0,
             lastTaskDurationMs: 0,
-            renderedBytes: 0
+            renderedBytes: 0,
+            reusedExistingCache: false
         };
         this.renderGenerationProgress = progress;
         await this.updateRenderGenerationProgress("running", "start");
@@ -427,27 +443,36 @@ export class FortniteSprites {
                 return;
             }
 
-            for (const task of tasks) {
-                if (this.renderGenerationRevision !== runId) {
-                    cancelled = true;
-                    break;
-                }
+            const cachedRenderBytes = await this.getCompleteRenderCacheBytes(tasks, progress.dataFingerprint);
+            if (cachedRenderBytes !== null) {
+                progress.completed = tasks.length;
+                progress.renderedBytes = cachedRenderBytes;
+                progress.reusedExistingCache = true;
+                progress.current = "Existing render cache verified";
+                console.log(`[FortniteSprites] Existing render cache verified for ${tasks.length} screens; skipping Chromium rendering.`);
+            } else {
+                for (const task of tasks) {
+                    if (this.renderGenerationRevision !== runId) {
+                        cancelled = true;
+                        break;
+                    }
 
-                progress.current = task.label;
-                const taskStartedAt = Date.now();
-                try {
-                    const rendered = await task.render();
-                    progress.completed++;
-                    progress.renderedBytes += rendered.byteLength;
-                } catch (error) {
-                    progress.failed++;
-                    console.warn(`[FortniteSprites] Failed to pre-render ${task.label}:`, error);
-                }
-                progress.lastTaskDurationMs = Math.max(0, Date.now() - taskStartedAt);
-                progress.taskDurationMs += progress.lastTaskDurationMs;
+                    progress.current = task.label;
+                    const taskStartedAt = Date.now();
+                    try {
+                        const rendered = await task.render();
+                        progress.completed++;
+                        progress.renderedBytes += rendered.byteLength;
+                    } catch (error) {
+                        progress.failed++;
+                        console.warn(`[FortniteSprites] Failed to pre-render ${task.label}:`, error);
+                    }
+                    progress.lastTaskDurationMs = Math.max(0, Date.now() - taskStartedAt);
+                    progress.taskDurationMs += progress.lastTaskDurationMs;
 
-                if (RENDER_GENERATION_DELAY_MS > 0) {
-                    await new Promise(resolve => setTimeout(resolve, RENDER_GENERATION_DELAY_MS));
+                    if (RENDER_GENERATION_DELAY_MS > 0) {
+                        await new Promise(resolve => setTimeout(resolve, RENDER_GENERATION_DELAY_MS));
+                    }
                 }
             }
         } finally {
@@ -471,7 +496,7 @@ export class FortniteSprites {
             if (progress.failed === 0) {
                 await this.pruneRenderDiskCache(progress.dataFingerprint);
                 // Asset files are keyed by the catalog fingerprint. The render
-                // fingerprint also includes UI/build and asset-content state,
+                // fingerprint also includes UI and asset-content state,
                 // so using it here would delete the just-synced asset folder.
                 await this.pruneSpriteAssetDiskCache(catalogDataFingerprint);
             }
@@ -484,10 +509,15 @@ export class FortniteSprites {
 
         const tasks: RenderGenerationTask[] = [];
         const taskIds = new Set<string>();
-        const addTask = (id: string, label: string, render: () => Promise<Buffer>) => {
+        const addTask = (
+            id: string,
+            label: string,
+            cacheKey: (dataFingerprint: string) => string,
+            render: () => Promise<Buffer>
+        ) => {
             if (taskIds.has(id)) return;
             taskIds.add(id);
-            tasks.push({ id, label, render });
+            tasks.push({ id, label, cacheKey, render });
         };
 
         const seasonFilters = Array.from(new Set([
@@ -507,6 +537,7 @@ export class FortniteSprites {
                     addTask(
                         `overview:${seasonFilter}:${variantFilter}:${rarityFilter}`,
                         `Overview · ${this.describeSeasonFilter(seasonFilter)} · ${variantFilter}/${rarityFilter}`,
+                        dataFingerprint => this.getCanonicalOverviewCacheKey(state, dataFingerprint),
                         () => this.renderOverviewImage(families, state)
                     );
                 }
@@ -523,6 +554,7 @@ export class FortniteSprites {
                 addTask(
                     `family:${seasonFilter}:${family.key}:${variantIds}`,
                     `Family · ${family.displayName} · ${this.describeSeasonFilter(seasonFilter)}`,
+                    dataFingerprint => `family:${this.renderUiFingerprint}:${dataFingerprint}:${family.key}:${variantIds}`,
                     () => this.renderFamilyImage(family)
                 );
             }
@@ -533,6 +565,7 @@ export class FortniteSprites {
                 addTask(
                     `variant:${family.key}:${variant.id}`,
                     `Variant · ${variant.name}`,
+                    dataFingerprint => `variant:${this.renderUiFingerprint}:${dataFingerprint}:${family.key}:${variant.id}:${variant.name}`,
                     () => this.renderVariantImage(family, variant)
                 );
             }
@@ -671,6 +704,75 @@ export class FortniteSprites {
         });
     }
 
+    private recordCatalogSyncTelemetry({
+        startedAt,
+        trigger,
+        telemetryOrigin,
+        latest,
+        changed,
+        dataFingerprintBefore,
+        dataFingerprintAfter,
+        changeSummary,
+        error
+    }: {
+        startedAt: number;
+        trigger: SpriteSyncTrigger;
+        telemetryOrigin: SpriteTelemetryOrigin;
+        latest: SpriteDataFile | null;
+        changed: boolean;
+        dataFingerprintBefore: string;
+        dataFingerprintAfter: string;
+        changeSummary: SpriteCatalogChangeSummary;
+        error?: unknown;
+    }) {
+        const variants = latest?.families.flatMap(family => family.variants) || [];
+        const detailPagesDiscovered = latest ? variants.length : null;
+        const detailPagesComplete = latest ? variants.filter(variant => variant.detailStatus === "complete").length : null;
+        const detailPagesPartial = latest ? variants.filter(variant => variant.detailStatus !== "complete").length : null;
+        const partialSpriteIds = latest
+            ? variants.filter(variant => variant.detailStatus !== "complete").map(variant => variant.id).slice(0, 100)
+            : null;
+
+        this.telemetryCounters.catalogSyncRuns++;
+        this.telemetryCounters.catalogDetailPages += detailPagesDiscovered || 0;
+        this.telemetryCounters.catalogDetailFailures += detailPagesPartial || 0;
+        if (error) this.telemetryCounters.catalogSyncFailures++;
+
+        this.recordSpriteTelemetry({
+            type: "catalog-sync",
+            source: "fortnite.gg",
+            scope: "current-season-list",
+            trigger,
+            initiatedByUsername: telemetryOrigin.initiatedByUsername,
+            interactedByUsername: telemetryOrigin.interactedByUsername,
+            messageId: telemetryOrigin.messageId,
+            requestId: telemetryOrigin.requestId,
+            currentSeason: latest?.seasonContext?.displayName || null,
+            seasonKey: latest?.seasonContext?.seasonKey || null,
+            spriteListPagesFetched: latest ? 1 : null,
+            detailPagesDiscovered,
+            detailPagesAttempted: detailPagesDiscovered,
+            detailPagesComplete,
+            detailPagesPartial,
+            partialSpriteIds,
+            historicalDetailPagesChecked: 0,
+            changed,
+            changedVariants: changeSummary.changedVariants,
+            changedFieldCounts: changeSummary.changedFieldCounts,
+            changedExamples: changeSummary.examples,
+            dataFingerprintBefore,
+            dataFingerprintAfter,
+            durationMs: Math.max(0, Date.now() - startedAt),
+            ...(error ? { error: error instanceof Error ? error.message : String(error) } : {})
+        });
+
+        console.log(`[FortniteSprites] Fortnite.GG catalog sync ${changed ? "detected changes" : "found no changes"}`
+            + ` | current-season detail pages: ${detailPagesComplete ?? 0}/${detailPagesDiscovered ?? 0}`
+            + ` | historical detail pages: 0`
+            + ` | duration: ${Math.max(0, Date.now() - startedAt)}ms`
+            + (error ? ` | failed: ${error instanceof Error ? error.message : String(error)}` : ""));
+    }
+
     private recordRenderGenerationTelemetry(
         progress: RenderGenerationProgress,
         phase: "start" | "progress" | "complete" | "cancelled" | "failure",
@@ -701,6 +803,7 @@ export class FortniteSprites {
             averageTaskDurationMs,
             lastTaskDurationMs: progress.lastTaskDurationMs,
             renderedBytes: progress.renderedBytes,
+            reusedExistingCache: progress.reusedExistingCache,
             estimatedRemainingMs: processed > 0
                 ? Math.round((elapsedMs / processed) * remaining)
                 : null,
@@ -1040,14 +1143,10 @@ export class FortniteSprites {
         return trusted;
     }
 
-    private shouldSyncSprites() {
-        if (!this._data?.fetchedAt) return true;
-        const fetchedAt = new Date(this._data.fetchedAt).getTime();
-        if (!Number.isFinite(fetchedAt)) return true;
-        return Date.now() - fetchedAt > 24 * 60 * 60 * 1000;
-    }
-
-    private async syncLatestSprites(): Promise<SpriteSyncResult> {
+    private async syncLatestSprites(
+        telemetryOrigin: SpriteTelemetryOrigin = BACKGROUND_TELEMETRY_ORIGIN,
+        trigger: SpriteSyncTrigger = "startup"
+    ): Promise<SpriteSyncResult> {
         if (this.isSyncingSprites) {
             return {
                 changed: false,
@@ -1055,15 +1154,24 @@ export class FortniteSprites {
             };
         }
         this.isSyncingSprites = true;
+        const syncStartedAt = Date.now();
+        const dataFingerprintBefore = this.getCatalogDataFingerprint();
+        let latest: SpriteDataFile | null = null;
+        let changeSummary: SpriteCatalogChangeSummary = {
+            changedVariants: 0,
+            changedFieldCounts: {},
+            examples: []
+        };
         let changed = false;
 
         try {
-            const latest = await fetchSpriteData(150, undefined, this._data?.seasonContext);
+            latest = await fetchSpriteData(150, undefined, this._data?.seasonContext);
             const nextHistory = updateSpriteHistory(this.spriteHistory, latest);
             const enrichedLatest = applySpriteHistory(latest, nextHistory);
             const latestJson = stableSpriteDataJson(enrichedLatest);
             const existingJson = fs.existsSync(DATA_PATH) ? fs.readFileSync(DATA_PATH, "utf8") : "";
             const normalizeFetchedAt = (json: string) => json.replace(/"fetchedAt":\s*"[^"]+"/, '"fetchedAt": ""');
+            changeSummary = this.summarizeSpriteCatalogChanges(existingJson, enrichedLatest);
 
             // Install and persist history before reloading the catalog. Historical
             // snapshots do not carry runtime availability fields on their own;
@@ -1090,12 +1198,34 @@ export class FortniteSprites {
 
             this.lastSuccessfulSyncAt = new Date().toISOString();
             this.lastSyncError = null;
-            return {
+            const result = {
                 changed,
                 syncedAt: this.lastSuccessfulSyncAt
             };
+            this.recordCatalogSyncTelemetry({
+                startedAt: syncStartedAt,
+                trigger,
+                telemetryOrigin,
+                latest,
+                changed,
+                dataFingerprintBefore,
+                dataFingerprintAfter: this.getCatalogDataFingerprint(),
+                changeSummary
+            });
+            return result;
         } catch (e: any) {
             this.lastSyncError = e?.message || String(e);
+            this.recordCatalogSyncTelemetry({
+                startedAt: syncStartedAt,
+                trigger,
+                telemetryOrigin,
+                latest,
+                changed,
+                dataFingerprintBefore,
+                dataFingerprintAfter: this.getCatalogDataFingerprint(),
+                changeSummary,
+                error: e
+            });
             console.error("[FortniteSprites] Failed to sync sprite data:", this.lastSyncError);
             return {
                 changed: false,
@@ -1104,6 +1234,98 @@ export class FortniteSprites {
         } finally {
             this.isSyncingSprites = false;
         }
+    }
+
+    private parseSpriteDataForTelemetry(json: string): SpriteDataFile | null {
+        if (!json) return null;
+        try {
+            const parsed = JSON.parse(json) as SpriteDataFile;
+            return Array.isArray(parsed?.families) ? parsed : null;
+        } catch {
+            return null;
+        }
+    }
+
+    private getSpriteVariantMap(data: SpriteDataFile | null) {
+        const variants = new Map<string, SpriteVariant>();
+        for (const family of data?.families || []) {
+            for (const variant of family.variants) {
+                const key = `${family.key}:${variant.id}:${variant.variant.toLowerCase()}`;
+                variants.set(key, variant);
+            }
+        }
+        return variants;
+    }
+
+    private summarizeSpriteCatalogChanges(existingJson: string, latest: SpriteDataFile): SpriteCatalogChangeSummary {
+        const previousVariants = this.getSpriteVariantMap(this.parseSpriteDataForTelemetry(existingJson));
+        const latestVariants = this.getSpriteVariantMap(latest);
+        let changedVariants = 0;
+        const changedFieldCounts: Record<string, number> = {};
+        const examples: Array<Record<string, unknown>> = [];
+        const comparableFields: Array<keyof SpriteVariant> = [
+            "name",
+            "rarity",
+            "chancePercent",
+            "chanceLabel",
+            "spawnRates",
+            "starter",
+            "variant",
+            "summonCost",
+            "imageUrl",
+            "effectText",
+            "specialEffectText",
+            "detailStatus",
+            "sourceSeasonKey",
+            "isUnreleased",
+            "introducedSeasonId",
+            "availableSeasonIds"
+        ];
+
+        const addChange = (variant: SpriteVariant, familyKey: string, fields: string[], previous?: SpriteVariant) => {
+            if (fields.length === 0) return;
+            changedVariants++;
+            fields.forEach(field => {
+                changedFieldCounts[field] = (changedFieldCounts[field] || 0) + 1;
+            });
+            if (examples.length >= 50) return;
+            const example: Record<string, unknown> = {
+                id: variant.id,
+                familyKey,
+                name: variant.name,
+                variant: variant.variant,
+                fields
+            };
+            if (fields.includes("summonCost")) {
+                example.previousSummonCost = previous?.summonCost ?? null;
+                example.currentSummonCost = variant.summonCost;
+            }
+            examples.push(example);
+        };
+
+        for (const [key, variant] of latestVariants.entries()) {
+            const previous = previousVariants.get(key);
+            const familyKey = key.split(":", 1)[0];
+            if (!previous) {
+                addChange(variant, familyKey, ["added"]);
+                continue;
+            }
+
+            const fields = comparableFields.filter(field => JSON.stringify(previous[field] ?? null) !== JSON.stringify(variant[field] ?? null));
+            addChange(variant, familyKey, fields, previous);
+        }
+
+        for (const [key, previous] of previousVariants.entries()) {
+            if (latestVariants.has(key)) continue;
+            const familyKey = key.split(":", 1)[0];
+            addChange(previous, familyKey, ["removed"], previous);
+        }
+
+        return {
+            changedVariants,
+            changedFieldCounts,
+            examples
+        };
     }
 
     private normalizeWhitespace(value: string | null | undefined) {
@@ -1291,14 +1513,17 @@ export class FortniteSprites {
             )[0]?.variant;
     }
 
-    private maybeQueueRuntimeRefresh() {
+    private maybeQueueRuntimeRefresh(
+        telemetryOrigin: SpriteTelemetryOrigin = BACKGROUND_TELEMETRY_ORIGIN,
+        trigger: SpriteSyncTrigger = "interaction"
+    ) {
         if (this.runtimeRefreshPromise) return this.activeRefreshGeneration;
         if (Date.now() - this.lastRuntimeRefreshQueuedAt < this.runtimeRefreshCooldownMs) return null;
 
         this.lastRuntimeRefreshQueuedAt = Date.now();
         const generation = ++this.refreshGenerationCounter;
         this.activeRefreshGeneration = generation;
-        this.runtimeRefreshPromise = this.runRuntimeRefresh(generation)
+        this.runtimeRefreshPromise = this.runRuntimeRefresh(generation, telemetryOrigin, trigger)
             .catch((error) => {
                 console.error("[FortniteSprites] Runtime refresh queue failed:", error);
             })
@@ -1313,11 +1538,15 @@ export class FortniteSprites {
         return generation;
     }
 
-    private async runRuntimeRefresh(generation: number) {
+    private async runRuntimeRefresh(
+        generation: number,
+        telemetryOrigin: SpriteTelemetryOrigin,
+        trigger: SpriteSyncTrigger
+    ) {
         // Always perform the full cooldown-gated sync so detail-page-only changes
         // are picked up even when the main sprite list page has not changed.
-        const syncResult = await this.syncLatestSprites();
-        const assetSyncResult = await this.syncProductionSpriteAssets();
+        const syncResult = await this.syncLatestSprites(telemetryOrigin, trigger);
+        const assetSyncResult = await this.syncProductionSpriteAssets(undefined, telemetryOrigin);
         if (syncResult?.changed || assetSyncResult.changed) {
             await this.markTrackedMessagesRefreshing(generation);
             await this.refreshTrackedMessages(generation, syncResult.syncedAt);
@@ -2043,7 +2272,7 @@ export class FortniteSprites {
             requestId: telemetryOrigin.requestId
         });
         this.rememberSpriteMessage(message, i.user.id, author, view, null, responseDataFingerprint);
-        this.maybeQueueRuntimeRefresh();
+        this.maybeQueueRuntimeRefresh({ ...telemetryOrigin, messageId: message.id }, "command");
         return message;
     }
 
@@ -2385,14 +2614,72 @@ export class FortniteSprites {
     }
 
     private computeRenderUiFingerprint() {
+        // Keep this signature stable across ordinary builds. It changes when the
+        // actual rendered UI implementation, render assets, or explicit cache
+        // schema changes—not merely when the bot version or deployment changes.
+        const renderImplementation = [
+            this.buildRenderGenerationTasks,
+            this.getFilteredFamilies,
+            this.getDisplayFamilies,
+            this.hasReleasedArtwork,
+            this.filterFamilyBySeason,
+            this.variantMatchesSeason,
+            this.getAvailableSeasonIds,
+            this.getVariantNames,
+            this.getFamilySeasonDetails,
+            this.getVariantSeasonDetails,
+            this.getCanonicalOverviewCacheKey,
+            this.getPrimarySpawnRate,
+            this.getLowestSpawnRate,
+            this.getSpawnRateEntries,
+            this.createSpawnRateEntry,
+            this.renderOverviewImage,
+            this.renderVariantImage,
+            this.renderFamilyImage,
+            this.renderHtmlToBuffer,
+            this.buildRenderDocument,
+            this.getRenderTokensCss,
+            this.renderMetaChip,
+            this.renderRarityPill,
+            this.renderSpriteThumb,
+            this.renderDustAmount,
+            this.renderSpawnRateIcon,
+            this.renderSpawnRateStack,
+            this.renderPageBackTrail,
+            this.getFamilyColor,
+            this.normalizeWhitespace,
+            this.expandSearchQuery,
+            this.normalizeSeasonFilter,
+            this.renderSeasonFilterHeading,
+            this.renderSeasonLabel,
+            this.renderSeasonCard,
+            this.renderFamilyHistory,
+            this.renderVariantTypeDebutBadge,
+            this.getSeasonEmojiAssetUrl,
+            this.sortSeasonIds,
+            this.parseSeasonId,
+            this.formatSeasonId,
+            this.formatCompactSeasonId,
+            this.escapeHtml,
+            this.alphaColor,
+            this.formatChance,
+            this.variantLabel,
+            this.titleCase,
+            this.truncate,
+            this.resolveSpriteImageSrc,
+            this.prewarmSpriteImages
+        ].map(method => method.toString()).join("\n");
+
         return crypto.createHash("sha1")
             .update(RENDER_CACHE_SCHEMA)
-            .update(appVersion)
-            .update(buildFingerprint)
-            .update(fs.readFileSync(__filename, "utf8"))
+            .update(renderImplementation)
             .update(this.renderTokensCss)
             .update(this.dustIconDataUrl || "")
             .update(JSON.stringify(this.spawnRateIconDataUrls))
+            .update(JSON.stringify(RARITY_ORDER))
+            .update(JSON.stringify(RARITY_CSS_COLORS))
+            .update(JSON.stringify(RARITY_HEX_COLORS))
+            .update(getFortniteSeasonEmoji.toString())
             .digest("hex");
     }
 
@@ -2698,7 +2985,10 @@ export class FortniteSprites {
         return null;
     }
 
-    private syncProductionSpriteAssets(dataFingerprint = this.getCatalogDataFingerprint()): Promise<SpriteAssetSyncResult> {
+    private syncProductionSpriteAssets(
+        dataFingerprint = this.getCatalogDataFingerprint(),
+        telemetryOrigin: SpriteTelemetryOrigin = BACKGROUND_TELEMETRY_ORIGIN
+    ): Promise<SpriteAssetSyncResult> {
         const emptyResult = {
             changed: false,
             checked: 0,
@@ -2715,7 +3005,7 @@ export class FortniteSprites {
         }
         if (this.spriteAssetSyncPromise) return this.spriteAssetSyncPromise;
 
-        const syncPromise = this.runProductionSpriteAssetSync(dataFingerprint).catch(error => {
+        const syncPromise = this.runProductionSpriteAssetSync(dataFingerprint, telemetryOrigin).catch(error => {
             console.warn("[FortniteSprites] Sprite artwork sync failed:", error?.message || error);
             return {
                 ...emptyResult,
@@ -2729,7 +3019,10 @@ export class FortniteSprites {
         return syncPromise;
     }
 
-    private async runProductionSpriteAssetSync(dataFingerprint: string): Promise<SpriteAssetSyncResult> {
+    private async runProductionSpriteAssetSync(
+        dataFingerprint: string,
+        telemetryOrigin: SpriteTelemetryOrigin = BACKGROUND_TELEMETRY_ORIGIN
+    ): Promise<SpriteAssetSyncResult> {
         const syncStartedAt = Date.now();
         const previousManifest = await this.readSpriteAssetManifest(dataFingerprint);
         const previousAssetContentFingerprint = this.getSpriteAssetContentFingerprint(previousManifest.assets);
@@ -2798,7 +3091,7 @@ export class FortniteSprites {
 
         console.log(`[FortniteSprites] Sprite artwork sync checked ${checked}/${imageUrls.length} assets; ${assetContentChanged ? "changes detected" : "no changes detected"}${failed ? `; ${failed} failed` : ""}.`);
         const result = { changed: assetContentChanged, checked, failed, dataFingerprint };
-        this.recordAssetSyncTelemetry(result, syncStartedAt);
+        this.recordAssetSyncTelemetry(result, syncStartedAt, telemetryOrigin);
         return result;
     }
 
@@ -3649,6 +3942,18 @@ export class FortniteSprites {
         } catch {
             return null;
         }
+    }
+
+    private async getCompleteRenderCacheBytes(tasks: RenderGenerationTask[], dataFingerprint: string): Promise<number | null> {
+        if (!PRODUCTION_RENDER_CACHE_ENABLED || tasks.length === 0) return null;
+
+        let totalBytes = 0;
+        for (const task of tasks) {
+            const cached = await this.readRenderedImageFromDisk(task.cacheKey(dataFingerprint), dataFingerprint);
+            if (!cached) return null;
+            totalBytes += cached.byteLength;
+        }
+        return totalBytes;
     }
 
     private async persistRenderedImageToDisk(cacheKey: string, buffer: Buffer, dataFingerprint?: string) {
@@ -4929,7 +5234,7 @@ export class FortniteSprites {
             if (view && (spawnsNewPage || isOriginalUser)) {
                 this.rememberSpriteMessage(message, responseOwnerId, author, view, null, responseDataFingerprint);
             }
-            this.maybeQueueRuntimeRefresh();
+            this.maybeQueueRuntimeRefresh(telemetryOrigin, "interaction");
             return message;
         }
 
@@ -4958,7 +5263,7 @@ export class FortniteSprites {
                 updatedAt: Date.now()
             });
         }
-        this.maybeQueueRuntimeRefresh();
+        this.maybeQueueRuntimeRefresh(telemetryOrigin, "interaction");
         return message;
     }
 
@@ -5070,7 +5375,7 @@ export class FortniteSprites {
             if (view) {
                 this.rememberSpriteMessage(message, responseOwnerId, author, view, null, responseDataFingerprint);
             }
-            this.maybeQueueRuntimeRefresh();
+            this.maybeQueueRuntimeRefresh(telemetryOrigin, "interaction");
             return message;
         }
 
@@ -5099,7 +5404,7 @@ export class FortniteSprites {
                 updatedAt: Date.now()
             });
         }
-        this.maybeQueueRuntimeRefresh();
+        this.maybeQueueRuntimeRefresh(telemetryOrigin, "interaction");
         return message;
     }
 }
