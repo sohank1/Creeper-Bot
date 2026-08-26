@@ -6,7 +6,8 @@ services:
     pid: host
     init: true
     restart: unless-stopped
-    # Persist downloaded sprite assets and rendered PNGs across redeploys.
+    # Persist sprite data baselines, downloaded artwork, rendered PNGs, and
+    # telemetry across redeploys.
     volumes:
       - creeper-bot-cache:/app/.cache
       - creeper-bot-telemetry:/app/.telemetry

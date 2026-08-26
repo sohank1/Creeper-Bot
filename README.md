@@ -52,6 +52,15 @@ excludes cards marked by its Show unreleased flag. Historical seasons remain in
 the persistent sprite history and per-season archives rather than being mixed
 into the current bot dataset.
 
+When a refresh detects a different season, the bot first freezes the previous
+current-season snapshot into an immutable per-season archive. The archive keeps
+the exact raw catalog, a local catalog that points to frozen artwork, and a
+checksum manifest. It uses the persisted artwork cache first and only falls
+back to Fortnite.GG when an image was not already cached. If archiving fails,
+the new season is not installed, preventing the old snapshot from being lost.
+This protection depends on keeping `/app/.cache` on persistent storage in
+production.
+
 ### Run Locally
 
 Install dependencies:
@@ -225,6 +234,8 @@ Current behavior:
 
 - local and development environments render on demand and do not use the file cache
 - Linux production starts the finite pre-render queue after startup on every build
+- Linux production persists the last current-season catalog under `.cache/fortnite-sprites/spriteData.json`
+- a season change creates an immutable archive under `.cache/fortnite-sprites/archives/<season-id>` before replacing that catalog
 - the queue uses one paced background render worker so interactive renders remain responsive
 - the original login/status message keeps its login text and receives an attached embed updated every 30 seconds with rendered, remaining, failed, elapsed, and ETA values
 - rendered PNGs are stored under `.cache/fortnite-sprites/renders`

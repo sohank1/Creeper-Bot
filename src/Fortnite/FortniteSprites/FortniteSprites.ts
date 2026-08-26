@@ -159,6 +159,41 @@ type SpriteAssetSyncResult = {
     dataFingerprint: string;
 };
 
+type AutomaticSpriteArchiveAsset = {
+    variantId: number;
+    familyKey: string;
+    spriteName: string;
+    sourceUrl: string;
+    resolvedFrom: string;
+    file: string;
+    mimeType: string;
+    bytes: number;
+    sha256: string;
+};
+
+type AutomaticSpriteArchiveManifest = {
+    schemaVersion: 1;
+    season: {
+        id: string;
+        displayName: string;
+        chapter?: number;
+        season?: string;
+    };
+    archivedAt: string;
+    source: {
+        page: string;
+        fetchedAt: string;
+        dataFile: string;
+        dataSha256: string;
+    };
+    localDataFile: string;
+    familyCount: number;
+    spriteCount: number;
+    totalAssetBytes: number;
+    missingAssetCount: number;
+    assets: AutomaticSpriteArchiveAsset[];
+};
+
 type PendingRenderPageAcquire = {
     resolve: (page: Page) => void;
     reject: (error: Error) => void;
@@ -171,6 +206,16 @@ type RenderGenerationTask = {
     render: () => Promise<Buffer>;
 };
 
+type RenderCacheManifest = {
+    schemaVersion: number;
+    uiFingerprint: string;
+    dataFingerprint: string;
+    tasks: Record<string, {
+        digest: string;
+        bytes: number;
+    }>;
+};
+
 type RenderGenerationProgress = {
     runId: number;
     reason: string;
@@ -179,6 +224,7 @@ type RenderGenerationProgress = {
     total: number;
     completed: number;
     failed: number;
+    cachedAtStart: number;
     current: string;
     taskDurationMs: number;
     lastTaskDurationMs: number;
@@ -192,11 +238,16 @@ type RenderTelemetryContext = {
     chromiumMemoryBytes: number | null;
 };
 
+const PRODUCTION_RENDER_CACHE_ENABLED = process.platform === "linux" && process.env.NODE_ENV === "production";
+const SPRITE_CACHE_ROOT_DIR = path.join(process.cwd(), ".cache", "fortnite-sprites");
 const DATA_PATH = path.join(process.cwd(), "src", "Fortnite", "FortniteSprites", "spriteData.json");
+const PERSISTED_SPRITE_DATA_PATH = path.join(SPRITE_CACHE_ROOT_DIR, "spriteData.json");
 const BUNDLED_SPRITE_ARCHIVE_ROOT = path.join(process.cwd(), "sprite-archives");
 const SPRITE_ARCHIVE_ROOT = process.env.FORTNITE_SPRITE_ARCHIVE_DIR
     ? path.resolve(process.env.FORTNITE_SPRITE_ARCHIVE_DIR)
-    : BUNDLED_SPRITE_ARCHIVE_ROOT;
+    : PRODUCTION_RENDER_CACHE_ENABLED
+        ? path.join(SPRITE_CACHE_ROOT_DIR, "archives")
+        : BUNDLED_SPRITE_ARCHIVE_ROOT;
 const SPRITE_ARCHIVE_ROOTS = Array.from(new Set([BUNDLED_SPRITE_ARCHIVE_ROOT, SPRITE_ARCHIVE_ROOT]));
 const BUNDLED_HISTORY_PATH = path.join(BUNDLED_SPRITE_ARCHIVE_ROOT, "spriteHistory.json");
 const HISTORY_PATH = process.env.FORTNITE_SPRITE_HISTORY_PATH
@@ -210,7 +261,6 @@ const SPAWN_RATE_ICON_PATHS: Record<string, string> = {
     chest: path.join(process.cwd(), "assets", "chest-resized.png"),
     supplyDrop: path.join(process.cwd(), "assets", "drop-resized.png")
 };
-const SPRITE_CACHE_ROOT_DIR = path.join(process.cwd(), ".cache", "fortnite-sprites");
 const SPRITE_ASSET_CACHE_DIR = path.join(SPRITE_CACHE_ROOT_DIR, "assets");
 const SPRITE_ASSET_CACHE_VERSION = "v4-binary-assets";
 const SPRITE_ASSET_MANIFEST_VERSION = 2;
@@ -220,7 +270,17 @@ const SPRITE_TELEMETRY_DIR = process.env.FORTNITE_SPRITE_TELEMETRY_DIR
     : path.join(SPRITE_CACHE_ROOT_DIR, "telemetry");
 const SPRITE_TELEMETRY_SCHEMA_VERSION = 1;
 const RENDER_CACHE_SCHEMA = "v2";
-const PRODUCTION_RENDER_CACHE_ENABLED = process.platform === "linux" && process.env.NODE_ENV === "production";
+const RENDER_CACHE_MANIFEST_SCHEMA_VERSION = 1;
+const RENDER_VISUAL_PIPELINE_SCHEMA = "viewport-2x-fonts-images-v1";
+const RENDER_CACHE_MIGRATION_TARGET_UI_FINGERPRINT = "7a0a55354f40acd12f76db92223138e86b1ad50b";
+const RENDER_CACHE_COMPATIBILITY_UI_FINGERPRINTS = [
+    // Cache namespace created immediately before lifecycle-only Chromium
+    // changes were removed from the visual UI fingerprint.
+    "65204dfd3a8c7fc4430abfbb4d3e7bcd5f640ea2",
+    // Namespace created by the lifecycle-only Chromium cleanup build. Keep it
+    // readable so an interrupted run can resume instead of restarting.
+    "a328a2702672e6ebb29a59891d0c2102e142bc30"
+];
 const buildFingerprint = [
     process.env.BUILD_ID,
     process.env.COMMIT_SHA,
@@ -257,6 +317,31 @@ const RENDER_GENERATION_DELAY_MS = 250;
 const RENDER_GENERATION_RETRY_LIMIT = 2;
 const RENDER_PROTOCOL_TIMEOUT_MS = 30 * 1000;
 const SPRITE_ASSET_SYNC_COOLDOWN_MS = 5 * 60 * 1000;
+const AUTO_SPRITE_ARCHIVE_ENABLED = PRODUCTION_RENDER_CACHE_ENABLED || Boolean(process.env.FORTNITE_SPRITE_ARCHIVE_DIR);
+
+function automaticArchiveSlug(value: string): string {
+    return value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 56) || "sprite";
+}
+
+function automaticArchiveExtension(contentType: string, sourceUrl: string): string {
+    const normalized = contentType.split(";", 1)[0].trim().toLowerCase();
+    if (normalized === "image/png") return ".png";
+    if (normalized === "image/jpeg") return ".jpg";
+    if (normalized === "image/webp") return ".webp";
+
+    try {
+        const extension = path.extname(new URL(sourceUrl).pathname).toLowerCase();
+        if ([".png", ".jpg", ".jpeg", ".webp"].includes(extension)) return extension === ".jpeg" ? ".jpg" : extension;
+    } catch {
+        // Fall back to a stable binary extension for malformed/legacy URLs.
+    }
+    return ".bin";
+}
+
+function automaticArchiveVariantKey(family: SpriteFamily, variant: SpriteVariant): string {
+    return `${family.key}:${variant.id}:${variant.name}:${variant.variant}`.toLowerCase();
+}
+
 export class FortniteSprites {
     private _data: SpriteDataFile | null = null;
     private spriteHistory: SpriteHistoryFile = { schemaVersion: 1, records: [] };
@@ -295,6 +380,9 @@ export class FortniteSprites {
     };
     private lastSuccessfulSyncAt: string | null = null;
     private lastSyncError: string | null = null;
+    private lastArchivedSeason: string | null = null;
+    private lastArchiveAt: string | null = null;
+    private lastArchiveMissingAssets = 0;
     private browser: Browser | null = null;
     private browserPromise: Promise<Browser> | null = null;
     private renderPagePool: Page[] = [];
@@ -454,6 +542,7 @@ export class FortniteSprites {
             total: tasks.length,
             completed: 0,
             failed: 0,
+            cachedAtStart: 0,
             current: "Preparing render queue",
             taskDurationMs: 0,
             lastTaskDurationMs: 0,
@@ -476,14 +565,19 @@ export class FortniteSprites {
                 return;
             }
 
-            const cachedRenderBytes = await this.getCompleteRenderCacheBytes(tasks, progress.dataFingerprint);
-            if (cachedRenderBytes !== null) {
-                progress.completed = tasks.length;
-                progress.renderedBytes = cachedRenderBytes;
+            const cachedRender = await this.getRenderCacheSummary(tasks, progress.dataFingerprint);
+            progress.cachedAtStart = cachedRender.cachedTaskIds.size;
+            progress.completed = cachedRender.cachedTaskIds.size;
+            progress.renderedBytes = cachedRender.bytes;
+            if (cachedRender.missing === 0) {
                 progress.reusedExistingCache = true;
                 progress.current = "Existing render cache verified";
                 console.log(`[FortniteSprites] Existing render cache verified for ${tasks.length} screens; skipping Chromium rendering.`);
             } else {
+                progress.current = progress.cachedAtStart > 0
+                    ? `Resuming from ${progress.cachedAtStart} cached screens`
+                    : "Rendering first screen";
+                await this.updateRenderGenerationProgress("running", "progress");
                 let failedTasks: RenderGenerationTask[] = [];
                 const renderTask = async (task: RenderGenerationTask, failedTarget: RenderGenerationTask[], attempt: number) => {
                     progress.current = attempt > 1
@@ -512,6 +606,8 @@ export class FortniteSprites {
                         cancelled = true;
                         break;
                     }
+
+                    if (cachedRender.cachedTaskIds.has(task.id)) continue;
 
                     await renderTask(task, failedTasks, 1);
                 }
@@ -555,6 +651,7 @@ export class FortniteSprites {
                     : "Complete";
             await this.updateRenderGenerationProgress("complete", "complete");
             if (progress.failed === 0) {
+                await this.persistRenderCacheManifest(tasks, progress.dataFingerprint);
                 await this.pruneRenderDiskCache(progress.dataFingerprint);
                 // Asset files are keyed by the catalog fingerprint. The render
                 // fingerprint also includes UI and asset-content state,
@@ -864,6 +961,7 @@ export class FortniteSprites {
             averageTaskDurationMs,
             lastTaskDurationMs: progress.lastTaskDurationMs,
             renderedBytes: progress.renderedBytes,
+            cachedAtStart: progress.cachedAtStart,
             reusedExistingCache: progress.reusedExistingCache,
             estimatedRemainingMs: processed > 0
                 ? Math.round((elapsedMs / processed) * remaining)
@@ -896,7 +994,8 @@ export class FortniteSprites {
         const reason = this.truncate(progress.reason, 900);
         const progressDescription = cacheAlreadyFull
             ? `${progress.completed} of ${progress.total} screens are ready (${percent}%). Existing images were verified; no new images were rendered.`
-            : `${progress.completed} of ${progress.total} screens are ready (${percent}%).`;
+            : `${progress.completed} of ${progress.total} screens are ready (${percent}%).`
+                + (progress.cachedAtStart > 0 ? ` Resumed from ${progress.cachedAtStart} cached screens.` : "");
         this.recordRenderGenerationTelemetry(progress, telemetryPhase);
         const progressEmbed = new MessageEmbed()
             .setColor(status === "complete" ? "#39B36B" : "#2186DB")
@@ -1008,6 +1107,23 @@ export class FortniteSprites {
                 closeInProgress: !!this.renderBrowserClosePromise
             },
             productionRenderCacheEnabled: PRODUCTION_RENDER_CACHE_ENABLED,
+            renderCache: {
+                root: PRODUCTION_RENDER_CACHE_ENABLED ? SPRITE_CACHE_ROOT_DIR : null,
+                uiFingerprint: this.renderUiFingerprint,
+                compatibilityUiFingerprints: PRODUCTION_RENDER_CACHE_ENABLED
+                    && this.renderUiFingerprint === RENDER_CACHE_MIGRATION_TARGET_UI_FINGERPRINT
+                    ? RENDER_CACHE_COMPATIBILITY_UI_FINGERPRINTS
+                    : [],
+                catalogPath: PRODUCTION_RENDER_CACHE_ENABLED ? PERSISTED_SPRITE_DATA_PATH : DATA_PATH,
+                renderPath: PRODUCTION_RENDER_CACHE_ENABLED ? RENDER_CACHE_DIR : null
+            },
+            automaticSeasonArchive: {
+                enabled: AUTO_SPRITE_ARCHIVE_ENABLED,
+                root: AUTO_SPRITE_ARCHIVE_ENABLED ? SPRITE_ARCHIVE_ROOT : null,
+                lastArchivedSeason: this.lastArchivedSeason,
+                lastArchivedAt: this.lastArchiveAt,
+                lastMissingAssets: this.lastArchiveMissingAssets
+            },
             renderGeneration: this.renderGenerationProgress,
             lastSuccessfulSyncAt: this.lastSuccessfulSyncAt,
             lastSyncError: this.lastSyncError,
@@ -1021,14 +1137,38 @@ export class FortniteSprites {
         };
     }
 
+    private getSpriteDataReadPath() {
+        if (PRODUCTION_RENDER_CACHE_ENABLED && fs.existsSync(PERSISTED_SPRITE_DATA_PATH)) {
+            return PERSISTED_SPRITE_DATA_PATH;
+        }
+        return DATA_PATH;
+    }
+
+    private readSpriteDataBaseline() {
+        const dataPath = this.getSpriteDataReadPath();
+        return {
+            path: dataPath,
+            json: fs.existsSync(dataPath) ? fs.readFileSync(dataPath, "utf8") : ""
+        };
+    }
+
+    private persistSpriteData(json: string) {
+        const targetPath = PRODUCTION_RENDER_CACHE_ENABLED ? PERSISTED_SPRITE_DATA_PATH : DATA_PATH;
+        fs.mkdirSync(path.dirname(targetPath), { recursive: true });
+        const tempPath = `${targetPath}.tmp-${process.pid}-${Date.now()}`;
+        fs.writeFileSync(tempPath, json, "utf8");
+        fs.renameSync(tempPath, targetPath);
+    }
+
     private loadData() {
         try {
-            if (!fs.existsSync(DATA_PATH)) {
+            const dataPath = this.getSpriteDataReadPath();
+            if (!fs.existsSync(dataPath)) {
                 console.warn("[FortniteSprites] spriteData.json does not exist yet.");
                 return;
             }
 
-            const parsed = JSON.parse(fs.readFileSync(DATA_PATH, "utf8")) as SpriteDataFile;
+            const parsed = JSON.parse(fs.readFileSync(dataPath, "utf8")) as SpriteDataFile;
             validateSpriteData(parsed);
             const mergedCatalog = mergeSpriteCatalog(this.loadArchivedSpriteCatalog(), parsed);
             const catalog = this.spriteHistory.records.length > 0
@@ -1224,6 +1364,147 @@ export class FortniteSprites {
         return trusted;
     }
 
+    /**
+     * Freezes the last known catalog before a successful scrape installs a new
+     * season. This must happen before the current data or asset namespaces are
+     * replaced: Fortnite.GG can remove the old cards immediately after a
+     * season rollover.
+     */
+    private async archivePreviousSeasonSnapshot(
+        previousData: SpriteDataFile,
+        previousJson: string,
+        previousDataFingerprint: string,
+        nextSeason: FortniteSeasonContext
+    ): Promise<void> {
+        if (!AUTO_SPRITE_ARCHIVE_ENABLED || !previousJson.trim()) return;
+
+        const previousSeason = previousData.seasonContext || this.getLegacySeasonContext();
+        if (!previousSeason.id || !nextSeason.id || previousSeason.id === nextSeason.id) return;
+
+        validateSpriteData({ ...previousData, seasonContext: previousSeason });
+        const seasonId = automaticArchiveSlug(previousSeason.id);
+        const existingArchive = SPRITE_ARCHIVE_ROOTS
+            .map(root => path.join(root, seasonId, "manifest.json"))
+            .find(manifestPath => fs.existsSync(manifestPath));
+
+        if (existingArchive) {
+            this.lastArchivedSeason = previousSeason.displayName;
+            console.log(`[FortniteSprites] Previous season archive already exists for ${previousSeason.displayName}; keeping it immutable.`);
+            return;
+        }
+
+        const archiveDir = path.join(SPRITE_ARCHIVE_ROOT, seasonId);
+        if (fs.existsSync(archiveDir)) {
+            throw new Error(`Sprite archive directory exists without a manifest: ${archiveDir}`);
+        }
+
+        const stagingPath = path.join(SPRITE_ARCHIVE_ROOT, `.${seasonId}.staging-${process.pid}-${Date.now()}`);
+        const previousManifest = await this.readSpriteAssetManifest(previousDataFingerprint);
+        const archiveData: SpriteDataFile = {
+            ...previousData,
+            seasonContext: previousSeason
+        };
+        const variants = archiveData.families.flatMap(family => family.variants.map(variant => ({ family, variant })));
+        const localImagePaths = new Map<string, string>();
+        const archiveAssets: AutomaticSpriteArchiveAsset[] = [];
+        let missingAssetCount = 0;
+
+        try {
+            await fs.promises.mkdir(path.join(stagingPath, "assets"), { recursive: true });
+
+            await this.forEachConcurrent(variants, SPRITE_IMAGE_PREWARM_CONCURRENCY, async ({ family, variant }) => {
+                if (!variant.imageUrl) {
+                    missingAssetCount++;
+                    return;
+                }
+
+                try {
+                    const refreshed = await this.refreshSpriteAsset(
+                        variant.imageUrl,
+                        previousDataFingerprint,
+                        previousManifest.assets[variant.imageUrl]
+                    );
+                    if (!refreshed) {
+                        missingAssetCount++;
+                        return;
+                    }
+
+                    const relativeFile = path.posix.join(
+                        "assets",
+                        `${variant.id}-${automaticArchiveSlug(family.key)}-${automaticArchiveSlug(variant.variant)}-${automaticArchiveSlug(variant.name)}${automaticArchiveExtension(refreshed.metadata.contentType, variant.imageUrl)}`
+                    );
+                    await fs.promises.writeFile(path.join(stagingPath, relativeFile), refreshed.buffer, { flag: "wx" });
+                    localImagePaths.set(automaticArchiveVariantKey(family, variant), relativeFile);
+                    archiveAssets.push({
+                        variantId: variant.id,
+                        familyKey: family.key,
+                        spriteName: variant.name,
+                        sourceUrl: variant.imageUrl,
+                        resolvedFrom: refreshed.metadata.resolvedUrl,
+                        file: relativeFile,
+                        mimeType: refreshed.metadata.contentType,
+                        bytes: refreshed.buffer.length,
+                        sha256: this.hashSpriteAsset(refreshed.buffer)
+                    });
+                } catch (error) {
+                    missingAssetCount++;
+                    console.warn(`[FortniteSprites] Failed to freeze artwork for ${variant.name}:`, error?.message || error);
+                }
+            });
+
+            const localData: SpriteDataFile = {
+                ...archiveData,
+                families: archiveData.families.map(family => ({
+                    ...family,
+                    variants: family.variants.map(variant => ({
+                        ...variant,
+                        imageUrl: localImagePaths.get(automaticArchiveVariantKey(family, variant)) || variant.imageUrl
+                    }))
+                }))
+            };
+            const sourceBuffer = Buffer.from(previousJson, "utf8");
+            const manifest: AutomaticSpriteArchiveManifest = {
+                schemaVersion: 1,
+                season: {
+                    id: previousSeason.id,
+                    displayName: previousSeason.displayName,
+                    chapter: previousSeason.chapter,
+                    season: previousSeason.season
+                },
+                archivedAt: new Date().toISOString(),
+                source: {
+                    page: "https://fortnite.gg/sprites",
+                    fetchedAt: archiveData.fetchedAt,
+                    dataFile: "spriteData.json",
+                    dataSha256: crypto.createHash("sha256").update(sourceBuffer).digest("hex")
+                },
+                localDataFile: "spriteData.local.json",
+                familyCount: archiveData.families.length,
+                spriteCount: variants.length,
+                totalAssetBytes: archiveAssets.reduce((total, asset) => total + asset.bytes, 0),
+                missingAssetCount,
+                assets: archiveAssets.sort((a, b) => a.variantId - b.variantId || a.file.localeCompare(b.file))
+            };
+
+            await fs.promises.writeFile(path.join(stagingPath, "spriteData.json"), sourceBuffer, { flag: "wx" });
+            await fs.promises.writeFile(path.join(stagingPath, "spriteData.local.json"), `${JSON.stringify(localData, null, 2)}\n`, { flag: "wx" });
+            await fs.promises.writeFile(path.join(stagingPath, "manifest.json"), `${JSON.stringify(manifest, null, 2)}\n`, { flag: "wx" });
+            await fs.promises.mkdir(SPRITE_ARCHIVE_ROOT, { recursive: true });
+            await fs.promises.rename(stagingPath, archiveDir);
+
+            this.lastArchivedSeason = previousSeason.displayName;
+            this.lastArchiveAt = manifest.archivedAt;
+            this.lastArchiveMissingAssets = missingAssetCount;
+            console.log(`[FortniteSprites] Archived ${previousSeason.displayName} before switching to ${nextSeason.displayName}: ${variants.length - missingAssetCount}/${variants.length} artwork assets frozen.`);
+            if (missingAssetCount > 0) {
+                console.warn(`[FortniteSprites] ${previousSeason.displayName} archive retained remote URLs for ${missingAssetCount} artwork assets.`);
+            }
+        } catch (error) {
+            await fs.promises.rm(stagingPath, { recursive: true, force: true }).catch(() => { });
+            throw error;
+        }
+    }
+
     private async syncLatestSprites(
         telemetryOrigin: SpriteTelemetryOrigin = BACKGROUND_TELEMETRY_ORIGIN,
         trigger: SpriteSyncTrigger = "startup"
@@ -1250,9 +1531,23 @@ export class FortniteSprites {
             const nextHistory = updateSpriteHistory(this.spriteHistory, latest);
             const enrichedLatest = applySpriteHistory(latest, nextHistory);
             const latestJson = stableSpriteDataJson(enrichedLatest);
-            const existingJson = fs.existsSync(DATA_PATH) ? fs.readFileSync(DATA_PATH, "utf8") : "";
+            const existingData = this.readSpriteDataBaseline();
+            const existingJson = existingData.json;
             const normalizeFetchedAt = (json: string) => json.replace(/"fetchedAt":\s*"[^"]+"/, '"fetchedAt": ""');
             changeSummary = this.summarizeSpriteCatalogChanges(existingJson, enrichedLatest);
+
+            const previousData = this.parseSpriteDataForTelemetry(existingJson);
+            const previousSeasonId = previousData?.seasonContext?.id || this.getLegacySeasonContext().id;
+            if (previousData && latest.seasonContext?.id && previousSeasonId !== latest.seasonContext.id) {
+                // Freeze the last known old-season snapshot before the new
+                // catalog can replace it or its asset cache can be pruned.
+                await this.archivePreviousSeasonSnapshot(
+                    previousData,
+                    existingJson,
+                    dataFingerprintBefore,
+                    latest.seasonContext
+                );
+            }
 
             // Install and persist history before reloading the catalog. Historical
             // snapshots do not carry runtime availability fields on their own;
@@ -1261,20 +1556,29 @@ export class FortniteSprites {
             this.writeSpriteHistory(nextHistory);
 
             if (normalizeFetchedAt(latestJson) !== normalizeFetchedAt(existingJson)) {
-                fs.mkdirSync(path.dirname(DATA_PATH), { recursive: true });
-                fs.writeFileSync(DATA_PATH, latestJson, "utf8");
+                this.persistSpriteData(latestJson);
                 this.loadData();
                 changed = true;
                 console.log("[FortniteSprites] Sprite data cache updated.");
-            } else if (this._data) {
-                this._data = applySpriteHistory(this._data, nextHistory);
-                this.buildSearchIndex();
-                // The scrape completed successfully, but the normalized catalog
-                // is unchanged. Keep the memory/deduplication caches warm so a
-                // background refresh does not turn a RAM hit into a disk read or
-                // discard an in-flight render. Render caches are invalidated by
-                // loadData() when the catalog actually changes, and artwork sync
-                // invalidates the affected render namespace separately.
+            } else {
+                if (PRODUCTION_RENDER_CACHE_ENABLED && existingData.path !== PERSISTED_SPRITE_DATA_PATH) {
+                    // Seed the persistent baseline even when the bundled catalog
+                    // is already current, so the next container can compare
+                    // against the last known normalized catalog instead of the
+                    // image layer.
+                    this.persistSpriteData(latestJson);
+                }
+                if (this._data) {
+                    this._data = applySpriteHistory(this._data, nextHistory);
+                    this.buildSearchIndex();
+                    // The scrape completed successfully, but the normalized
+                    // catalog is unchanged. Keep the memory/deduplication caches
+                    // warm so a background refresh does not turn a RAM hit into
+                    // a disk read or discard an in-flight render. Render caches
+                    // are invalidated by loadData() when the catalog actually
+                    // changes, and artwork sync invalidates the affected render
+                    // namespace separately.
+                }
             }
 
             this.lastSuccessfulSyncAt = new Date().toISOString();
@@ -2781,7 +3085,6 @@ export class FortniteSprites {
         // actual rendered UI implementation, render assets, or explicit cache
         // schema changes—not merely when the bot version or deployment changes.
         const renderImplementation = [
-            this.buildRenderGenerationTasks,
             this.getFilteredFamilies,
             this.getDisplayFamilies,
             this.hasReleasedArtwork,
@@ -2799,7 +3102,6 @@ export class FortniteSprites {
             this.renderOverviewImage,
             this.renderVariantImage,
             this.renderFamilyImage,
-            this.renderHtmlToBuffer,
             this.buildRenderDocument,
             this.getRenderTokensCss,
             this.renderMetaChip,
@@ -2829,12 +3131,12 @@ export class FortniteSprites {
             this.variantLabel,
             this.titleCase,
             this.truncate,
-            this.resolveSpriteImageSrc,
-            this.prewarmSpriteImages
+            this.resolveSpriteImageSrc
         ].map(method => method.toString()).join("\n");
 
         return crypto.createHash("sha1")
             .update(RENDER_CACHE_SCHEMA)
+            .update(RENDER_VISUAL_PIPELINE_SCHEMA)
             .update(renderImplementation)
             .update(this.renderTokensCss)
             .update(this.dustIconDataUrl || "")
@@ -4146,35 +4448,157 @@ export class FortniteSprites {
         return renderPromise;
     }
 
-    private getRenderedImageDiskCachePath(cacheKey: string, dataFingerprint = this.getRenderDataFingerprint()) {
-        const digest = crypto.createHash("sha1").update(cacheKey).digest("hex");
-        return path.join(RENDER_CACHE_DIR, this.renderUiFingerprint, dataFingerprint, `${digest}.png`);
+    private getRenderUiFingerprintsForLookup() {
+        const compatibilityFingerprints = this.renderUiFingerprint === RENDER_CACHE_MIGRATION_TARGET_UI_FINGERPRINT
+            ? RENDER_CACHE_COMPATIBILITY_UI_FINGERPRINTS
+            : [];
+        return Array.from(new Set([
+            this.renderUiFingerprint,
+            ...compatibilityFingerprints
+        ]));
+    }
+
+    private getRenderCacheKeyForUiFingerprint(cacheKey: string, uiFingerprint: string) {
+        if (uiFingerprint === this.renderUiFingerprint) return cacheKey;
+        return cacheKey.split(this.renderUiFingerprint).join(uiFingerprint);
+    }
+
+    private getRenderCacheDigest(cacheKey: string, uiFingerprint = this.renderUiFingerprint) {
+        return crypto.createHash("sha1")
+            .update(this.getRenderCacheKeyForUiFingerprint(cacheKey, uiFingerprint))
+            .digest("hex");
+    }
+
+    private getRenderedImageDiskCachePath(
+        cacheKey: string,
+        dataFingerprint = this.getRenderDataFingerprint(),
+        uiFingerprint = this.renderUiFingerprint
+    ) {
+        const digest = this.getRenderCacheDigest(cacheKey, uiFingerprint);
+        return path.join(RENDER_CACHE_DIR, uiFingerprint, dataFingerprint, `${digest}.png`);
     }
 
     private async readRenderedImageFromDisk(cacheKey: string, dataFingerprint?: string) {
+        if (!PRODUCTION_RENDER_CACHE_ENABLED) return null;
+
+        const resolvedDataFingerprint = dataFingerprint || this.getRenderDataFingerprint();
+        for (const uiFingerprint of this.getRenderUiFingerprintsForLookup()) {
+            try {
+                const buffer = await fs.promises.readFile(
+                    this.getRenderedImageDiskCachePath(cacheKey, resolvedDataFingerprint, uiFingerprint)
+                );
+                const isPng = buffer.length >= 8
+                    && buffer[0] === 0x89
+                    && buffer[1] === 0x50
+                    && buffer[2] === 0x4e
+                    && buffer[3] === 0x47;
+                if (!isPng) continue;
+
+                if (uiFingerprint !== this.renderUiFingerprint) {
+                    // Migrate a compatible image into the active namespace
+                    // before the old namespace is pruned after a successful run.
+                    await this.persistRenderedImageToDisk(cacheKey, buffer, resolvedDataFingerprint);
+                }
+                return buffer;
+            } catch {
+                // Try the next compatible UI namespace.
+            }
+        }
+        return null;
+    }
+
+    private getRenderCacheManifestPath(dataFingerprint: string) {
+        return path.join(RENDER_CACHE_DIR, this.renderUiFingerprint, dataFingerprint, "manifest.json");
+    }
+
+    private async readRenderCacheManifest(tasks: RenderGenerationTask[], dataFingerprint: string) {
+        if (!PRODUCTION_RENDER_CACHE_ENABLED || tasks.length === 0) return null;
+
         try {
-            const buffer = await fs.promises.readFile(this.getRenderedImageDiskCachePath(cacheKey, dataFingerprint));
-            const isPng = buffer.length >= 8
-                && buffer[0] === 0x89
-                && buffer[1] === 0x50
-                && buffer[2] === 0x4e
-                && buffer[3] === 0x47;
-            return isPng ? buffer : null;
+            const manifest = JSON.parse(
+                await fs.promises.readFile(this.getRenderCacheManifestPath(dataFingerprint), "utf8")
+            ) as RenderCacheManifest;
+            if (
+                manifest.schemaVersion !== RENDER_CACHE_MANIFEST_SCHEMA_VERSION
+                || manifest.uiFingerprint !== this.renderUiFingerprint
+                || manifest.dataFingerprint !== dataFingerprint
+                || !manifest.tasks
+                || Object.keys(manifest.tasks).length !== tasks.length
+            ) return null;
+
+            const cachedTaskIds = new Set<string>();
+            let bytes = 0;
+            for (const task of tasks) {
+                const cacheKey = task.cacheKey(dataFingerprint);
+                const entry = manifest.tasks[task.id];
+                if (!entry || entry.digest !== this.getRenderCacheDigest(cacheKey) || !Number.isSafeInteger(entry.bytes) || entry.bytes <= 0) {
+                    return null;
+                }
+                const stat = await fs.promises.stat(this.getRenderedImageDiskCachePath(cacheKey, dataFingerprint));
+                if (!stat.isFile() || stat.size !== entry.bytes) return null;
+                cachedTaskIds.add(task.id);
+                bytes += entry.bytes;
+            }
+
+            return { cachedTaskIds, bytes, missing: 0 };
         } catch {
             return null;
         }
     }
 
-    private async getCompleteRenderCacheBytes(tasks: RenderGenerationTask[], dataFingerprint: string): Promise<number | null> {
-        if (!PRODUCTION_RENDER_CACHE_ENABLED || tasks.length === 0) return null;
+    private async getRenderCacheSummary(tasks: RenderGenerationTask[], dataFingerprint: string) {
+        const cachedTaskIds = new Set<string>();
+        let bytes = 0;
+        if (!PRODUCTION_RENDER_CACHE_ENABLED || tasks.length === 0) {
+            return { cachedTaskIds, bytes, missing: tasks.length };
+        }
 
-        let totalBytes = 0;
+        const manifestSummary = await this.readRenderCacheManifest(tasks, dataFingerprint);
+        if (manifestSummary) return manifestSummary;
+
         for (const task of tasks) {
             const cached = await this.readRenderedImageFromDisk(task.cacheKey(dataFingerprint), dataFingerprint);
-            if (!cached) return null;
-            totalBytes += cached.byteLength;
+            if (!cached) continue;
+            cachedTaskIds.add(task.id);
+            bytes += cached.byteLength;
         }
-        return totalBytes;
+
+        return {
+            cachedTaskIds,
+            bytes,
+            missing: Math.max(0, tasks.length - cachedTaskIds.size)
+        };
+    }
+
+    private async persistRenderCacheManifest(tasks: RenderGenerationTask[], dataFingerprint: string) {
+        if (!PRODUCTION_RENDER_CACHE_ENABLED || tasks.length === 0) return;
+
+        try {
+            const manifestTasks: RenderCacheManifest["tasks"] = {};
+            for (const task of tasks) {
+                const cacheKey = task.cacheKey(dataFingerprint);
+                const stat = await fs.promises.stat(this.getRenderedImageDiskCachePath(cacheKey, dataFingerprint));
+                if (!stat.isFile() || stat.size <= 0) throw new Error(`missing rendered image for ${task.id}`);
+                manifestTasks[task.id] = {
+                    digest: this.getRenderCacheDigest(cacheKey),
+                    bytes: stat.size
+                };
+            }
+
+            const targetPath = this.getRenderCacheManifestPath(dataFingerprint);
+            const tempPath = `${targetPath}.tmp-${process.pid}-${Date.now()}`;
+            const manifest: RenderCacheManifest = {
+                schemaVersion: RENDER_CACHE_MANIFEST_SCHEMA_VERSION,
+                uiFingerprint: this.renderUiFingerprint,
+                dataFingerprint,
+                tasks: manifestTasks
+            };
+            await fs.promises.mkdir(path.dirname(targetPath), { recursive: true });
+            await fs.promises.writeFile(tempPath, `${JSON.stringify(manifest, null, 2)}\n`, "utf8");
+            await fs.promises.rename(tempPath, targetPath);
+        } catch (error) {
+            console.warn("[FortniteSprites] Failed to persist rendered image cache manifest:", error?.message || error);
+        }
     }
 
     private async persistRenderedImageToDisk(cacheKey: string, buffer: Buffer, dataFingerprint?: string) {
