@@ -857,15 +857,43 @@ export class FortniteStats {
         return null;
     }
 
+    private formatSeasonEndDateForFooter(endAt: string | Date | null | undefined): string | null {
+        const endDate = endAt instanceof Date ? endAt : new Date(endAt || "");
+        if (Number.isNaN(endDate.getTime())) return null;
+
+        return endDate.toLocaleDateString("en-US", {
+            weekday: "long",
+            month: "long",
+            day: "numeric",
+            year: "numeric",
+            timeZone: "America/New_York",
+        });
+    }
+
     private async formatSeasonForFooter(): Promise<string | null> {
         const season = await this.fetchSeasonContext();
-        if (!season) return null;
+        let seasonLabel: string | null = null;
+        if (season) {
+            const seasonNumber = Number(season.season);
+            const emoji = Number.isFinite(seasonNumber)
+                ? getFortniteSeasonEmoji(season.chapter, seasonNumber)
+                : undefined;
+            seasonLabel = `${season.displayName}${emoji ? ` ${emoji}` : ""}`;
+        }
 
-        const seasonNumber = Number(season.season);
-        const emoji = Number.isFinite(seasonNumber)
-            ? getFortniteSeasonEmoji(season.chapter, seasonNumber)
-            : undefined;
-        return `${season.displayName}${emoji ? ` ${emoji}` : ""}`;
+        // Prefer the end date that belongs to the same live season context so
+        // a newly detected season cannot be paired with a stale prior date.
+        const liveEndDate = this.formatSeasonEndDateForFooter(season?.endsAt);
+        const fallbackEndDate = liveEndDate
+            ? null
+            : this.formatSeasonEndDateForFooter(await this.fetchSeasonEndDate());
+        const seasonEndLabel = liveEndDate || fallbackEndDate;
+        const footerParts = [
+            seasonLabel,
+            seasonEndLabel ? `Season ends: ${seasonEndLabel}` : null,
+        ].filter((part): part is string => !!part);
+
+        return footerParts.length ? footerParts.join(" | ") : null;
     }
 
     private getStatsApiKey(): string {
