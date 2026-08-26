@@ -1,6 +1,6 @@
 {
   "name": "creeper-bot",
-  "version": "4.0.39",
+  "version": "4.0.40",
   "engines": {
     "node": "22.x"
   },
@@ -10,11 +10,13 @@
     "dev": "nodemon --watch src --ext ts --ignore src/Fortnite/FortniteSprites/spriteData.json --ignore src/Fortnite/FortniteMap/mapData.json --exec ts-node src/index.ts",
     "prod": "node dist/index.js",
     "build": "tsc",
-    "test": "nodemon --exec ts-node src/scripts/test.ts",
+    "test": "ts-node src/scripts/testSpriteFixtures.ts",
     "fetch-map": "ts-node src/scripts/fetchMapData.ts",
     "fetch-map-assets": "ts-node src/scripts/fetchMapAssets.ts",
     "upload-map-assets": "ts-node src/scripts/uploadMapAssetsToDiscord.ts",
     "fetch-sprites": "ts-node src/scripts/fetchSpriteData.ts",
+    "archive-current-sprites": "ts-node src/scripts/archiveCurrentSpriteData.ts",
+    "backup-sprite-archives": "ts-node src/scripts/backupSpriteArchives.ts",
     "heroku-postbuild": "npm run build && mkdir -p ./.cache && mv /app/.cache/puppeteer ./.cache"
   },
   "author": "Creeper",

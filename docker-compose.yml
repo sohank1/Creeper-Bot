@@ -11,8 +11,13 @@ services:
     volumes:
       - creeper-bot-cache:/app/.cache
       - creeper-bot-telemetry:/app/.telemetry
+      # Keep a second copy outside the container layer. Set the host-side path
+      # through FORTNITE_SPRITE_ARCHIVE_BACKUP_HOST_DIR in Coolify/Compose.
+      - ${FORTNITE_SPRITE_ARCHIVE_BACKUP_HOST_DIR:-/var/lib/creeper-bot/fortnite-sprite-archives}:/app/.backup/fortnite-sprites
     environment:
       FORTNITE_SPRITE_TELEMETRY_DIR: /app/.telemetry/fortnite-sprites
+      FORTNITE_SPRITE_ARCHIVE_BACKUP_DIR: /app/.backup/fortnite-sprites
+      FORTNITE_SPRITE_ARCHIVE_BACKUP_REQUIRED: "${FORTNITE_SPRITE_ARCHIVE_BACKUP_REQUIRED:-true}"
     expose:
       - "3001"
     # Coolify writes all runtime-enabled application variables to this file

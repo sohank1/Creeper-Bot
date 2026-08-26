@@ -1,11 +1,13 @@
+import "dotenv/config";
 import axios from "axios";
 import { createHash } from "crypto";
 import * as fs from "fs";
-import https from "https";
 import * as path from "path";
 import { loadImage } from "@napi-rs/canvas/node-canvas";
 import { fetchSpriteData, SpriteDataFile, stableSpriteDataJson, validateSpriteData } from "../Fortnite/FortniteSprites/spriteDataSource";
 import { resolveCurrentFortniteSeason } from "../Fortnite/FortniteSprites/fortniteSeason";
+import { verifySpriteArchive } from "../Fortnite/FortniteSprites/spriteArchive";
+import { SPRITE_STORAGE_NAMESPACE } from "../Fortnite/FortniteSprites/spriteStorage";
 
 type ArchiveAsset = {
     variantId: number;
@@ -43,13 +45,14 @@ type SpriteArchiveManifest = {
     assets: ArchiveAsset[];
 };
 
+const productionLinux = process.platform === "linux" && process.env.NODE_ENV === "production";
+const spriteCacheRoot = path.join(process.cwd(), ".cache", "fortnite-sprites", SPRITE_STORAGE_NAMESPACE);
 const DEFAULT_ARCHIVE_ROOT = process.env.FORTNITE_SPRITE_ARCHIVE_DIR
     ? path.resolve(process.env.FORTNITE_SPRITE_ARCHIVE_DIR)
-    : path.join(process.cwd(), "sprite-archives");
+    : path.join(spriteCacheRoot, "archives");
 const SOURCE_PAGE = "https://fortnite.gg/sprites";
 const DOWNLOAD_CONCURRENCY = 6;
-const SPRITE_CACHE_DIR = path.join(process.cwd(), ".cache", "fortnite-sprites", "assets");
-const httpsAgent = new https.Agent({ rejectUnauthorized: false });
+const SPRITE_CACHE_DIR = path.resolve(process.env.FORTNITE_SPRITE_ASSET_CACHE_DIR || path.join(spriteCacheRoot, "assets"));
 
 function argument(name: string): string | undefined {
     const index = process.argv.indexOf(`--${name}`);
@@ -138,7 +141,6 @@ async function downloadImage(url: string): Promise<{ data: Buffer; mimeType: str
                     responseType: "arraybuffer",
                     timeout: 45_000,
                     maxContentLength: 30 * 1024 * 1024,
-                    httpsAgent,
                     headers: {
                         "User-Agent": "Creeper-Bot sprite archival backup",
                         "Accept": "image/avif,image/webp,image/png,image/jpeg,*/*"
@@ -173,24 +175,8 @@ async function fetchCurrentSourceData(): Promise<{ raw: Buffer; data: SpriteData
 }
 
 async function verifyArchive(archivePath: string): Promise<void> {
-    const manifestPath = path.join(archivePath, "manifest.json");
-    const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8")) as SpriteArchiveManifest;
-    const dataPath = path.join(archivePath, manifest.source.dataFile);
-    const dataHash = sha256(fs.readFileSync(dataPath));
-    if (dataHash !== manifest.source.dataSha256) throw new Error("Archived sprite data checksum does not match the manifest.");
-
-    let totalBytes = 0;
-    for (const asset of manifest.assets) {
-        const assetPath = path.resolve(archivePath, asset.file);
-        if (!assetPath.startsWith(`${path.resolve(archivePath)}${path.sep}`)) throw new Error(`Unsafe asset path in manifest: ${asset.file}`);
-        const bytes = fs.readFileSync(assetPath);
-        if (bytes.length !== asset.bytes || sha256(bytes) !== asset.sha256) {
-            throw new Error(`Archived asset failed verification: ${asset.file}`);
-        }
-        totalBytes += bytes.length;
-    }
-    if (totalBytes !== manifest.totalAssetBytes) throw new Error("Archived asset byte total does not match the manifest.");
-    console.log(`Verified ${manifest.season.displayName}: ${manifest.spriteCount} sprites, ${manifest.assets.length} assets, ${(totalBytes / 1024 / 1024).toFixed(2)} MiB.`);
+    const manifest = await verifySpriteArchive(archivePath);
+    console.log(`Verified ${manifest.season.displayName}: ${manifest.spriteCount} sprites, ${manifest.assets.length} assets, ${(manifest.totalAssetBytes / 1024 / 1024).toFixed(2)} MiB.`);
 }
 
 async function createArchive(): Promise<void> {
@@ -271,9 +257,9 @@ async function createArchive(): Promise<void> {
         fs.writeFileSync(path.join(stagingPath, "spriteData.json"), source.raw, { flag: "wx" });
         fs.writeFileSync(path.join(stagingPath, "spriteData.local.json"), `${JSON.stringify(localData, null, 2)}\n`, { flag: "wx" });
         fs.writeFileSync(path.join(stagingPath, "manifest.json"), `${JSON.stringify(manifest, null, 2)}\n`, { flag: "wx" });
+        await verifyArchive(stagingPath);
         fs.mkdirSync(archiveRoot, { recursive: true });
         fs.renameSync(stagingPath, finalPath);
-        await verifyArchive(finalPath);
         console.log(`Immutable sprite archive created at ${finalPath}`);
     } catch (error) {
         fs.rmSync(stagingPath, { recursive: true, force: true });

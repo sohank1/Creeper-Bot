@@ -1,7 +1,6 @@
 import axios from "axios";
 import cheerio from "cheerio";
 import { createHash } from "crypto";
-import https from "https";
 import { FortniteSeasonContext, resolveCurrentFortniteSeason } from "./fortniteSeason";
 
 export type SpriteRarity = "rare" | "epic" | "legendary" | "mythic" | "special";
@@ -104,7 +103,6 @@ type SpriteVariantDetail = SpriteVariant & {
 
 const SOURCE_URL = "https://fortnite.gg/sprites";
 const BASE_URL = "https://fortnite.gg";
-const httpsAgent = new https.Agent({ rejectUnauthorized: false });
 const DETAIL_FETCH_CONCURRENCY = 4;
 
 function requestHeaders() {
@@ -247,7 +245,6 @@ function parseListPage(html: string, seasonKey?: string): { items: SpriteListIte
 async function fetchHtml(url: string): Promise<string> {
     const res = await axios.get(url, {
         headers: requestHeaders(),
-        httpsAgent,
         timeout: 30000
     });
 
@@ -531,6 +528,28 @@ export function sanitizeSpriteHistory(history: SpriteHistoryFile, trustedSeasonI
     return { schemaVersion: 1, records };
 }
 
+export function mergeSpriteHistories(left: SpriteHistoryFile, right: SpriteHistoryFile): SpriteHistoryFile {
+    const records = new Map(left.records.map(record => [record.identityKey, { ...record, appearances: [...record.appearances] }]));
+    for (const incoming of right.records) {
+        const existing = records.get(incoming.identityKey);
+        if (!existing) {
+            records.set(incoming.identityKey, { ...incoming, appearances: [...incoming.appearances] });
+            continue;
+        }
+        for (const appearance of incoming.appearances) {
+            const current = existing.appearances.find(item => item.seasonId === appearance.seasonId);
+            if (!current) existing.appearances.push({ ...appearance });
+            else {
+                if (appearance.firstSeenAt < current.firstSeenAt) current.firstSeenAt = appearance.firstSeenAt;
+                if (appearance.lastSeenAt > current.lastSeenAt) current.lastSeenAt = appearance.lastSeenAt;
+            }
+        }
+        const earliest = [...existing.appearances].sort((a, b) => a.firstSeenAt.localeCompare(b.firstSeenAt))[0];
+        if (earliest) existing.introducedSeasonId = earliest.seasonId;
+    }
+    return { schemaVersion: 1, records: [...records.values()].sort((a, b) => a.spriteId - b.spriteId || a.identityKey.localeCompare(b.identityKey)) };
+}
+
 export function applySpriteHistory(data: SpriteDataFile, history: SpriteHistoryFile): SpriteDataFile {
     const records = new Map(history.records.map(record => [record.identityKey, record]));
     return {
@@ -555,7 +574,19 @@ export function applySpriteHistory(data: SpriteDataFile, history: SpriteHistoryF
 /** Retains prior-season sprites while preferring the latest scrape for matching variants. */
 export function mergeSpriteCatalog(previous: SpriteDataFile | null, latest: SpriteDataFile): SpriteDataFile {
     if (!previous) return latest;
-    const families = new Map(previous.families.map(family => [family.key, { ...family, variants: [...family.variants] }]));
+    const latestIds = new Set(latest.families.flatMap(family => family.variants.map(variant => variant.id)));
+    // The catalog schema requires globally unique variant IDs. If the source
+    // ever reuses an ID in a different family, prefer the newly scraped
+    // variant everywhere instead of creating a merged catalog that cannot be
+    // validated or addressed reliably by the Discord UI.
+    const families = new Map(
+        previous.families
+            .map(family => [
+                family.key,
+                { ...family, variants: family.variants.filter(variant => !latestIds.has(variant.id)) }
+            ] as const)
+            .filter(([, family]) => family.variants.length > 0)
+    );
 
     for (const latestFamily of latest.families) {
         const existing = families.get(latestFamily.key);
@@ -563,9 +594,7 @@ export function mergeSpriteCatalog(previous: SpriteDataFile | null, latest: Spri
             families.set(latestFamily.key, { ...latestFamily, variants: [...latestFamily.variants] });
             continue;
         }
-        const variants = new Map(existing.variants.map(variant => [variant.id, variant]));
-        for (const variant of latestFamily.variants) variants.set(variant.id, variant);
-        families.set(latestFamily.key, { ...latestFamily, variants: [...variants.values()] });
+        families.set(latestFamily.key, { ...latestFamily, variants: [...existing.variants, ...latestFamily.variants] });
     }
 
     const mergedFamilies = [...families.values()];

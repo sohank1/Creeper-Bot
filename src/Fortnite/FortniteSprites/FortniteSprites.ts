@@ -23,9 +23,14 @@ import { fileURLToPath } from "url";
 import type { Browser, Page } from "puppeteer";
 import https from "https";
 import { createCanvas, loadImage } from "@napi-rs/canvas";
-import { applySpriteHistory, fetchSpriteData, mergeSpriteCatalog, sanitizeSpriteHistory, SpriteDataFile, SpriteFamily, SpriteHistoryFile, SpriteRarity, SpriteVariant, SpriteVariantName, stableSpriteDataJson, updateSpriteHistory, validateSpriteData } from "./spriteDataSource";
+import { applySpriteHistory, fetchSpriteData, mergeSpriteCatalog, mergeSpriteHistories, sanitizeSpriteHistory, SpriteDataFile, SpriteFamily, SpriteHistoryFile, SpriteRarity, SpriteVariant, SpriteVariantName, updateSpriteHistory, validateSpriteData } from "./spriteDataSource";
 import { FortniteSeasonContext } from "./fortniteSeason";
 import { getFortniteSeasonEmoji } from "../fortniteSeasonEmoji";
+import { archiveSpriteSnapshot } from "./spriteArchive";
+import { backupSpriteArchive, backupSpriteHistory, getSpriteArchiveBackupDirectory, getSpriteArchiveBackupStatus } from "./spriteArchiveBackup";
+import { buildTrackedSpriteMessageEditPayload } from "./spriteMessage";
+import { SPRITE_STORAGE_NAMESPACE } from "./spriteStorage";
+import { syncSpriteCatalog } from "./spriteSyncService";
 import { createTrackedJob, registerComponent } from "../../runtimeDiagnostics";
 
 type SpriteSearchItem = {
@@ -159,41 +164,6 @@ type SpriteAssetSyncResult = {
     dataFingerprint: string;
 };
 
-type AutomaticSpriteArchiveAsset = {
-    variantId: number;
-    familyKey: string;
-    spriteName: string;
-    sourceUrl: string;
-    resolvedFrom: string;
-    file: string;
-    mimeType: string;
-    bytes: number;
-    sha256: string;
-};
-
-type AutomaticSpriteArchiveManifest = {
-    schemaVersion: 1;
-    season: {
-        id: string;
-        displayName: string;
-        chapter?: number;
-        season?: string;
-    };
-    archivedAt: string;
-    source: {
-        page: string;
-        fetchedAt: string;
-        dataFile: string;
-        dataSha256: string;
-    };
-    localDataFile: string;
-    familyCount: number;
-    spriteCount: number;
-    totalAssetBytes: number;
-    missingAssetCount: number;
-    assets: AutomaticSpriteArchiveAsset[];
-};
-
 type PendingRenderPageAcquire = {
     resolve: (page: Page) => void;
     reject: (error: Error) => void;
@@ -239,20 +209,28 @@ type RenderTelemetryContext = {
 };
 
 const PRODUCTION_RENDER_CACHE_ENABLED = process.platform === "linux" && process.env.NODE_ENV === "production";
-const SPRITE_CACHE_ROOT_DIR = path.join(process.cwd(), ".cache", "fortnite-sprites");
+const SPRITE_CACHE_ROOT_DIR = path.join(process.cwd(), ".cache", "fortnite-sprites", SPRITE_STORAGE_NAMESPACE);
 const DATA_PATH = path.join(process.cwd(), "src", "Fortnite", "FortniteSprites", "spriteData.json");
 const PERSISTED_SPRITE_DATA_PATH = path.join(SPRITE_CACHE_ROOT_DIR, "spriteData.json");
 const BUNDLED_SPRITE_ARCHIVE_ROOT = path.join(process.cwd(), "sprite-archives");
 const SPRITE_ARCHIVE_ROOT = process.env.FORTNITE_SPRITE_ARCHIVE_DIR
     ? path.resolve(process.env.FORTNITE_SPRITE_ARCHIVE_DIR)
-    : PRODUCTION_RENDER_CACHE_ENABLED
-        ? path.join(SPRITE_CACHE_ROOT_DIR, "archives")
-        : BUNDLED_SPRITE_ARCHIVE_ROOT;
-const SPRITE_ARCHIVE_ROOTS = Array.from(new Set([BUNDLED_SPRITE_ARCHIVE_ROOT, SPRITE_ARCHIVE_ROOT]));
+    : path.join(SPRITE_CACHE_ROOT_DIR, "archives");
+const SPRITE_ARCHIVE_BACKUP_ROOT = getSpriteArchiveBackupDirectory();
+const SPRITE_ARCHIVE_CANONICAL_ROOTS = Array.from(new Set([SPRITE_ARCHIVE_ROOT, BUNDLED_SPRITE_ARCHIVE_ROOT]));
+const SPRITE_ARCHIVE_ROOTS = Array.from(new Set([
+    ...SPRITE_ARCHIVE_CANONICAL_ROOTS,
+    ...(SPRITE_ARCHIVE_BACKUP_ROOT ? [SPRITE_ARCHIVE_BACKUP_ROOT] : [])
+]));
 const BUNDLED_HISTORY_PATH = path.join(BUNDLED_SPRITE_ARCHIVE_ROOT, "spriteHistory.json");
 const HISTORY_PATH = process.env.FORTNITE_SPRITE_HISTORY_PATH
     ? path.resolve(process.env.FORTNITE_SPRITE_HISTORY_PATH)
     : path.join(SPRITE_ARCHIVE_ROOT, "spriteHistory.json");
+const HISTORY_READ_PATHS = Array.from(new Set([
+    BUNDLED_HISTORY_PATH,
+    HISTORY_PATH,
+    ...(SPRITE_ARCHIVE_BACKUP_ROOT ? [path.join(SPRITE_ARCHIVE_BACKUP_ROOT, "spriteHistory.json")] : [])
+]));
 const TOKENS_PATH = path.join(process.cwd(), "src", "Fortnite", "FortniteSprites", "tokens.css");
 const DUST_ICON_PATH = path.join(process.cwd(), "assets", "sprite-dust.png");
 const SPAWN_RATE_ICON_PATHS: Record<string, string> = {
@@ -261,8 +239,10 @@ const SPAWN_RATE_ICON_PATHS: Record<string, string> = {
     chest: path.join(process.cwd(), "assets", "chest-resized.png"),
     supplyDrop: path.join(process.cwd(), "assets", "drop-resized.png")
 };
-const SPRITE_ASSET_CACHE_DIR = path.join(SPRITE_CACHE_ROOT_DIR, "assets");
-const SPRITE_ASSET_CACHE_VERSION = "v4-binary-assets";
+const SPRITE_ASSET_CACHE_DIR = process.env.FORTNITE_SPRITE_ASSET_CACHE_DIR
+    ? path.resolve(process.env.FORTNITE_SPRITE_ASSET_CACHE_DIR)
+    : path.join(SPRITE_CACHE_ROOT_DIR, "assets");
+const SPRITE_ASSET_CACHE_VERSION = process.env.FORTNITE_SPRITE_ASSET_CACHE_VERSION || "v4-binary-assets";
 const SPRITE_ASSET_MANIFEST_VERSION = 2;
 const RENDER_CACHE_DIR = path.join(SPRITE_CACHE_ROOT_DIR, "renders");
 const SPRITE_TELEMETRY_DIR = process.env.FORTNITE_SPRITE_TELEMETRY_DIR
@@ -308,7 +288,6 @@ const RARITY_CSS_COLORS: Record<SpriteRarity, string> = {
 };
 const RENDER_PAGE_POOL_SIZE = 2;
 const RENDER_PAGE_MAX_USES = 24;
-const RENDER_BROWSER_IDLE_TIMEOUT_MS = 60 * 1000;
 const RENDER_BROWSER_MEMORY_RECYCLE_THRESHOLD_BYTES = 1536 * 1024 * 1024;
 const MAX_RENDERED_IMAGE_CACHE_BYTES = 96 * 1024 * 1024;
 const MAX_SPRITE_ASSET_CACHE_BYTES = 32 * 1024 * 1024;
@@ -319,30 +298,8 @@ const RENDER_PROTOCOL_TIMEOUT_MS = 30 * 1000;
 const RENDER_GENERATION_TASK_TIMEOUT_MS = 60 * 1000;
 const RENDER_CLEANUP_TIMEOUT_MS = 5 * 1000;
 const SPRITE_ASSET_SYNC_COOLDOWN_MS = 5 * 60 * 1000;
-const AUTO_SPRITE_ARCHIVE_ENABLED = PRODUCTION_RENDER_CACHE_ENABLED || Boolean(process.env.FORTNITE_SPRITE_ARCHIVE_DIR);
-
-function automaticArchiveSlug(value: string): string {
-    return value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 56) || "sprite";
-}
-
-function automaticArchiveExtension(contentType: string, sourceUrl: string): string {
-    const normalized = contentType.split(";", 1)[0].trim().toLowerCase();
-    if (normalized === "image/png") return ".png";
-    if (normalized === "image/jpeg") return ".jpg";
-    if (normalized === "image/webp") return ".webp";
-
-    try {
-        const extension = path.extname(new URL(sourceUrl).pathname).toLowerCase();
-        if ([".png", ".jpg", ".jpeg", ".webp"].includes(extension)) return extension === ".jpeg" ? ".jpg" : extension;
-    } catch {
-        // Fall back to a stable binary extension for malformed/legacy URLs.
-    }
-    return ".bin";
-}
-
-function automaticArchiveVariantKey(family: SpriteFamily, variant: SpriteVariant): string {
-    return `${family.key}:${variant.id}:${variant.name}:${variant.variant}`.toLowerCase();
-}
+const AUTO_SPRITE_ARCHIVE_ENABLED = process.platform === "linux"
+    && (PRODUCTION_RENDER_CACHE_ENABLED || Boolean(process.env.FORTNITE_SPRITE_ARCHIVE_DIR));
 
 export class FortniteSprites {
     private _data: SpriteDataFile | null = null;
@@ -382,6 +339,7 @@ export class FortniteSprites {
     };
     private lastSuccessfulSyncAt: string | null = null;
     private lastSyncError: string | null = null;
+    private spriteSyncPromise: Promise<SpriteSyncResult> | null = null;
     private lastArchivedSeason: string | null = null;
     private lastArchiveAt: string | null = null;
     private lastArchiveMissingAssets = 0;
@@ -391,7 +349,6 @@ export class FortniteSprites {
     private liveRenderPages = new Set<Page>();
     private renderPageUses = new Map<Page, number>();
     private pendingRenderPageAcquires: PendingRenderPageAcquire[] = [];
-    private renderBrowserIdleTimer?: NodeJS.Timeout;
     private renderBrowserClosePromise: Promise<void> | null = null;
     private isShuttingDown = false;
     private runtimeRefreshPromise: Promise<void> | null = null;
@@ -409,6 +366,8 @@ export class FortniteSprites {
     private renderGenerationPromise: Promise<void> | null = null;
     private renderGenerationRevision = 0;
     private pendingRenderGenerationReason: string | null = null;
+    private renderGenerationNeedsBrowserCleanup = false;
+    private renderBrowserCloseAfterPreRender = false;
     private renderGenerationProgress: RenderGenerationProgress | null = null;
     private renderGenerationProgressTimer?: NodeJS.Timeout;
     private progressMessageEditPromise: Promise<void> = Promise.resolve();
@@ -516,9 +475,22 @@ export class FortniteSprites {
                 console.error("[FortniteSprites] Render cache generation failed:", error);
             });
         this.renderGenerationPromise = runPromise;
-        void runPromise.finally(() => {
+        void runPromise.finally(async () => {
             if (this.renderGenerationPromise !== runPromise) return;
+
+            // A pre-render job is the browser's ownership boundary. Keep the
+            // browser/pages warm for the whole queue, then release Chromium so
+            // its decoded documents and renderer memory cannot accumulate
+            // between jobs. If a user interaction is still rendering on the
+            // shared pool, wait briefly for it to release its page first.
+            if (this.renderGenerationNeedsBrowserCleanup) {
+                await this.closeRenderBrowserAfterRenderGeneration();
+            }
+            this.renderGenerationNeedsBrowserCleanup = false;
             this.renderGenerationPromise = null;
+            // Chromium remains warm for interactive renders after the
+            // generation job releases it. The next generation job owns the
+            // next explicit browser cleanup.
             if (this.renderGenerationRevision === runId) return;
 
             const nextReason = this.pendingRenderGenerationReason || "new sprite data";
@@ -528,6 +500,7 @@ export class FortniteSprites {
     }
 
     private async runRenderGeneration(runId: number, reason: string) {
+        this.renderGenerationNeedsBrowserCleanup = false;
         if (this.startupSyncPromise) {
             await this.startupSyncPromise.catch(() => ({ changed: false, syncedAt: new Date().toISOString() }));
             this.startupSyncPromise = null;
@@ -576,6 +549,7 @@ export class FortniteSprites {
                 progress.current = "Existing render cache verified";
                 console.log(`[FortniteSprites] Existing render cache verified for ${tasks.length} screens; skipping Chromium rendering.`);
             } else {
+                this.renderGenerationNeedsBrowserCleanup = true;
                 progress.current = progress.cachedAtStart > 0
                     ? `Resuming from ${progress.cachedAtStart} cached screens`
                     : "Rendering first screen";
@@ -598,11 +572,6 @@ export class FortniteSprites {
                         progress.failed++;
                         failedTarget.push(task);
                         console.warn(`[FortniteSprites] Failed to pre-render ${task.label} (attempt ${attempt}):`, error);
-                        if (error instanceof Error && error.message.includes("timed out after")) {
-                            await this.closeRenderBrowser("render recovery").catch((recoveryError) => {
-                                console.warn("[FortniteSprites] Failed to recover after render task timeout:", recoveryError?.message || recoveryError);
-                            });
-                        }
                     }
                     progress.lastTaskDurationMs = Math.max(0, Date.now() - taskStartedAt);
                     progress.taskDurationMs += progress.lastTaskDurationMs;
@@ -1114,7 +1083,7 @@ export class FortniteSprites {
                 connected: this.isBrowserConnected(this.browser),
                 livePages: this.liveRenderPages.size,
                 pooledPages: this.renderPagePool.length,
-                idleCloseScheduled: !!this.renderBrowserIdleTimer,
+                closeAfterPreRenderPending: this.renderBrowserCloseAfterPreRender,
                 closeInProgress: !!this.renderBrowserClosePromise
             },
             productionRenderCacheEnabled: PRODUCTION_RENDER_CACHE_ENABLED,
@@ -1131,9 +1100,11 @@ export class FortniteSprites {
             automaticSeasonArchive: {
                 enabled: AUTO_SPRITE_ARCHIVE_ENABLED,
                 root: AUTO_SPRITE_ARCHIVE_ENABLED ? SPRITE_ARCHIVE_ROOT : null,
+                storageNamespace: SPRITE_STORAGE_NAMESPACE,
                 lastArchivedSeason: this.lastArchivedSeason,
                 lastArchivedAt: this.lastArchiveAt,
-                lastMissingAssets: this.lastArchiveMissingAssets
+                lastMissingAssets: this.lastArchiveMissingAssets,
+                backup: getSpriteArchiveBackupStatus()
             },
             renderGeneration: this.renderGenerationProgress,
             lastSuccessfulSyncAt: this.lastSuccessfulSyncAt,
@@ -1291,28 +1262,44 @@ export class FortniteSprites {
 
     private loadSpriteHistory() {
         try {
-            for (const historyPath of Array.from(new Set([BUNDLED_HISTORY_PATH, HISTORY_PATH]))) {
+            let shouldPersistHistory = false;
+            for (const historyPath of HISTORY_READ_PATHS) {
                 if (!fs.existsSync(historyPath)) continue;
-                const parsed = JSON.parse(fs.readFileSync(historyPath, "utf8")) as SpriteHistoryFile;
-                if (parsed.schemaVersion === 1 && Array.isArray(parsed.records)) {
-                    this.spriteHistory = this.mergeSpriteHistories(this.spriteHistory, parsed);
+                try {
+                    const parsed = JSON.parse(fs.readFileSync(historyPath, "utf8")) as SpriteHistoryFile;
+                    if (parsed.schemaVersion === 1 && Array.isArray(parsed.records)) {
+                        this.spriteHistory = this.mergeSpriteHistories(this.spriteHistory, parsed);
+                    } else {
+                        shouldPersistHistory = true;
+                    }
+                } catch {
+                    shouldPersistHistory = true;
+                    console.warn(`[FortniteSprites] Could not parse existing sprite history at ${historyPath}; rebuilding it.`);
                 }
             }
 
-            if (this.spriteHistory.records.length === 0 && this._data) {
-                const seedData = this._data.seasonContext
-                    ? this._data
-                    : { ...this._data, seasonContext: this.getLegacySeasonContext() };
-                this.spriteHistory = updateSpriteHistory(this.spriteHistory, seedData);
-                this.writeSpriteHistory(this.spriteHistory);
-                console.log(`[FortniteSprites] Seeded sprite history with ${this.spriteHistory.records.length} legacy records.`);
+            const historyBeforeRecovery = JSON.stringify(this.spriteHistory);
+            const archivedHistory = this.rebuildSpriteHistoryFromArchives();
+            if (archivedHistory.records.length > 0) {
+                this.spriteHistory = this.mergeSpriteHistories(this.spriteHistory, archivedHistory);
             }
+
+            const currentData = this.readCurrentSpriteDataForHistory();
+            if (currentData) {
+                this.spriteHistory = updateSpriteHistory(this.spriteHistory, currentData);
+            }
+            if (historyBeforeRecovery !== JSON.stringify(this.spriteHistory)) shouldPersistHistory = true;
 
             const sanitizedHistory = sanitizeSpriteHistory(this.spriteHistory, this.getTrustedHistorySeasonIds());
             if (JSON.stringify(sanitizedHistory) !== JSON.stringify(this.spriteHistory)) {
                 this.spriteHistory = sanitizedHistory;
-                this.writeSpriteHistory(this.spriteHistory);
+                shouldPersistHistory = true;
                 console.log("[FortniteSprites] Removed untrusted season labels from sprite history.");
+            }
+
+            if (shouldPersistHistory && (this.spriteHistory.records.length > 0 || HISTORY_READ_PATHS.some(historyPath => fs.existsSync(historyPath)))) {
+                this.writeSpriteHistory(this.spriteHistory);
+                console.log(`[FortniteSprites] Persisted recovered sprite history with ${this.spriteHistory.records.length} records.`);
             }
 
             if (this._data && this.spriteHistory.records.length > 0) {
@@ -1326,38 +1313,99 @@ export class FortniteSprites {
         }
     }
 
+    private readCurrentSpriteDataForHistory(): SpriteDataFile | null {
+        const dataPath = this.getSpriteDataReadPath();
+        if (!fs.existsSync(dataPath)) return null;
+        try {
+            const parsed = JSON.parse(fs.readFileSync(dataPath, "utf8")) as SpriteDataFile;
+            validateSpriteData(parsed);
+            return parsed.seasonContext
+                ? parsed
+                : { ...parsed, seasonContext: this.getLegacySeasonContext() };
+        } catch {
+            return null;
+        }
+    }
+
+    private rebuildSpriteHistoryFromArchives(): SpriteHistoryFile {
+        let rebuilt: SpriteHistoryFile = { schemaVersion: 1, records: [] };
+        for (const archiveRoot of SPRITE_ARCHIVE_ROOTS) {
+            try {
+                if (!fs.existsSync(archiveRoot)) continue;
+                for (const entry of fs.readdirSync(archiveRoot, { withFileTypes: true })) {
+                    if (!entry.isDirectory()) continue;
+                    const archiveDir = path.join(archiveRoot, entry.name);
+                    const manifestPath = path.join(archiveDir, "manifest.json");
+                    if (!fs.existsSync(manifestPath)) continue;
+
+                    const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
+                    const seasonId = String(manifest?.season?.id || "");
+                    if (!seasonId) continue;
+                    const archiveRootPath = path.resolve(archiveDir);
+                    const dataFiles = Array.from(new Set([
+                        String(manifest?.source?.dataFile || ""),
+                        String(manifest?.source?.botDataFile || ""),
+                        String(manifest?.localDataFile || ""),
+                        "spriteData.json",
+                        "spriteData.bot.json",
+                        "spriteData.live.json"
+                    ].filter(Boolean)));
+                    const candidates: SpriteDataFile[] = [];
+                    for (const dataFile of dataFiles) {
+                        const dataPath = path.resolve(archiveRootPath, dataFile);
+                        if (!dataPath.startsWith(`${archiveRootPath}${path.sep}`) || !fs.existsSync(dataPath)) continue;
+                        try {
+                            const candidate = JSON.parse(fs.readFileSync(dataPath, "utf8")) as SpriteDataFile;
+                            validateSpriteData(candidate);
+                            candidates.push(candidate);
+                        } catch {
+                            // Try the next catalog candidate in this archive.
+                        }
+                    }
+                    const catalog = candidates.sort((left, right) => {
+                        const leftCount = left.families.reduce((total, family) => total + family.variants.length, 0);
+                        const rightCount = right.families.reduce((total, family) => total + family.variants.length, 0);
+                        return rightCount - leftCount;
+                    })[0];
+                    if (!catalog) continue;
+
+                    const chapter = Number(manifest?.season?.chapter) || Number(seasonId.match(/^chapter-(\d+)-season-/i)?.[1]) || 7;
+                    const season = String(manifest?.season?.season || seasonId.match(/^chapter-\d+-season-(.+)$/i)?.[1] || "unknown");
+                    rebuilt = updateSpriteHistory(rebuilt, {
+                        ...catalog,
+                        seasonContext: {
+                            id: seasonId,
+                            chapter,
+                            season,
+                            displayName: String(manifest?.season?.displayName || seasonId.replace(/-/g, " ")),
+                            source: "fortnite-gg",
+                            validatedBy: ["fortnite-gg"]
+                        }
+                    });
+                }
+            } catch (error) {
+                console.warn(`[FortniteSprites] Could not rebuild history from archived sprites at ${archiveRoot}.`, error?.message || error);
+            }
+        }
+        return rebuilt;
+    }
+
     private writeSpriteHistory(history: SpriteHistoryFile) {
         fs.mkdirSync(path.dirname(HISTORY_PATH), { recursive: true });
-        const tempPath = `${HISTORY_PATH}.tmp-${process.pid}`;
+        const tempPath = `${HISTORY_PATH}.tmp-${process.pid}-${Date.now()}-${crypto.randomBytes(4).toString("hex")}`;
         fs.writeFileSync(tempPath, `${JSON.stringify(history, null, 2)}\n`, "utf8");
         fs.renameSync(tempPath, HISTORY_PATH);
     }
 
     private mergeSpriteHistories(left: SpriteHistoryFile, right: SpriteHistoryFile): SpriteHistoryFile {
-        const records = new Map(left.records.map(record => [record.identityKey, { ...record, appearances: [...record.appearances] }]));
-        for (const incoming of right.records) {
-            const existing = records.get(incoming.identityKey);
-            if (!existing) {
-                records.set(incoming.identityKey, { ...incoming, appearances: [...incoming.appearances] });
-                continue;
-            }
-            for (const appearance of incoming.appearances) {
-                const current = existing.appearances.find(item => item.seasonId === appearance.seasonId);
-                if (!current) existing.appearances.push({ ...appearance });
-                else {
-                    if (appearance.firstSeenAt < current.firstSeenAt) current.firstSeenAt = appearance.firstSeenAt;
-                    if (appearance.lastSeenAt > current.lastSeenAt) current.lastSeenAt = appearance.lastSeenAt;
-                }
-            }
-            const earliest = [...existing.appearances].sort((a, b) => a.firstSeenAt.localeCompare(b.firstSeenAt))[0];
-            if (earliest) existing.introducedSeasonId = earliest.seasonId;
-        }
-        return { schemaVersion: 1, records: [...records.values()].sort((a, b) => a.spriteId - b.spriteId || a.identityKey.localeCompare(b.identityKey)) };
+        return mergeSpriteHistories(left, right);
     }
 
     private getTrustedHistorySeasonIds() {
         const trusted = new Set<string>([this.getLegacySeasonContext().id]);
         if (this._data?.seasonContext?.id) trusted.add(this._data.seasonContext.id);
+        const currentData = this.readCurrentSpriteDataForHistory();
+        if (currentData?.seasonContext?.id) trusted.add(currentData.seasonContext.id);
         for (const archiveRoot of SPRITE_ARCHIVE_ROOTS) {
             try {
                 if (!fs.existsSync(archiveRoot)) continue;
@@ -1391,141 +1439,67 @@ export class FortniteSprites {
 
         const previousSeason = previousData.seasonContext || this.getLegacySeasonContext();
         if (!previousSeason.id || !nextSeason.id || previousSeason.id === nextSeason.id) return;
-
-        validateSpriteData({ ...previousData, seasonContext: previousSeason });
-        const seasonId = automaticArchiveSlug(previousSeason.id);
-        const existingArchive = SPRITE_ARCHIVE_ROOTS
-            .map(root => path.join(root, seasonId, "manifest.json"))
-            .find(manifestPath => fs.existsSync(manifestPath));
-
-        if (existingArchive) {
-            this.lastArchivedSeason = previousSeason.displayName;
-            console.log(`[FortniteSprites] Previous season archive already exists for ${previousSeason.displayName}; keeping it immutable.`);
-            return;
-        }
-
-        const archiveDir = path.join(SPRITE_ARCHIVE_ROOT, seasonId);
-        if (fs.existsSync(archiveDir)) {
-            throw new Error(`Sprite archive directory exists without a manifest: ${archiveDir}`);
-        }
-
-        const stagingPath = path.join(SPRITE_ARCHIVE_ROOT, `.${seasonId}.staging-${process.pid}-${Date.now()}`);
         const previousManifest = await this.readSpriteAssetManifest(previousDataFingerprint);
-        const archiveData: SpriteDataFile = {
-            ...previousData,
-            seasonContext: previousSeason
-        };
-        const variants = archiveData.families.flatMap(family => family.variants.map(variant => ({ family, variant })));
-        const localImagePaths = new Map<string, string>();
-        const archiveAssets: AutomaticSpriteArchiveAsset[] = [];
-        let missingAssetCount = 0;
-
-        try {
-            await fs.promises.mkdir(path.join(stagingPath, "assets"), { recursive: true });
-
-            await this.forEachConcurrent(variants, SPRITE_IMAGE_PREWARM_CONCURRENCY, async ({ family, variant }) => {
-                if (!variant.imageUrl) {
-                    missingAssetCount++;
-                    return;
-                }
-
+        const result = await archiveSpriteSnapshot({
+            archiveRoot: SPRITE_ARCHIVE_ROOT,
+            archiveRoots: SPRITE_ARCHIVE_CANONICAL_ROOTS,
+            previousData: {
+                ...previousData,
+                seasonContext: previousSeason
+            },
+            previousJson,
+            nextSeason,
+            assetConcurrency: SPRITE_IMAGE_PREWARM_CONCURRENCY,
+            assetResolver: async ({ variant }) => {
+                if (!variant.imageUrl) return null;
                 try {
                     const refreshed = await this.refreshSpriteAsset(
                         variant.imageUrl,
                         previousDataFingerprint,
                         previousManifest.assets[variant.imageUrl]
                     );
-                    if (!refreshed) {
-                        missingAssetCount++;
-                        return;
-                    }
-
-                    const relativeFile = path.posix.join(
-                        "assets",
-                        `${variant.id}-${automaticArchiveSlug(family.key)}-${automaticArchiveSlug(variant.variant)}-${automaticArchiveSlug(variant.name)}${automaticArchiveExtension(refreshed.metadata.contentType, variant.imageUrl)}`
-                    );
-                    await fs.promises.writeFile(path.join(stagingPath, relativeFile), refreshed.buffer, { flag: "wx" });
-                    localImagePaths.set(automaticArchiveVariantKey(family, variant), relativeFile);
-                    archiveAssets.push({
-                        variantId: variant.id,
-                        familyKey: family.key,
-                        spriteName: variant.name,
-                        sourceUrl: variant.imageUrl,
-                        resolvedFrom: refreshed.metadata.resolvedUrl,
-                        file: relativeFile,
-                        mimeType: refreshed.metadata.contentType,
-                        bytes: refreshed.buffer.length,
-                        sha256: this.hashSpriteAsset(refreshed.buffer)
-                    });
+                    return refreshed
+                        ? {
+                            buffer: refreshed.buffer,
+                            contentType: refreshed.metadata.contentType,
+                            resolvedUrl: refreshed.metadata.resolvedUrl
+                        }
+                        : null;
                 } catch (error) {
-                    missingAssetCount++;
                     console.warn(`[FortniteSprites] Failed to freeze artwork for ${variant.name}:`, error?.message || error);
+                    return null;
                 }
-            });
+            },
+            backup: backupSpriteArchive
+        });
 
-            const localData: SpriteDataFile = {
-                ...archiveData,
-                families: archiveData.families.map(family => ({
-                    ...family,
-                    variants: family.variants.map(variant => ({
-                        ...variant,
-                        imageUrl: localImagePaths.get(automaticArchiveVariantKey(family, variant)) || variant.imageUrl
-                    }))
-                }))
-            };
-            const sourceBuffer = Buffer.from(previousJson, "utf8");
-            const manifest: AutomaticSpriteArchiveManifest = {
-                schemaVersion: 1,
-                season: {
-                    id: previousSeason.id,
-                    displayName: previousSeason.displayName,
-                    chapter: previousSeason.chapter,
-                    season: previousSeason.season
-                },
-                archivedAt: new Date().toISOString(),
-                source: {
-                    page: "https://fortnite.gg/sprites",
-                    fetchedAt: archiveData.fetchedAt,
-                    dataFile: "spriteData.json",
-                    dataSha256: crypto.createHash("sha256").update(sourceBuffer).digest("hex")
-                },
-                localDataFile: "spriteData.local.json",
-                familyCount: archiveData.families.length,
-                spriteCount: variants.length,
-                totalAssetBytes: archiveAssets.reduce((total, asset) => total + asset.bytes, 0),
-                missingAssetCount,
-                assets: archiveAssets.sort((a, b) => a.variantId - b.variantId || a.file.localeCompare(b.file))
-            };
-
-            await fs.promises.writeFile(path.join(stagingPath, "spriteData.json"), sourceBuffer, { flag: "wx" });
-            await fs.promises.writeFile(path.join(stagingPath, "spriteData.local.json"), `${JSON.stringify(localData, null, 2)}\n`, { flag: "wx" });
-            await fs.promises.writeFile(path.join(stagingPath, "manifest.json"), `${JSON.stringify(manifest, null, 2)}\n`, { flag: "wx" });
-            await fs.promises.mkdir(SPRITE_ARCHIVE_ROOT, { recursive: true });
-            await fs.promises.rename(stagingPath, archiveDir);
-
-            this.lastArchivedSeason = previousSeason.displayName;
-            this.lastArchiveAt = manifest.archivedAt;
-            this.lastArchiveMissingAssets = missingAssetCount;
-            console.log(`[FortniteSprites] Archived ${previousSeason.displayName} before switching to ${nextSeason.displayName}: ${variants.length - missingAssetCount}/${variants.length} artwork assets frozen.`);
-            if (missingAssetCount > 0) {
-                console.warn(`[FortniteSprites] ${previousSeason.displayName} archive retained remote URLs for ${missingAssetCount} artwork assets.`);
-            }
-        } catch (error) {
-            await fs.promises.rm(stagingPath, { recursive: true, force: true }).catch(() => { });
-            throw error;
+        this.lastArchivedSeason = previousSeason.displayName;
+        this.lastArchiveAt = result.manifest.archivedAt;
+        this.lastArchiveMissingAssets = result.manifest.missingAssetCount;
+        console.log(`[FortniteSprites] ${result.created ? "Archived" : "Verified archive for"} ${previousSeason.displayName} before switching to ${nextSeason.displayName}: ${result.manifest.spriteCount - result.manifest.missingAssetCount}/${result.manifest.spriteCount} artwork assets frozen.`);
+        if (result.manifest.missingAssetCount > 0) {
+            console.warn(`[FortniteSprites] ${previousSeason.displayName} archive retained remote URLs for ${result.manifest.missingAssetCount} artwork assets.`);
         }
     }
 
-    private async syncLatestSprites(
+    private syncLatestSprites(
         telemetryOrigin: SpriteTelemetryOrigin = BACKGROUND_TELEMETRY_ORIGIN,
         trigger: SpriteSyncTrigger = "startup"
     ): Promise<SpriteSyncResult> {
-        if (this.isSyncingSprites) {
-            return {
-                changed: false,
-                syncedAt: this.lastSuccessfulSyncAt || new Date().toISOString()
-            };
-        }
+        if (this.spriteSyncPromise) return this.spriteSyncPromise;
+
+        const syncPromise = this.performSpriteSync(telemetryOrigin, trigger);
+        const trackedPromise = syncPromise.finally(() => {
+            if (this.spriteSyncPromise === trackedPromise) this.spriteSyncPromise = null;
+        });
+        this.spriteSyncPromise = trackedPromise;
+        return trackedPromise;
+    }
+
+    private async performSpriteSync(
+        telemetryOrigin: SpriteTelemetryOrigin,
+        trigger: SpriteSyncTrigger
+    ): Promise<SpriteSyncResult> {
         this.isSyncingSprites = true;
         const syncStartedAt = Date.now();
         const dataFingerprintBefore = this.getCatalogDataFingerprint();
@@ -1538,38 +1512,33 @@ export class FortniteSprites {
         let changed = false;
 
         try {
-            latest = await fetchSpriteData(150, undefined, this._data?.seasonContext);
-            const nextHistory = updateSpriteHistory(this.spriteHistory, latest);
-            const enrichedLatest = applySpriteHistory(latest, nextHistory);
-            const latestJson = stableSpriteDataJson(enrichedLatest);
             const existingData = this.readSpriteDataBaseline();
             const existingJson = existingData.json;
-            const normalizeFetchedAt = (json: string) => json.replace(/"fetchedAt":\s*"[^"]+"/, '"fetchedAt": ""');
-            changeSummary = this.summarizeSpriteCatalogChanges(existingJson, enrichedLatest);
-
             const previousData = this.parseSpriteDataForTelemetry(existingJson);
-            const previousSeasonId = previousData?.seasonContext?.id || this.getLegacySeasonContext().id;
-            if (previousData && latest.seasonContext?.id && previousSeasonId !== latest.seasonContext.id) {
-                // Freeze the last known old-season snapshot before the new
-                // catalog can replace it or its asset cache can be pruned.
-                await this.archivePreviousSeasonSnapshot(
-                    previousData,
-                    existingJson,
-                    dataFingerprintBefore,
-                    latest.seasonContext
-                );
-            }
+            const syncResult = await syncSpriteCatalog({
+                existingData: previousData,
+                existingJson,
+                history: this.spriteHistory,
+                legacySeasonContext: this.getLegacySeasonContext(),
+                fetchLatest: () => fetchSpriteData(150, undefined, this._data?.seasonContext),
+                archivePrevious: ({ previousData: archiveData, previousJson, previousDataFingerprint, nextSeason }) => this.archivePreviousSeasonSnapshot(
+                    archiveData,
+                    previousJson,
+                    previousDataFingerprint || dataFingerprintBefore,
+                    nextSeason
+                ),
+                backupHistory: history => AUTO_SPRITE_ARCHIVE_ENABLED ? backupSpriteHistory(history) : Promise.resolve(),
+                persistHistory: history => this.writeSpriteHistory(history),
+                persistData: json => this.persistSpriteData(json),
+                existingDataFingerprint: dataFingerprintBefore
+            });
+            latest = syncResult.data;
+            changeSummary = this.summarizeSpriteCatalogChanges(existingJson, latest);
+            this.spriteHistory = syncResult.history;
+            changed = syncResult.changed;
 
-            // Install and persist history before reloading the catalog. Historical
-            // snapshots do not carry runtime availability fields on their own;
-            // loadData must apply this history during an automatic refresh.
-            this.spriteHistory = nextHistory;
-            this.writeSpriteHistory(nextHistory);
-
-            if (normalizeFetchedAt(latestJson) !== normalizeFetchedAt(existingJson)) {
-                this.persistSpriteData(latestJson);
+            if (changed) {
                 this.loadData();
-                changed = true;
                 console.log("[FortniteSprites] Sprite data cache updated.");
             } else {
                 if (PRODUCTION_RENDER_CACHE_ENABLED && existingData.path !== PERSISTED_SPRITE_DATA_PATH) {
@@ -1577,10 +1546,10 @@ export class FortniteSprites {
                     // is already current, so the next container can compare
                     // against the last known normalized catalog instead of the
                     // image layer.
-                    this.persistSpriteData(latestJson);
+                    this.persistSpriteData(syncResult.latestJson);
                 }
                 if (this._data) {
-                    this._data = applySpriteHistory(this._data, nextHistory);
+                    this._data = applySpriteHistory(this._data, syncResult.history);
                     this.buildSearchIndex();
                     // The scrape completed successfully, but the normalized
                     // catalog is unchanged. Keep the memory/deduplication caches
@@ -1631,6 +1600,7 @@ export class FortniteSprites {
             this.isSyncingSprites = false;
         }
     }
+
 
     private parseSpriteDataForTelemetry(json: string): SpriteDataFile | null {
         if (!json) return null;
@@ -2118,7 +2088,7 @@ export class FortniteSprites {
                 const queuedState = this.trackedSpriteMessages.get(state.messageId);
                 if (!queuedState || queuedState.viewVersion !== expectedVersion || queuedState.editToken !== expectedToken) return;
 
-                await message.edit({ ...response, content: "", attachments: [] } as any).catch((error) => {
+                await message.edit(buildTrackedSpriteMessageEditPayload(response) as any).catch((error) => {
                     console.warn(`[FortniteSprites] Failed to refresh tracked sprite message ${state.messageId}:`, error);
                 });
             });
@@ -2949,7 +2919,6 @@ export class FortniteSprites {
         if (this.isShuttingDown) {
             throw new Error("Sprite renderer is shutting down.");
         }
-        this.clearRenderBrowserIdleTimer();
         if (this.renderBrowserClosePromise) {
             await this.renderBrowserClosePromise.catch(() => { });
         }
@@ -2978,7 +2947,6 @@ export class FortniteSprites {
                 if (this.browserPromise === launchPromise) {
                     this.browserPromise = null;
                 }
-                this.clearRenderBrowserIdleTimer();
                 this.resetRenderPagePool(new Error("Sprite render browser disconnected."));
             });
             this.browser = browser;
@@ -3009,33 +2977,49 @@ export class FortniteSprites {
         ].find(candidate => fs.existsSync(candidate));
     }
 
-    private clearRenderBrowserIdleTimer() {
-        if (!this.renderBrowserIdleTimer) return;
-        clearTimeout(this.renderBrowserIdleTimer);
-        this.renderBrowserIdleTimer = undefined;
-    }
-
     private renderPagesAreIdle() {
         return this.pendingRenderPageAcquires.length === 0
             && this.renderPagePool.length === this.liveRenderPages.size;
     }
 
-    private scheduleRenderBrowserIdleClose() {
-        if (this.isShuttingDown || this.renderBrowserClosePromise || !this.browser || !this.renderPagesAreIdle()) return;
+    private async closeRenderBrowserAfterRenderGeneration() {
+        if (!this.browser && !this.browserPromise && this.liveRenderPages.size === 0) {
+            this.renderBrowserCloseAfterPreRender = false;
+            return;
+        }
 
-        this.clearRenderBrowserIdleTimer();
-        this.renderBrowserIdleTimer = setTimeout(() => {
-            this.renderBrowserIdleTimer = undefined;
-            if (!this.renderPagesAreIdle() || !this.browser) return;
-            void this.closeRenderBrowser("idle").catch((error) => {
-                console.warn("[FortniteSprites] Failed to close idle Chromium render browser:", error?.message || error);
-            });
-        }, RENDER_BROWSER_IDLE_TIMEOUT_MS);
-        this.renderBrowserIdleTimer.unref?.();
+        const waitUntil = Date.now() + RENDER_CLEANUP_TIMEOUT_MS;
+        while (this.browser && !this.renderPagesAreIdle() && Date.now() < waitUntil) {
+            await new Promise(resolve => setTimeout(resolve, 50));
+        }
+        if (!this.renderPagesAreIdle()) {
+            this.renderBrowserCloseAfterPreRender = true;
+            console.warn("[FortniteSprites] Leaving Chromium open after sprite pre-render because an interaction still owns a render page.");
+            return;
+        }
+        this.renderBrowserCloseAfterPreRender = false;
+        await this.closeRenderBrowser("pre-render").catch((error) => {
+            console.warn("[FortniteSprites] Failed to close Chromium after sprite pre-render:", error?.message || error);
+        });
     }
 
-    private async closeRenderBrowser(reason: "idle" | "shutdown" | "render recovery") {
-        this.clearRenderBrowserIdleTimer();
+    private closePendingPreRenderBrowserIfIdle() {
+        if (!this.renderBrowserCloseAfterPreRender
+            || this.renderGenerationPromise
+            || this.renderBrowserClosePromise
+            || !this.renderPagesAreIdle()) return;
+        if (!this.browser && !this.browserPromise) {
+            this.renderBrowserCloseAfterPreRender = false;
+            return;
+        }
+
+        this.renderBrowserCloseAfterPreRender = false;
+        void this.closeRenderBrowser("pre-render").catch((error) => {
+            console.warn("[FortniteSprites] Failed to close Chromium after the final pre-render page was released:", error?.message || error);
+        });
+    }
+
+    private async closeRenderBrowser(reason: "pre-render" | "shutdown" | "render recovery") {
         if (this.renderBrowserClosePromise) {
             await this.renderBrowserClosePromise;
             return;
@@ -3046,6 +3030,7 @@ export class FortniteSprites {
         const pages = Array.from(this.liveRenderPages);
         const waiters = this.pendingRenderPageAcquires.splice(0);
 
+        this.renderBrowserCloseAfterPreRender = false;
         this.browser = null;
         this.browserPromise = null;
         this.renderPagePool.splice(0);
@@ -3638,7 +3623,6 @@ export class FortniteSprites {
     }
 
     private async resetRenderPagePool(error: Error) {
-        this.clearRenderBrowserIdleTimer();
         const pooledPages = this.renderPagePool.splice(0);
         this.liveRenderPages.clear();
         this.renderPageUses.clear();
@@ -3707,14 +3691,27 @@ export class FortniteSprites {
         this.renderPageUses.delete(page);
         const closed = await this.closeRenderPageWithTimeout(page, "disposing render page");
         if (!closed) {
-            // A renderer that cannot close is unsafe to return to the pool. The
-            // browser is the only reliable recovery boundary for a stuck CDP
-            // session, so replace the whole browser before the next retry.
-            await this.closeRenderBrowser("render recovery").catch((error) => {
-                console.warn("[FortniteSprites] Failed to recover stuck Chromium browser:", error?.message || error);
-            });
+            // A renderer that cannot close is unsafe to return to the pool.
+            // During pre-render, defer the browser-level cleanup until the
+            // job's finalizer so the queue does not pay a restart penalty for
+            // every bad page. Normal interactive renders can still recover
+            // immediately.
+            if (this.renderGenerationPromise) {
+                console.warn("[FortniteSprites] Render page could not close; deferring Chromium cleanup until pre-render completes.");
+            } else {
+                await this.closeRenderBrowser("render recovery").catch((error) => {
+                    console.warn("[FortniteSprites] Failed to recover stuck Chromium browser:", error?.message || error);
+                });
+            }
         }
-        this.scheduleRenderBrowserIdleClose();
+        // A disposed page cannot satisfy a queued acquire. Reject one waiter
+        // so its acquire loop can retry against a replacement page instead of
+        // leaving the queue permanently pending.
+        if (this.pendingRenderPageAcquires.length > 0) {
+            const waiter = this.pendingRenderPageAcquires.shift();
+            waiter?.reject(new Error("Sprite render page was disposed."));
+        }
+        this.closePendingPreRenderBrowserIfIdle();
     }
 
     private onRenderPageClosed(page: Page) {
@@ -3725,7 +3722,7 @@ export class FortniteSprites {
             const waiter = this.pendingRenderPageAcquires.shift();
             waiter?.reject(new Error("Sprite render page closed."));
         }
-        this.scheduleRenderBrowserIdleClose();
+        this.closePendingPreRenderBrowserIfIdle();
     }
 
     private markRenderPageAcquired(page: Page) {
@@ -3742,7 +3739,6 @@ export class FortniteSprites {
         if (this.isShuttingDown) {
             throw new Error("Sprite renderer is shutting down.");
         }
-        this.clearRenderBrowserIdleTimer();
         if (this.renderBrowserClosePromise) {
             await this.renderBrowserClosePromise.catch(() => { });
         }
@@ -3797,10 +3793,7 @@ export class FortniteSprites {
                 console.log(`[FortniteSprites] Recycling Chromium render page after ${uses} renders.`);
             }
             await this.disposeRenderPage(page);
-            if (this.pendingRenderPageAcquires.length > 0) {
-                const waiter = this.pendingRenderPageAcquires.shift();
-                waiter?.reject(new Error("Sprite render page was disposed."));
-            }
+            this.closePendingPreRenderBrowserIfIdle();
             return;
         }
 
@@ -3811,7 +3804,7 @@ export class FortniteSprites {
         }
 
         this.renderPagePool.push(page);
-        this.scheduleRenderBrowserIdleClose();
+        this.closePendingPreRenderBrowserIfIdle();
     }
 
     private async resolveSpriteImageSrc(
@@ -4029,14 +4022,15 @@ export class FortniteSprites {
         const page = await this.acquireRenderPage();
         if (telemetry) telemetry.pageQueueWaitMs = wasQueued ? Math.max(0, Date.now() - pageAcquireStartedAt) : 0;
         let pageHealthy = true;
+        let recyclePage = false;
         try {
             await this.withRenderTimeout("setting page headers", () => page.setExtraHTTPHeaders({
                 "Referer": "https://fortnite.gg/",
                 "Accept-Language": "en-US,en;q=0.9"
             }));
             await this.withRenderTimeout("setting page viewport", () => page.setViewport({ width, height, deviceScaleFactor }));
-            // Fully reset the document between renders. This keeps Chromium's
-            // memory and renderer state bounded during long pre-render runs.
+            // Fully reset the document between renders while keeping the same
+            // page/browser alive for the current pre-render job.
             await this.withRenderTimeout(
                 "loading render document",
                 () => page.setContent(html, { waitUntil: "load", timeout: 15000 })
@@ -4062,7 +4056,7 @@ export class FortniteSprites {
                 telemetry.chromiumMemoryBytes = await this.readChromiumProcessMemoryBytes();
                 if (telemetry.chromiumMemoryBytes !== null
                     && telemetry.chromiumMemoryBytes >= RENDER_BROWSER_MEMORY_RECYCLE_THRESHOLD_BYTES) {
-                    pageHealthy = false;
+                    recyclePage = true;
                     console.warn(`[FortniteSprites] Chromium render memory reached ${Math.round(telemetry.chromiumMemoryBytes / 1024 / 1024)} MiB; recycling the render page.`);
                 }
             }
@@ -4075,8 +4069,10 @@ export class FortniteSprites {
             await this.disposeRenderPage(page);
             throw error;
         } finally {
-            if (pageHealthy) {
+            if (pageHealthy && !recyclePage) {
                 await this.releaseRenderPage(page);
+            } else if (pageHealthy && recyclePage) {
+                await this.disposeRenderPage(page);
             }
         }
     }

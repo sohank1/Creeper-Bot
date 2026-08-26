@@ -2,7 +2,7 @@ node_modules
 .env
 dist
 .cache
-# Runtime archives stay on the VPS; the immutable S3 seed is shipped with the bot.
+# Runtime archives stay on persistent storage; the optional second copy is a VPS bind mount.
 sprite-archives/*
 !sprite-archives/**/
 !sprite-archives/**/*.json
