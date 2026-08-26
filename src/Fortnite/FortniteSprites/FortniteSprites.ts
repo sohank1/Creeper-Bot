@@ -316,6 +316,7 @@ const SPRITE_IMAGE_PREWARM_CONCURRENCY = 2;
 const RENDER_GENERATION_DELAY_MS = 250;
 const RENDER_GENERATION_RETRY_LIMIT = 2;
 const RENDER_PROTOCOL_TIMEOUT_MS = 30 * 1000;
+const RENDER_CLEANUP_TIMEOUT_MS = 5 * 1000;
 const SPRITE_ASSET_SYNC_COOLDOWN_MS = 5 * 60 * 1000;
 const AUTO_SPRITE_ARCHIVE_ENABLED = PRODUCTION_RENDER_CACHE_ENABLED || Boolean(process.env.FORTNITE_SPRITE_ARCHIVE_DIR);
 
@@ -3023,7 +3024,7 @@ export class FortniteSprites {
         this.renderBrowserIdleTimer.unref?.();
     }
 
-    private async closeRenderBrowser(reason: "idle" | "shutdown") {
+    private async closeRenderBrowser(reason: "idle" | "shutdown" | "render recovery") {
         this.clearRenderBrowserIdleTimer();
         if (this.renderBrowserClosePromise) {
             await this.renderBrowserClosePromise;
@@ -3050,13 +3051,20 @@ export class FortniteSprites {
                 : null;
             const browsers = Array.from(new Set([browser, launchedBrowser].filter((value): value is Browser => !!value)));
 
-            await Promise.all(pages.map(async (page) => {
-                if (page.isClosed()) return;
-                await page.close().catch(() => { });
-            }));
+            await Promise.all(pages.map((page) => this.closeRenderPageWithTimeout(page, `closing render page (${reason})`)));
             await Promise.all(browsers.map(async (openBrowser) => {
                 if (!this.isBrowserConnected(openBrowser)) return;
-                await openBrowser.close().catch(() => { });
+                try {
+                    await this.withRenderTimeout(
+                        `closing Chromium browser (${reason})`,
+                        () => openBrowser.close(),
+                        RENDER_CLEANUP_TIMEOUT_MS
+                    );
+                } catch (error) {
+                    console.warn(`[FortniteSprites] Chromium browser close timed out during ${reason}; terminating it:`, error?.message || error);
+                    const child = openBrowser.process?.();
+                    if (child && !child.killed) child.kill("SIGKILL");
+                }
             }));
             console.log(`[FortniteSprites] Closed Chromium render browser (${reason}).`);
         })();
@@ -3630,10 +3638,42 @@ export class FortniteSprites {
             waiter.reject(error);
         }
 
-        await Promise.all(pooledPages.map(async (page) => {
-            if (page.isClosed()) return;
-            await page.close().catch(() => { });
-        }));
+        await Promise.all(pooledPages.map((page) => this.closeRenderPageWithTimeout(page, "resetting render page pool")));
+    }
+
+    private async withRenderTimeout<T>(
+        stage: string,
+        operation: () => Promise<T>,
+        timeoutMs = RENDER_PROTOCOL_TIMEOUT_MS
+    ): Promise<T> {
+        let timer: NodeJS.Timeout | undefined;
+        const timeout = new Promise<never>((_, reject) => {
+            timer = setTimeout(() => {
+                reject(new Error(`Sprite render ${stage} timed out after ${timeoutMs}ms.`));
+            }, timeoutMs);
+            timer.unref?.();
+        });
+
+        try {
+            return await Promise.race([
+                Promise.resolve().then(operation),
+                timeout
+            ]);
+        } finally {
+            if (timer) clearTimeout(timer);
+        }
+    }
+
+    private async closeRenderPageWithTimeout(page: Page, stage: string): Promise<boolean> {
+        if (page.isClosed()) return true;
+
+        try {
+            await this.withRenderTimeout(stage, () => page.close(), RENDER_CLEANUP_TIMEOUT_MS);
+            return true;
+        } catch (error) {
+            console.warn(`[FortniteSprites] ${stage} failed:`, error?.message || error);
+            return false;
+        }
     }
 
     private isRenderPageReusable(page: Page) {
@@ -3655,8 +3695,14 @@ export class FortniteSprites {
         this.removeRenderPageFromPool(page);
         this.liveRenderPages.delete(page);
         this.renderPageUses.delete(page);
-        if (!page.isClosed()) {
-            await page.close().catch(() => { });
+        const closed = await this.closeRenderPageWithTimeout(page, "disposing render page");
+        if (!closed) {
+            // A renderer that cannot close is unsafe to return to the pool. The
+            // browser is the only reliable recovery boundary for a stuck CDP
+            // session, so replace the whole browser before the next retry.
+            await this.closeRenderBrowser("render recovery").catch((error) => {
+                console.warn("[FortniteSprites] Failed to recover stuck Chromium browser:", error?.message || error);
+            });
         }
         this.scheduleRenderBrowserIdleClose();
     }
@@ -3974,15 +4020,18 @@ export class FortniteSprites {
         if (telemetry) telemetry.pageQueueWaitMs = wasQueued ? Math.max(0, Date.now() - pageAcquireStartedAt) : 0;
         let pageHealthy = true;
         try {
-            await page.setExtraHTTPHeaders({
+            await this.withRenderTimeout("setting page headers", () => page.setExtraHTTPHeaders({
                 "Referer": "https://fortnite.gg/",
                 "Accept-Language": "en-US,en;q=0.9"
-            });
-            await page.setViewport({ width, height, deviceScaleFactor });
+            }));
+            await this.withRenderTimeout("setting page viewport", () => page.setViewport({ width, height, deviceScaleFactor }));
             // Fully reset the document between renders. This keeps Chromium's
             // memory and renderer state bounded during long pre-render runs.
-            await page.setContent(html, { waitUntil: "load", timeout: 15000 });
-            await page.evaluate(async () => {
+            await this.withRenderTimeout(
+                "loading render document",
+                () => page.setContent(html, { waitUntil: "load", timeout: 15000 })
+            );
+            await this.withRenderTimeout("waiting for render fonts and images", () => page.evaluate(async () => {
                 await (document as any).fonts?.ready;
                 const images = Array.from(document.images || []);
                 await Promise.all(images.map(async img => {
@@ -3992,8 +4041,11 @@ export class FortniteSprites {
                         img.addEventListener("error", resolve, { once: true });
                     });
                 }));
-            });
-            const screenshot = Buffer.from(await page.screenshot({ type: "png" }));
+            }));
+            const screenshot = Buffer.from(await this.withRenderTimeout(
+                "capturing render screenshot",
+                () => page.screenshot({ type: "png" })
+            ));
             if (telemetry) {
                 telemetry.renderedPixels = Math.max(1, Math.round(width * deviceScaleFactor))
                     * Math.max(1, Math.round(height * deviceScaleFactor));
