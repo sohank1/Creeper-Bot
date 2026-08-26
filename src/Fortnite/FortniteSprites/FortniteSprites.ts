@@ -316,6 +316,7 @@ const SPRITE_IMAGE_PREWARM_CONCURRENCY = 2;
 const RENDER_GENERATION_DELAY_MS = 250;
 const RENDER_GENERATION_RETRY_LIMIT = 2;
 const RENDER_PROTOCOL_TIMEOUT_MS = 30 * 1000;
+const RENDER_GENERATION_TASK_TIMEOUT_MS = 60 * 1000;
 const RENDER_CLEANUP_TIMEOUT_MS = 5 * 1000;
 const SPRITE_ASSET_SYNC_COOLDOWN_MS = 5 * 60 * 1000;
 const AUTO_SPRITE_ARCHIVE_ENABLED = PRODUCTION_RENDER_CACHE_ENABLED || Boolean(process.env.FORTNITE_SPRITE_ARCHIVE_DIR);
@@ -586,13 +587,22 @@ export class FortniteSprites {
                         : task.label;
                     const taskStartedAt = Date.now();
                     try {
-                        const rendered = await task.render();
+                        const rendered = await this.withRenderTimeout(
+                            `render task ${task.label}`,
+                            () => task.render(),
+                            RENDER_GENERATION_TASK_TIMEOUT_MS
+                        );
                         progress.completed++;
                         progress.renderedBytes += rendered.byteLength;
                     } catch (error) {
                         progress.failed++;
                         failedTarget.push(task);
                         console.warn(`[FortniteSprites] Failed to pre-render ${task.label} (attempt ${attempt}):`, error);
+                        if (error instanceof Error && error.message.includes("timed out after")) {
+                            await this.closeRenderBrowser("render recovery").catch((recoveryError) => {
+                                console.warn("[FortniteSprites] Failed to recover after render task timeout:", recoveryError?.message || recoveryError);
+                            });
+                        }
                     }
                     progress.lastTaskDurationMs = Math.max(0, Date.now() - taskStartedAt);
                     progress.taskDurationMs += progress.lastTaskDurationMs;
