@@ -247,6 +247,9 @@ const RARITY_CSS_COLORS: Record<SpriteRarity, string> = {
     special: "var(--rarity-special)"
 };
 const RENDER_PAGE_POOL_SIZE = 2;
+const RENDER_PAGE_MAX_USES = 24;
+const RENDER_BROWSER_IDLE_TIMEOUT_MS = 60 * 1000;
+const RENDER_BROWSER_MEMORY_RECYCLE_THRESHOLD_BYTES = 1536 * 1024 * 1024;
 const MAX_RENDERED_IMAGE_CACHE_BYTES = 96 * 1024 * 1024;
 const MAX_SPRITE_ASSET_CACHE_BYTES = 32 * 1024 * 1024;
 const SPRITE_IMAGE_PREWARM_CONCURRENCY = 2;
@@ -296,7 +299,11 @@ export class FortniteSprites {
     private browserPromise: Promise<Browser> | null = null;
     private renderPagePool: Page[] = [];
     private liveRenderPages = new Set<Page>();
+    private renderPageUses = new Map<Page, number>();
     private pendingRenderPageAcquires: PendingRenderPageAcquire[] = [];
+    private renderBrowserIdleTimer?: NodeJS.Timeout;
+    private renderBrowserClosePromise: Promise<void> | null = null;
+    private isShuttingDown = false;
     private runtimeRefreshPromise: Promise<void> | null = null;
     private activeRefreshGeneration: number | null = null;
     private refreshGenerationCounter = 0;
@@ -360,6 +367,7 @@ export class FortniteSprites {
     }
 
     public startProductionRenderGeneration(reason = "startup build") {
+        if (this.isShuttingDown) return;
         if (!PRODUCTION_RENDER_CACHE_ENABLED) {
             console.log("[FortniteSprites] Production render cache is disabled outside Linux production.");
             return;
@@ -386,6 +394,26 @@ export class FortniteSprites {
         }
 
         this.launchRenderGeneration(runId, reason);
+    }
+
+    public async shutdown() {
+        if (this.isShuttingDown) {
+            await this.renderBrowserClosePromise;
+            return;
+        }
+
+        this.isShuttingDown = true;
+        this.renderGenerationRevision++;
+        if (this.renderGenerationProgressTimer) {
+            clearInterval(this.renderGenerationProgressTimer);
+            this.renderGenerationProgressTimer = undefined;
+        }
+        if (this.refreshTimer) {
+            clearInterval(this.refreshTimer);
+            this.refreshTimer = undefined;
+        }
+
+        await this.closeRenderBrowser("shutdown");
     }
 
     private launchRenderGeneration(runId: number, reason: string) {
@@ -972,6 +1000,13 @@ export class FortniteSprites {
             spriteAssetBytes: this.spriteAssetCacheBytes,
             pendingImageRenders: this.pendingImageRenders.size,
             pendingAssetLoads: this.pendingSpriteAssetLoads.size,
+            renderBrowser: {
+                connected: this.isBrowserConnected(this.browser),
+                livePages: this.liveRenderPages.size,
+                pooledPages: this.renderPagePool.length,
+                idleCloseScheduled: !!this.renderBrowserIdleTimer,
+                closeInProgress: !!this.renderBrowserClosePromise
+            },
             productionRenderCacheEnabled: PRODUCTION_RENDER_CACHE_ENABLED,
             renderGeneration: this.renderGenerationProgress,
             lastSuccessfulSyncAt: this.lastSuccessfulSyncAt,
@@ -2596,6 +2631,13 @@ export class FortniteSprites {
 
 
     private async getBrowser(): Promise<Browser> {
+        if (this.isShuttingDown) {
+            throw new Error("Sprite renderer is shutting down.");
+        }
+        this.clearRenderBrowserIdleTimer();
+        if (this.renderBrowserClosePromise) {
+            await this.renderBrowserClosePromise.catch(() => { });
+        }
         if (this.isBrowserConnected(this.browser)) return this.browser as Browser;
         if (this.browserPromise) return this.browserPromise;
 
@@ -2621,6 +2663,7 @@ export class FortniteSprites {
                 if (this.browserPromise === launchPromise) {
                     this.browserPromise = null;
                 }
+                this.clearRenderBrowserIdleTimer();
                 this.resetRenderPagePool(new Error("Sprite render browser disconnected."));
             });
             this.browser = browser;
@@ -2649,6 +2692,79 @@ export class FortniteSprites {
             "/usr/bin/chromium-browser",
             "/snap/bin/chromium"
         ].find(candidate => fs.existsSync(candidate));
+    }
+
+    private clearRenderBrowserIdleTimer() {
+        if (!this.renderBrowserIdleTimer) return;
+        clearTimeout(this.renderBrowserIdleTimer);
+        this.renderBrowserIdleTimer = undefined;
+    }
+
+    private renderPagesAreIdle() {
+        return this.pendingRenderPageAcquires.length === 0
+            && this.renderPagePool.length === this.liveRenderPages.size;
+    }
+
+    private scheduleRenderBrowserIdleClose() {
+        if (this.isShuttingDown || this.renderBrowserClosePromise || !this.browser || !this.renderPagesAreIdle()) return;
+
+        this.clearRenderBrowserIdleTimer();
+        this.renderBrowserIdleTimer = setTimeout(() => {
+            this.renderBrowserIdleTimer = undefined;
+            if (!this.renderPagesAreIdle() || !this.browser) return;
+            void this.closeRenderBrowser("idle").catch((error) => {
+                console.warn("[FortniteSprites] Failed to close idle Chromium render browser:", error?.message || error);
+            });
+        }, RENDER_BROWSER_IDLE_TIMEOUT_MS);
+        this.renderBrowserIdleTimer.unref?.();
+    }
+
+    private async closeRenderBrowser(reason: "idle" | "shutdown") {
+        this.clearRenderBrowserIdleTimer();
+        if (this.renderBrowserClosePromise) {
+            await this.renderBrowserClosePromise;
+            return;
+        }
+
+        const browser = this.browser;
+        const pendingBrowserLaunch = this.browserPromise;
+        const pages = Array.from(this.liveRenderPages);
+        const waiters = this.pendingRenderPageAcquires.splice(0);
+
+        this.browser = null;
+        this.browserPromise = null;
+        this.renderPagePool.splice(0);
+        this.liveRenderPages.clear();
+        this.renderPageUses.clear();
+        for (const waiter of waiters) {
+            waiter.reject(new Error(`Sprite render browser closed (${reason}).`));
+        }
+
+        const closePromise = (async () => {
+            const launchedBrowser = pendingBrowserLaunch
+                ? await pendingBrowserLaunch.catch(() => null)
+                : null;
+            const browsers = Array.from(new Set([browser, launchedBrowser].filter((value): value is Browser => !!value)));
+
+            await Promise.all(pages.map(async (page) => {
+                if (page.isClosed()) return;
+                await page.close().catch(() => { });
+            }));
+            await Promise.all(browsers.map(async (openBrowser) => {
+                if (!this.isBrowserConnected(openBrowser)) return;
+                await openBrowser.close().catch(() => { });
+            }));
+            console.log(`[FortniteSprites] Closed Chromium render browser (${reason}).`);
+        })();
+
+        this.renderBrowserClosePromise = closePromise;
+        try {
+            await closePromise;
+        } finally {
+            if (this.renderBrowserClosePromise === closePromise) {
+                this.renderBrowserClosePromise = null;
+            }
+        }
     }
 
     private clearRenderCaches() {
@@ -3202,8 +3318,10 @@ export class FortniteSprites {
     }
 
     private async resetRenderPagePool(error: Error) {
+        this.clearRenderBrowserIdleTimer();
         const pooledPages = this.renderPagePool.splice(0);
         this.liveRenderPages.clear();
+        this.renderPageUses.clear();
 
         const waiters = this.pendingRenderPageAcquires.splice(0);
         for (const waiter of waiters) {
@@ -3234,18 +3352,26 @@ export class FortniteSprites {
     private async disposeRenderPage(page: Page) {
         this.removeRenderPageFromPool(page);
         this.liveRenderPages.delete(page);
+        this.renderPageUses.delete(page);
         if (!page.isClosed()) {
             await page.close().catch(() => { });
         }
+        this.scheduleRenderBrowserIdleClose();
     }
 
     private onRenderPageClosed(page: Page) {
         this.removeRenderPageFromPool(page);
+        this.renderPageUses.delete(page);
         const wasTracked = this.liveRenderPages.delete(page);
         if (wasTracked && this.pendingRenderPageAcquires.length > 0) {
             const waiter = this.pendingRenderPageAcquires.shift();
             waiter?.reject(new Error("Sprite render page closed."));
         }
+        this.scheduleRenderBrowserIdleClose();
+    }
+
+    private markRenderPageAcquired(page: Page) {
+        this.renderPageUses.set(page, (this.renderPageUses.get(page) || 0) + 1);
     }
 
     private waitForRenderPage(): Promise<Page> {
@@ -3255,10 +3381,19 @@ export class FortniteSprites {
     }
 
     private async acquireRenderPage(): Promise<Page> {
+        if (this.isShuttingDown) {
+            throw new Error("Sprite renderer is shutting down.");
+        }
+        this.clearRenderBrowserIdleTimer();
+        if (this.renderBrowserClosePromise) {
+            await this.renderBrowserClosePromise.catch(() => { });
+        }
+
         while (true) {
             while (this.renderPagePool.length > 0) {
                 const pooledPage = this.renderPagePool.pop()!;
                 if (this.isRenderPageReusable(pooledPage)) {
+                    this.markRenderPageAcquired(pooledPage);
                     return pooledPage;
                 }
                 await this.disposeRenderPage(pooledPage);
@@ -3271,6 +3406,7 @@ export class FortniteSprites {
                     const page = await browser.newPage();
                     this.liveRenderPages.add(page);
                     page.on("close", () => this.onRenderPageClosed(page));
+                    this.markRenderPageAcquired(page);
                     return page;
                 } catch (error) {
                     if (!this.isBrowserConnected(browser)) {
@@ -3286,7 +3422,9 @@ export class FortniteSprites {
             }
 
             try {
-                return await this.waitForRenderPage();
+                const page = await this.waitForRenderPage();
+                this.markRenderPageAcquired(page);
+                return page;
             } catch {
                 continue;
             }
@@ -3294,7 +3432,12 @@ export class FortniteSprites {
     }
 
     private async releaseRenderPage(page: Page) {
-        if (!this.liveRenderPages.has(page) || !this.isRenderPageReusable(page)) {
+        const uses = this.renderPageUses.get(page) || 0;
+        const shouldRecycle = uses >= RENDER_PAGE_MAX_USES;
+        if (!this.liveRenderPages.has(page) || !this.isRenderPageReusable(page) || shouldRecycle) {
+            if (shouldRecycle) {
+                console.log(`[FortniteSprites] Recycling Chromium render page after ${uses} renders.`);
+            }
             await this.disposeRenderPage(page);
             if (this.pendingRenderPageAcquires.length > 0) {
                 const waiter = this.pendingRenderPageAcquires.shift();
@@ -3310,6 +3453,7 @@ export class FortniteSprites {
         }
 
         this.renderPagePool.push(page);
+        this.scheduleRenderBrowserIdleClose();
     }
 
     private async resolveSpriteImageSrc(
@@ -3552,6 +3696,11 @@ export class FortniteSprites {
                 telemetry.renderedPixels = Math.max(1, Math.round(width * deviceScaleFactor))
                     * Math.max(1, Math.round(height * deviceScaleFactor));
                 telemetry.chromiumMemoryBytes = await this.readChromiumProcessMemoryBytes();
+                if (telemetry.chromiumMemoryBytes !== null
+                    && telemetry.chromiumMemoryBytes >= RENDER_BROWSER_MEMORY_RECYCLE_THRESHOLD_BYTES) {
+                    pageHealthy = false;
+                    console.warn(`[FortniteSprites] Chromium render memory reached ${Math.round(telemetry.chromiumMemoryBytes / 1024 / 1024)} MiB; recycling the render page.`);
+                }
             }
             return screenshot;
         } catch (error) {

@@ -1,3 +1,5 @@
+# syntax=docker/dockerfile:1
+
 FROM node:22-bookworm
 
 RUN apt-get update \
@@ -12,7 +14,8 @@ WORKDIR /app
 
 COPY package.json package-lock.json ./
 ENV PUPPETEER_SKIP_DOWNLOAD=true
-RUN npm ci
+RUN --mount=type=cache,id=creeper-bot-npm,target=/root/.npm,sharing=locked \
+    npm ci --prefer-offline --no-audit --no-fund
 
 COPY . .
 RUN git config --global --add safe.directory /app

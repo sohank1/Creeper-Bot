@@ -56,6 +56,26 @@ app.listen(port, () => {
 
   // const client = new Client({ restTimeOffset: 30, intents: new Intents(32767) });
   const client = new Client({ restTimeOffset: 75, intents: new Intents(["GUILDS", "GUILD_MESSAGES", "GUILD_MEMBERS",]) });
+  let fortniteSprites: FortniteSprites | null = null;
+  let shutdownPromise: Promise<void> | null = null;
+  const shutdown = (reason: string) => {
+    if (!shutdownPromise) {
+      shutdownPromise = (async () => {
+        console.log(`[Shutdown] Cleaning up Creeper Bot (${reason}).`);
+        await fortniteSprites?.shutdown().catch((error) => {
+          console.warn("[Shutdown] Failed to clean up Fortnite sprite renderer:", error?.message || error);
+        });
+        client.destroy();
+      })();
+    }
+    return shutdownPromise;
+  };
+  process.once("SIGTERM", () => {
+    void shutdown("SIGTERM").finally(() => process.exit(0));
+  });
+  process.once("SIGINT", () => {
+    void shutdown("SIGINT").finally(() => process.exit(0));
+  });
   console.log("about to log in")
   client.login(process.env.NODE_ENV == 'production' ? process.env.BOT_TOKEN : process.env.DEV_BOT_TOKEN)
     .then(() => console.log("Discord login successful"))
@@ -128,7 +148,7 @@ app.listen(port, () => {
       new ShopSectionsTracker(client)
       new FortniteCosmetics(client)
       new FortniteMap(client)
-      const fortniteSprites = new FortniteSprites(client, loggedOnMessage)
+      fortniteSprites = new FortniteSprites(client, loggedOnMessage)
       new FortniteSpriteCard(client)
       new MissingCosmetics(client)
       fortniteSprites.startProductionRenderGeneration();
@@ -501,8 +521,8 @@ I ASKED.`)
 
         if (process.env.NODE_ENV === 'production') {
           await message.channel.send('Instance is on **production**. Shutting down to stop counting from breaking...');
-          client.destroy();
-          process.exit();
+          await shutdown("c!shutdown");
+          process.exit(0);
         }
         else message.channel.send('Instance is on **development**. Did not shut down.');
       }
