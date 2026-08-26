@@ -701,7 +701,7 @@ import { version } from "../../index";
 import { platformChoices } from "../fortniteCommand";
 import * as cheerio from 'cheerio';
 import path from "path";
-import * as fs from "fs";
+import spriteData from "../FortniteSprites/spriteData.json";
 // 1. Import registerFont
 import { createCanvas, loadImage, registerFont, CanvasRenderingContext2D } from "@napi-rs/canvas/node-canvas";
 import { registerComponent } from "../../runtimeDiagnostics";
@@ -709,8 +709,14 @@ import { resolveCurrentFortniteSeason } from "../FortniteSprites/fortniteSeason"
 
 const loadingStr = "Loading more... <a:loading:1140700893898084382>";
 
+type LevelStats = {
+    perDay: Array<number | null>;
+    perWeek: Array<number | null>;
+    daysLeft: number | null;
+    weeksLeft: number | null;
+};
+
 export class FortniteStats {
-    private interaction: BaseCommandInteraction<CacheType>;
     private static memoryCachedSeasonEndDate: Date | null = null;
     private static memoryCacheLastFetchTime: number = 0;
     private lastStatsRequestAt: string | null = null;
@@ -725,8 +731,7 @@ export class FortniteStats {
             if (i.commandName !== "fortnite") return
             if (!i.options.get('username')) return
 
-            this.interaction = i;
-            return void this.getStats()
+            return void this.getStats(i)
         })
 
         this.client.on("interactionCreate", async (i) => {
@@ -747,28 +752,56 @@ export class FortniteStats {
         };
     }
 
+    private getPersistedSeasonEndDate(): Date | null {
+        const fallbackEndDate = new Date(spriteData?.seasonContext?.endsAt || "");
+        return !Number.isNaN(fallbackEndDate.getTime()) && fallbackEndDate.getTime() > Date.now()
+            ? fallbackEndDate
+            : null;
+    }
+
     private async fetchSeasonEndDate(): Promise<Date | null> {
         const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
         if (FortniteStats.memoryCachedSeasonEndDate && (Date.now() - FortniteStats.memoryCacheLastFetchTime) < CACHE_TTL_MS) {
             return FortniteStats.memoryCachedSeasonEndDate;
         }
 
+        // Use the persisted catalog first so a blocked/slow live page never
+        // delays the actual stats response. The next sprite catalog refresh
+        // updates this value for the following process run.
+        const fallbackEndDate = this.getPersistedSeasonEndDate();
+        if (fallbackEndDate) {
+            FortniteStats.memoryCachedSeasonEndDate = fallbackEndDate;
+            FortniteStats.memoryCacheLastFetchTime = Date.now();
+            return fallbackEndDate;
+        }
+
         try {
             const season = await resolveCurrentFortniteSeason();
-            if (!season.endsAt) return null;
+            if (season.endsAt) {
+                const parsedSeasonEndDate = new Date(season.endsAt);
 
-            const parsedSeasonEndDate = new Date(season.endsAt);
-            
-            if (Number.isNaN(parsedSeasonEndDate.getTime())) return null;
-            if (parsedSeasonEndDate.getTime() <= Date.now()) return null;
-
-            FortniteStats.memoryCachedSeasonEndDate = parsedSeasonEndDate;
-            FortniteStats.memoryCacheLastFetchTime = Date.now();
-            return parsedSeasonEndDate;
+                if (!Number.isNaN(parsedSeasonEndDate.getTime()) && parsedSeasonEndDate.getTime() > Date.now()) {
+                    FortniteStats.memoryCachedSeasonEndDate = parsedSeasonEndDate;
+                    FortniteStats.memoryCacheLastFetchTime = Date.now();
+                    return parsedSeasonEndDate;
+                }
+            }
         } catch (error) {
             console.warn("Failed to fetch Fortnite season end date from fortnite.gg.", error);
-            return null;
         }
+
+        // The live season source is useful for keeping this value current, but
+        // it must not take the stats command down when it is blocked or changes
+        // its markup. The sprite catalog is refreshed from the same season
+        // source and gives us a safe persisted fallback between refreshes.
+        const refreshedFallbackEndDate = this.getPersistedSeasonEndDate();
+        if (refreshedFallbackEndDate) {
+            FortniteStats.memoryCachedSeasonEndDate = refreshedFallbackEndDate;
+            FortniteStats.memoryCacheLastFetchTime = Date.now();
+            return refreshedFallbackEndDate;
+        }
+
+        return null;
     }
 
     private async formatSeasonEndDateForFooter(): Promise<string | null> {
@@ -784,135 +817,239 @@ export class FortniteStats {
         });
     }
 
-    private async getStats(): Promise<void> {
-        const username = <string>this.interaction.options.get('username').value
-        const platform = <string>this.interaction.options.get('platform')?.value || "epic"
+    private getStatsApiKey(): string {
+        const apiKey = process.env.FORTNITE_API_KEY?.trim();
+        if (!apiKey) {
+            throw new Error("Fortnite stats are unavailable because FORTNITE_API_KEY is not configured.");
+        }
+        return apiKey;
+    }
+
+    private fetchStats(username: string, platform: string) {
+        return axios.get("https://fortnite-api.com/v2/stats/br/v2", {
+            params: {
+                // The bot renders its own progress image; asking the provider
+                // to render another image only adds latency and another failure
+                // point to the stats request.
+                image: "none",
+                accountType: platform,
+                name: username,
+            },
+            headers: {
+                "content-type": "application/json",
+                "Authorization": this.getStatsApiKey(),
+            },
+            timeout: 20_000,
+        });
+    }
+
+    private createPlatformRow(username: string, platform: string, userId: string): MessageActionRow {
+        return new MessageActionRow().addComponents(
+            new MessageSelectMenu()
+                .setCustomId(`platform-select-username:${encodeURIComponent(username)}:authorId:${userId}`)
+                .addOptions(platformChoices.map(opt => {
+                    const [emoji, label] = opt.name.split(">");
+                    return {
+                        label: label?.trim() || opt.value,
+                        emoji: emoji ? `${emoji}>` : undefined,
+                        value: opt.value,
+                        ...(opt.value === platform && { default: true }),
+                    };
+                })),
+        );
+    }
+
+    private getErrorMessage(error: any): string {
+        if (error?.response?.status === 401) return "The Fortnite stats API key was rejected.";
+        if (error?.response?.status === 403) return "The Fortnite stats API denied this request.";
+        return error?.response?.data?.error || error?.message || String(error) || "Unknown error";
+    }
+
+    private shouldOfferPlatformChoice(error: any): boolean {
+        const status = error?.response?.status;
+        return status === 400 || status === 404;
+    }
+
+    private async respondWithError(
+        interaction: BaseCommandInteraction<CacheType> | SelectMenuInteraction<CacheType>,
+        content: string,
+        components: MessageActionRow[] = [],
+    ): Promise<void> {
+        const payload = { content, components };
+        if (interaction.replied || interaction.deferred) {
+            await interaction.editReply(payload);
+        } else {
+            await interaction.reply(payload);
+        }
+    }
+
+    private formatStat(value: unknown, suffix = ""): string {
+        if (value === null || value === undefined || value === "") return "No data";
+        if (typeof value === "number" && !Number.isFinite(value)) return "No data";
+        return `${value}${suffix}`;
+    }
+
+    private formatDate(value: unknown): string {
+        if (!value) return "No data";
+        const date = new Date(String(value));
+        if (Number.isNaN(date.getTime())) return "No data";
+        return date.toLocaleString("en-US", { timeZone: "America/New_York" });
+    }
+
+    private createStatsEmbed(data: any, userId: string, attachment: MessageAttachment | null): MessageEmbed {
+        const account = data?.account || {};
+        const overall = data?.stats?.all?.overall || {};
+        const battlePass = data?.battlePass || {};
+        const level = Number(battlePass.level);
+        const progress = Number(battlePass.progress);
+        const battlePassLevel = Number.isFinite(level)
+            ? `${level}${Number.isFinite(progress) ? `.${progress}` : ""}`
+            : "No data";
+        const minutesPlayed = Number(overall.minutesPlayed);
+        const daysPlayed = Number.isFinite(minutesPlayed) ? (minutesPlayed / 1440).toFixed(1) : null;
+
+        const embed = new MessageEmbed({ footer: { text: version } })
+            .setTitle(`Fortnite stats for ${account.name || "player"}`)
+            .addField("Battle Pass Level", battlePassLevel)
+            .addField("Wins", this.formatStat(overall.wins), true)
+            .addField("KD", this.formatStat(overall.kd), true)
+            .addField("Win Rate", this.formatStat(overall.winRate, "%"), true)
+            .addField("Matches", this.formatStat(overall.matches), true)
+            .addField("Kills", this.formatStat(overall.kills), true)
+            .addField("Days Played", this.formatStat(daysPlayed), true)
+            .addField("Last Update", this.formatDate(overall.lastModified))
+            .setColor("#2186DB")
+            .setTimestamp();
+
+        if (attachment) embed.setImage("attachment://progress.png");
+
+        if ((userId === "481158632008974337" || userId === "539928835953524757") && account.id) {
+            embed.addField("ID", account.id);
+        }
+
+        return embed;
+    }
+
+    private async getStats(interaction: BaseCommandInteraction<CacheType>): Promise<void> {
+        const username = String(interaction.options.get("username")?.value || "").trim();
+        const platform = String(interaction.options.get("platform")?.value || "epic");
 
         try {
-            if (!this.interaction.replied) {
-                await this.interaction.reply({ content: loadingStr });
+            if (!interaction.replied) {
+                await interaction.reply({ content: loadingStr });
             }
 
-            const r = await axios.get(`https://fortnite-api.com/v2/stats/br/v2?image=all&accountType=${platform}&name=${username}`, {
-                headers: {
-                    'content-type': "application/json",
-                    'Authorization': process.env.FORTNITE_API_KEY
-                }
-            });
+            const response = await this.fetchStats(username, platform);
+            const data = response.data?.data;
+            if (!data) throw new Error("Fortnite stats API returned no player data.");
+
             this.statsRequestsHandled++;
             this.lastStatsRequestAt = new Date().toISOString();
             this.lastStatsError = null;
 
-            // 2. Pass data to generator
-            const attachment = await this.generateProgressAttachment(r.data.data);
-
-            const e = new MessageEmbed({ footer: { text: version } })
-                .setTitle(`Fortnite stats for ${r.data.data.account.name}` || "No data");
-
-            const userId = this.interaction.user.id;
-            (userId === "481158632008974337" || userId == "539928835953524757") && e.addField("ID", r.data.data.account.id);
-
-            // 3. Clean Embed (Image Only)
-            e.setImage(`attachment://progress.png`)
-            e.addField("Battle Pass Level", `${r.data.data.battlePass.level}.${r.data.data.battlePass.progress}` || "No data")
-                .setImage(`attachment://progress.png`)
-                .addField("Wins", String(r.data.data.stats.all.overall.wins) || "No data", true)
-                .addField("KD", String(r.data.data.stats.all.overall.kd) || "No data", true)
-                .addField("Win Rate", String(r.data.data.stats.all.overall.winRate + "%") || "No data", true)
-                .addField("Matches", String(r.data.data.stats.all.overall.matches) || "No data", true)
-                .addField("Kills", String(r.data.data.stats.all.overall.kills) || "No data", true)
-                .addField("Days Played", String((r.data.data.stats.all.overall.minutesPlayed / 1440).toFixed(1)) || "No data", true)
-                .addField("Last Update", new Date(r.data.data.stats.all.overall.lastModified).toLocaleString("en-US", { timeZone: "America/New_York" }) || "No data")
-                .setColor("#2186DB")
-                .setTimestamp();
-
-            const seasonFooter = await this.formatSeasonEndDateForFooter();
-            if (seasonFooter) {
-                e.setFooter({ text: `${version} | Season ends: ${seasonFooter}` });
+            // The progress card is helpful, but it is not allowed to prevent
+            // the actual player stats from being returned.
+            let attachment: MessageAttachment | null = null;
+            try {
+                attachment = await this.generateProgressAttachment(data);
+            } catch (error) {
+                console.warn("Failed to render Fortnite stats progress card.", error);
             }
 
-            await this.interaction.editReply({ embeds: [e], files: [attachment], content: " " });
-            this.updateWithRanks(this.interaction, e, r.data.data.account.name);
+            const embed = this.createStatsEmbed(data, interaction.user.id, attachment);
+            const seasonFooter = await this.formatSeasonEndDateForFooter();
+            if (seasonFooter) {
+                embed.setFooter({ text: `${version} | Season ends: ${seasonFooter}` });
+            }
 
-        } catch (e) {
-            this.lastStatsError = e?.response?.data?.error || e?.message || String(e);
-            console.log(e.response?.status || e);
-            const row = new MessageActionRow().addComponents(
-                new MessageSelectMenu()
-                    .setCustomId(`platform-select-username:${username}:authorId:${this.interaction.user.id}`)
-                    .addOptions(platformChoices.map(opt => {
-                        return {
-                            label: opt.name.split(">")[1],
-                            emoji: opt.name.split(">")[0],
-                            value: opt.value,
-                            ...(opt.value === platform && { default: true })
-                        }
-                    })),
-            )
-
-            await this.interaction.editReply({
-                content: `Error: "${e.response?.data?.error || "Unknown error"}"\n\nDid you specify the correct platform?`,
-                components: [row]
+            await interaction.editReply({
+                embeds: [embed],
+                files: attachment ? [attachment] : [],
+                content: " ",
             });
+            void this.updateWithRanks(interaction, embed, data.account?.name || username);
+        } catch (error) {
+            this.lastStatsError = this.getErrorMessage(error);
+            console.log(error?.response?.status || error);
+
+            const components = this.shouldOfferPlatformChoice(error)
+                ? [this.createPlatformRow(username, platform, interaction.user.id)]
+                : [];
+            await this.respondWithError(
+                interaction,
+                `Error: "${this.getErrorMessage(error)}"${components.length ? "\n\nDid you specify the correct platform?" : ""}`,
+                components,
+            );
         }
     }
 
     private async handlePlatformSelect(i: SelectMenuInteraction<CacheType>): Promise<void> {
-        const username = i.customId.split(":")[1]
-        const platform = i.values[0]
-
-        i.component.options.splice(i.component.options.findIndex(o => o.default), 1);
-        i.component.options.splice(i.component.options.findIndex(o => o.value === platform), 1);
-        i.component.options = i.component.options.map((e) => ({ ...e, default: false }))
-        i.component.placeholder = "";
+        const encodedUsername = i.customId.split(":")[1] || "";
+        let username = encodedUsername;
+        try {
+            username = decodeURIComponent(encodedUsername);
+        } catch {
+            // Keep the raw value for buttons created by an older bot version.
+        }
+        const platform = String(i.values[0] || "epic");
 
         try {
             await i.update({ content: loadingStr, components: [] });
 
-            const r = await axios.get(`https://fortnite-api.com/v2/stats/br/v2?image=all&accountType=${platform}&name=${username}`, {
-                headers: { 'content-type': "application/json", 'Authorization': process.env.FORTNITE_API_KEY }
-            });
+            const response = await this.fetchStats(username, platform);
+            const data = response.data?.data;
+            if (!data) throw new Error("Fortnite stats API returned no player data.");
+
             this.statsRequestsHandled++;
             this.lastStatsRequestAt = new Date().toISOString();
             this.lastStatsError = null;
 
-            const attachment = await this.generateProgressAttachment(r.data.data);
-
-            const e = new MessageEmbed({ footer: { text: version } })
-                .setTitle(`Fortnite stats for ${r.data.data.account.name}`)
-                .setImage(`attachment://progress.png`)
-                .addField("Battle Pass Level", `${r.data.data.battlePass.level}.${r.data.data.battlePass.progress}` || "No data")
-                .setImage(`attachment://progress.png`)
-                .addField("Wins", String(r.data.data.stats.all.overall.wins) || "No data", true)
-                .addField("KD", String(r.data.data.stats.all.overall.kd) || "No data", true)
-                .addField("Win Rate", String(r.data.data.stats.all.overall.winRate + "%") || "No data", true)
-                .addField("Matches", String(r.data.data.stats.all.overall.matches) || "No data", true)
-                .addField("Kills", String(r.data.data.stats.all.overall.kills) || "No data", true)
-                .addField("Days Played", String((r.data.data.stats.all.overall.minutesPlayed / 1440).toFixed(1)) || "No data", true)
-                .addField("Last Update", new Date(r.data.data.stats.all.overall.lastModified).toLocaleString("en-US", { timeZone: "America/New_York" }) || "No data")
-                .setColor("#2186DB")
-                .setTimestamp();
-
-            const seasonFooter = await this.formatSeasonEndDateForFooter();
-            if (seasonFooter) {
-                e.setFooter({ text: `${version} | Season ends: ${seasonFooter}` });
+            let attachment: MessageAttachment | null = null;
+            try {
+                attachment = await this.generateProgressAttachment(data);
+            } catch (error) {
+                console.warn("Failed to render Fortnite stats progress card.", error);
             }
 
-            await i.editReply({ embeds: [e], files: [attachment], content: " " });
-            this.updateWithRanks(i, e, r.data.data.account.name);
+            const embed = this.createStatsEmbed(data, i.user.id, attachment);
+            const seasonFooter = await this.formatSeasonEndDateForFooter();
+            if (seasonFooter) {
+                embed.setFooter({ text: `${version} | Season ends: ${seasonFooter}` });
+            }
 
-        } catch (e) {
-            this.lastStatsError = e?.response?.data?.error || e?.message || String(e);
             await i.editReply({
-                content: `Error: "${e.response?.data?.error}"\n\n`,
-                components: i.component.options.length === 0 ? [] : [new MessageActionRow().addComponents(new MessageSelectMenu(i.component))]
+                embeds: [embed],
+                files: attachment ? [attachment] : [],
+                content: " ",
             });
+            void this.updateWithRanks(i, embed, data.account?.name || username);
+
+        } catch (error) {
+            this.lastStatsError = this.getErrorMessage(error);
+            const components = this.shouldOfferPlatformChoice(error)
+                ? [this.createPlatformRow(username, platform, i.user.id)]
+                : [];
+            await this.respondWithError(
+                i,
+                `Error: "${this.getErrorMessage(error)}"${components.length ? "\n\nDid you specify the correct platform?" : ""}`,
+                components,
+            );
         }
     }
 
     private async updateWithRanks(i: BaseCommandInteraction<CacheType> | SelectMenuInteraction<CacheType>, e: MessageEmbed, name: string) {
         try {
-            const { data } = await axios.get(`http://api.scraperapi.com/?api_key=${process.env.SCRAPER_API_KEY}&render=true&url=https://fortnitetracker.com/profile/all/${name.replace(" ", "%20")}/competitive`);
+            const scraperApiKey = process.env.SCRAPER_API_KEY?.trim();
+            if (!scraperApiKey || !name) return;
+
+            const { data } = await axios.get("https://api.scraperapi.com/", {
+                params: {
+                    api_key: scraperApiKey,
+                    render: true,
+                    url: `https://fortnitetracker.com/profile/all/${encodeURIComponent(name)}/competitive`,
+                },
+                timeout: 20_000,
+            });
             const $ = cheerio.load(data)
             const modes: EmbedField[] = []
 
@@ -937,12 +1074,17 @@ export class FortniteStats {
         }
     }
 
-    private async calcDailyLevelsPerGoal(currentLevel: number): Promise<{ perDay: number[], perWeek: number[], daysLeft: number, weeksLeft: number }> {
+    private async calcDailyLevelsPerGoal(currentLevel: number): Promise<LevelStats> {
         const goals = [150, 200];
-        let seasonEndDate = await this.fetchSeasonEndDate();
+        const seasonEndDate = await this.fetchSeasonEndDate();
 
         if (!seasonEndDate) {
-            throw new Error("Missing cached Fortnite season end date.");
+            return {
+                perDay: goals.map(() => null),
+                perWeek: goals.map(() => null),
+                daysLeft: null,
+                weeksLeft: null,
+            };
         }
 
         const now = new Date();
@@ -960,7 +1102,6 @@ export class FortniteStats {
             return (goal - currentLevel) / weeksLeft;
         })
 
-        console.log({ perDay, perWeek, daysLeft, weeksLeft });
         return { perDay, perWeek, daysLeft, weeksLeft };
     }
 
@@ -976,7 +1117,7 @@ export class FortniteStats {
         ctx.closePath();
     }
 
-    private async generateProgressAttachment(data: any): Promise<MessageAttachment> {
+    private async generateProgressAttachment(data: any): Promise<MessageAttachment | null> {
         // --- 1. Register OPEN SANS Font ---
         try {
             registerFont(
@@ -988,8 +1129,12 @@ export class FortniteStats {
             console.log("Font error:", e);
         }
 
-        const bp = data.battlePass;
-        const currentLevel = bp.level + (bp.progress / 100);
+        const bp = data?.battlePass;
+        const level = Number(bp?.level);
+        if (!Number.isFinite(level)) return null;
+
+        const progress = Number(bp?.progress);
+        const currentLevel = level + (Number.isFinite(progress) ? progress / 100 : 0);
 
         // Compact Height (Battle Pass Only)
         const width = 700;
@@ -1025,7 +1170,6 @@ export class FortniteStats {
         const percent = Math.min(currentLevel / goal, 1);
         const levelStats = await this.calcDailyLevelsPerGoal(currentLevel);
         // --- 4. Text ---
-        let cursorY = 40;
         ctx.textBaseline = "bottom";
 
         // Level Label (Open Sans)
@@ -1082,20 +1226,25 @@ export class FortniteStats {
         };
 
         drawStat("Levels Left", `${Math.max(0, goal - currentLevel).toFixed(2)}`, 0);
-        drawStat("Days Left", `${levelStats.daysLeft}`, 130);
+        drawStat("Days Left", levelStats.daysLeft === null ? "N/A" : `${levelStats.daysLeft}`, 130);
 
         // Use index 0 (150) or 1 (200) depending on current goal
         const targetIndex = goal === 150 ? 0 : 1;
-        const val = levelStats.perDay[targetIndex]?.toFixed(2) || "0";
-        const difficultyColor = parseFloat(val) > 2.5 ? "#ED4245" : (parseFloat(val) > 1.5 ? "#FEE75C" : highlightColor);
+        const perDay = levelStats.perDay[targetIndex];
+        const val = perDay === null ? "N/A" : perDay.toFixed(2);
+        const difficultyColor = perDay === null
+            ? labelColor
+            : perDay > 2.5
+                ? "#ED4245"
+                : perDay > 1.5
+                    ? "#FEE75C"
+                    : highlightColor;
 
         drawStat(`Levels/Day REQ`, val, 260, difficultyColor);
-        drawStat(`Levels/Week`, levelStats.perWeek[targetIndex]?.toFixed(2) || "0", 410);
+        const perWeek = levelStats.perWeek[targetIndex];
+        drawStat(`Levels/Week`, perWeek === null ? "N/A" : perWeek.toFixed(2), 410, perWeek === null ? labelColor : valueColor);
 
         const buffer = canvas.toBuffer("image/png");
         return new MessageAttachment(buffer, "progress.png");
     }
 }
-
-
-
