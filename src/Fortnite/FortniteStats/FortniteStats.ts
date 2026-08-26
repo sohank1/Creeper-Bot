@@ -701,11 +701,13 @@ import { version } from "../../index";
 import { platformChoices } from "../fortniteCommand";
 import * as cheerio from 'cheerio';
 import path from "path";
+import * as fs from "fs";
 import spriteData from "../FortniteSprites/spriteData.json";
 // 1. Import registerFont
 import { createCanvas, loadImage, registerFont, CanvasRenderingContext2D } from "@napi-rs/canvas/node-canvas";
 import { registerComponent } from "../../runtimeDiagnostics";
-import { resolveCurrentFortniteSeason } from "../FortniteSprites/fortniteSeason";
+import { FortniteSeasonContext, resolveCurrentFortniteSeason } from "../FortniteSprites/fortniteSeason";
+import { getFortniteSeasonEmoji } from "../fortniteSeasonEmoji";
 
 const loadingStr = "Loading more... <a:loading:1140700893898084382>";
 
@@ -719,12 +721,15 @@ type LevelStats = {
 export class FortniteStats {
     private static memoryCachedSeasonEndDate: Date | null = null;
     private static memoryCacheLastFetchTime: number = 0;
+    private static memoryCachedSeasonContext: FortniteSeasonContext | null = null;
+    private static memorySeasonContextLastFetchTime: number = 0;
     private lastStatsRequestAt: string | null = null;
     private lastStatsError: string | null = null;
     private statsRequestsHandled = 0;
 
     constructor(private client: Client) {
         registerComponent("fortniteStats", this);
+        void this.fetchSeasonContext();
         void this.fetchSeasonEndDate();
         this.client.on("interactionCreate", (i) => {
             if (!i.isCommand()) return
@@ -752,8 +757,56 @@ export class FortniteStats {
         };
     }
 
+    private getPersistedSeasonContext(): FortniteSeasonContext | null {
+        const dataPaths = [
+            path.join(process.cwd(), ".cache", "fortnite-sprites", "spriteData.json"),
+            path.join(process.cwd(), "src", "Fortnite", "FortniteSprites", "spriteData.json")
+        ];
+
+        for (const dataPath of dataPaths) {
+            try {
+                if (!fs.existsSync(dataPath)) continue;
+                const parsed = JSON.parse(fs.readFileSync(dataPath, "utf8"));
+                const context = parsed?.seasonContext as FortniteSeasonContext | undefined;
+                if (context?.id && Number.isFinite(context.chapter) && context.season) return context;
+            } catch {
+                // Try the next persisted/bundled source.
+            }
+        }
+
+        return (spriteData?.seasonContext as FortniteSeasonContext | undefined) || null;
+    }
+
+    private async fetchSeasonContext(): Promise<FortniteSeasonContext | null> {
+        const CACHE_TTL_MS = 15 * 60 * 1000;
+        if (
+            FortniteStats.memoryCachedSeasonContext
+            && (Date.now() - FortniteStats.memorySeasonContextLastFetchTime) < CACHE_TTL_MS
+        ) {
+            return FortniteStats.memoryCachedSeasonContext;
+        }
+
+        try {
+            const season = await resolveCurrentFortniteSeason();
+            FortniteStats.memoryCachedSeasonContext = season;
+            FortniteStats.memorySeasonContextLastFetchTime = Date.now();
+            return season;
+        } catch (error) {
+            console.warn("Failed to fetch Fortnite season context from fortnite.gg.", error);
+        }
+
+        const fallbackContext = this.getPersistedSeasonContext();
+        if (fallbackContext) {
+            FortniteStats.memoryCachedSeasonContext = fallbackContext;
+            FortniteStats.memorySeasonContextLastFetchTime = Date.now();
+            return fallbackContext;
+        }
+
+        return null;
+    }
+
     private getPersistedSeasonEndDate(): Date | null {
-        const fallbackEndDate = new Date(spriteData?.seasonContext?.endsAt || "");
+        const fallbackEndDate = new Date(this.getPersistedSeasonContext()?.endsAt || "");
         return !Number.isNaN(fallbackEndDate.getTime()) && fallbackEndDate.getTime() > Date.now()
             ? fallbackEndDate
             : null;
@@ -804,17 +857,15 @@ export class FortniteStats {
         return null;
     }
 
-    private async formatSeasonEndDateForFooter(): Promise<string | null> {
-        const seasonEndDate = await this.fetchSeasonEndDate();
-        if (!seasonEndDate) return null;
+    private async formatSeasonForFooter(): Promise<string | null> {
+        const season = await this.fetchSeasonContext();
+        if (!season) return null;
 
-        return seasonEndDate.toLocaleDateString("en-US", {
-            weekday: "long",
-            month: "long",
-            day: "numeric",
-            year: "numeric",
-            timeZone: "America/New_York",
-        });
+        const seasonNumber = Number(season.season);
+        const emoji = Number.isFinite(seasonNumber)
+            ? getFortniteSeasonEmoji(season.chapter, seasonNumber)
+            : undefined;
+        return `${season.displayName}${emoji ? ` ${emoji}` : ""}`;
     }
 
     private getStatsApiKey(): string {
@@ -957,9 +1008,9 @@ export class FortniteStats {
             }
 
             const embed = this.createStatsEmbed(data, interaction.user.id, attachment);
-            const seasonFooter = await this.formatSeasonEndDateForFooter();
+            const seasonFooter = await this.formatSeasonForFooter();
             if (seasonFooter) {
-                embed.setFooter({ text: `${version} | Season ends: ${seasonFooter}` });
+                embed.setFooter({ text: `${version} | ${seasonFooter}` });
             }
 
             await interaction.editReply({
@@ -1012,9 +1063,9 @@ export class FortniteStats {
             }
 
             const embed = this.createStatsEmbed(data, i.user.id, attachment);
-            const seasonFooter = await this.formatSeasonEndDateForFooter();
+            const seasonFooter = await this.formatSeasonForFooter();
             if (seasonFooter) {
-                embed.setFooter({ text: `${version} | Season ends: ${seasonFooter}` });
+                embed.setFooter({ text: `${version} | ${seasonFooter}` });
             }
 
             await i.editReply({
