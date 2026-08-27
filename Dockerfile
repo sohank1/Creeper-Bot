@@ -6,6 +6,7 @@ RUN apt-get update \
     && apt-get install -y \
         chromium \
         fonts-liberation \
+        fonts-noto-color-emoji \
         ca-certificates \
         xdg-utils \
     && rm -rf /var/lib/apt/lists/*

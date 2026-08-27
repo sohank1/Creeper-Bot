@@ -707,7 +707,7 @@ import spriteData from "../FortniteSprites/spriteData.json";
 import { createCanvas, loadImage, registerFont, CanvasRenderingContext2D } from "@napi-rs/canvas/node-canvas";
 import { registerComponent } from "../../runtimeDiagnostics";
 import { FortniteSeasonContext, resolveCurrentFortniteSeason } from "../FortniteSprites/fortniteSeason";
-import { getFortniteSeasonEmoji } from "../fortniteSeasonEmoji";
+import { getFortniteSeasonEmoji, getFortniteSeasonEmojiAssetUrl } from "../fortniteSeasonEmoji";
 
 const loadingStr = "Loading more... <a:loading:1140700893898084382>";
 
@@ -718,11 +718,21 @@ type LevelStats = {
     weeksLeft: number | null;
 };
 
+type SeasonCardLabel = {
+    name: string;
+    emoji?: string;
+};
+
 export class FortniteStats {
     private static memoryCachedSeasonEndDate: Date | null = null;
     private static memoryCacheLastFetchTime: number = 0;
     private static memoryCachedSeasonContext: FortniteSeasonContext | null = null;
     private static memorySeasonContextLastFetchTime: number = 0;
+    private static seasonEmojiImageCache = new Map<string, ReturnType<typeof loadImage>>();
+    private static fortniteProfileImage: any | null = null;
+    private static fortniteProfileImageFetchedAt = 0;
+    private static fortniteProfileImageRefreshPromise: Promise<any | null> | null = null;
+    private static readonly fortniteProfileImageRefreshMs = 6 * 60 * 60 * 1000;
     private lastStatsRequestAt: string | null = null;
     private lastStatsError: string | null = null;
     private statsRequestsHandled = 0;
@@ -857,43 +867,46 @@ export class FortniteStats {
         return null;
     }
 
-    private formatSeasonEndDateForFooter(endAt: string | Date | null | undefined): string | null {
+    private getSeasonEndOrdinalSuffix(day: number): string {
+        if (day % 100 >= 11 && day % 100 <= 13) return "th";
+
+        switch (day % 10) {
+            case 1: return "st";
+            case 2: return "nd";
+            case 3: return "rd";
+            default: return "th";
+        }
+    }
+
+    private formatSeasonEndShort(endAt: string | Date | null | undefined): string | null {
         const endDate = endAt instanceof Date ? endAt : new Date(endAt || "");
         if (Number.isNaN(endDate.getTime())) return null;
 
-        return endDate.toLocaleDateString("en-US", {
-            weekday: "long",
-            month: "long",
+        const parts = new Intl.DateTimeFormat("en-US", {
+            month: "short",
             day: "numeric",
-            year: "numeric",
             timeZone: "America/New_York",
-        });
+        }).formatToParts(endDate);
+        const month = parts.find(part => part.type === "month")?.value;
+        const dayValue = parts.find(part => part.type === "day")?.value;
+        const day = Number(dayValue);
+        if (!month || !Number.isFinite(day)) return null;
+
+        return `ENDS ${month.toUpperCase()} ${day}${this.getSeasonEndOrdinalSuffix(day).toUpperCase()}`;
     }
 
-    private async formatSeasonForFooter(): Promise<string | null> {
-        const season = await this.fetchSeasonContext();
-        let seasonLabel: string | null = null;
-        if (season) {
-            const seasonNumber = Number(season.season);
-            const emoji = Number.isFinite(seasonNumber)
-                ? getFortniteSeasonEmoji(season.chapter, seasonNumber)
-                : undefined;
-            seasonLabel = `${season.displayName}${emoji ? ` ${emoji}` : ""}`;
-        }
+    private getSeasonCardLabel(season: FortniteSeasonContext | null): SeasonCardLabel | null {
+        if (!season?.displayName?.trim()) return null;
 
-        // Prefer the end date that belongs to the same live season context so
-        // a newly detected season cannot be paired with a stale prior date.
-        const liveEndDate = this.formatSeasonEndDateForFooter(season?.endsAt);
-        const fallbackEndDate = liveEndDate
-            ? null
-            : this.formatSeasonEndDateForFooter(await this.fetchSeasonEndDate());
-        const seasonEndLabel = liveEndDate || fallbackEndDate;
-        const footerParts = [
-            seasonLabel,
-            seasonEndLabel ? `Season ends: ${seasonEndLabel}` : null,
-        ].filter((part): part is string => !!part);
+        const seasonNumber = Number(season.season);
+        const emoji = Number.isFinite(seasonNumber)
+            ? getFortniteSeasonEmoji(season.chapter, seasonNumber)
+            : undefined;
 
-        return footerParts.length ? footerParts.join(" | ") : null;
+        return {
+            name: season.displayName.trim(),
+            ...(emoji ? { emoji } : {}),
+        };
     }
 
     private getStatsApiKey(): string {
@@ -1036,10 +1049,6 @@ export class FortniteStats {
             }
 
             const embed = this.createStatsEmbed(data, interaction.user.id, attachment);
-            const seasonFooter = await this.formatSeasonForFooter();
-            if (seasonFooter) {
-                embed.setFooter({ text: `${version} | ${seasonFooter}` });
-            }
 
             await interaction.editReply({
                 embeds: [embed],
@@ -1091,10 +1100,6 @@ export class FortniteStats {
             }
 
             const embed = this.createStatsEmbed(data, i.user.id, attachment);
-            const seasonFooter = await this.formatSeasonForFooter();
-            if (seasonFooter) {
-                embed.setFooter({ text: `${version} | ${seasonFooter}` });
-            }
 
             await i.editReply({
                 embeds: [embed],
@@ -1196,6 +1201,206 @@ export class FortniteStats {
         ctx.closePath();
     }
 
+    private fitText(ctx: CanvasRenderingContext2D, value: string, maxWidth: number): string {
+        if (ctx.measureText(value).width <= maxWidth) return value;
+
+        const ellipsis = "…";
+        let fitted = value;
+        while (fitted.length > 1 && ctx.measureText(`${fitted}${ellipsis}`).width > maxWidth) {
+            fitted = fitted.slice(0, -1);
+        }
+        return `${fitted}${ellipsis}`;
+    }
+
+    private async loadSeasonEmojiImage(emoji: string) {
+        const assetUrl = getFortniteSeasonEmojiAssetUrl(emoji);
+        let imagePromise = FortniteStats.seasonEmojiImageCache.get(assetUrl);
+        if (!imagePromise) {
+            imagePromise = loadImage(assetUrl);
+            FortniteStats.seasonEmojiImageCache.set(assetUrl, imagePromise);
+        }
+
+        try {
+            return await imagePromise;
+        } catch {
+            FortniteStats.seasonEmojiImageCache.delete(assetUrl);
+            return null;
+        }
+    }
+
+    private async resolveFortniteProfileImageUrl(): Promise<string | null> {
+        try {
+            const response = await axios.get("https://x.com/Fortnite", {
+                timeout: 15_000,
+                headers: {
+                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/125.0 Safari/537.36",
+                    Accept: "text/html,application/xhtml+xml",
+                },
+            });
+            const html = String(response.data)
+                .replace(/\\u002F/g, "/")
+                .replace(/\\\//g, "/");
+            const profileImageUrl = html.match(
+                /https?:\/\/pbs\.twimg\.com\/profile_images\/[^"'?\\\s]+/i,
+            )?.[0];
+            return profileImageUrl
+                ? profileImageUrl.replace(/_(?:normal|bigger|mini)\.(\w+)$/i, "_400x400.$1")
+                : null;
+        } catch {
+            return null;
+        }
+    }
+
+    private async fetchFortniteProfileImage() {
+        const liveProfileImageUrl = await this.resolveFortniteProfileImageUrl();
+        const imageSources = [
+            liveProfileImageUrl,
+            "https://unavatar.io/x/Fortnite",
+            path.join("assets", "fortnite-twitter-profile.png"),
+        ].filter((source): source is string => !!source);
+
+        for (const source of imageSources) {
+            try {
+                return await loadImage(source);
+            } catch {
+                // Try the next live/fallback source.
+            }
+        }
+        return null;
+    }
+
+    private async loadFortniteProfileImage() {
+        const now = Date.now();
+        const cacheIsFresh = FortniteStats.fortniteProfileImage
+            && now - FortniteStats.fortniteProfileImageFetchedAt < FortniteStats.fortniteProfileImageRefreshMs;
+        if (cacheIsFresh) return FortniteStats.fortniteProfileImage;
+
+        if (!FortniteStats.fortniteProfileImageRefreshPromise) {
+            FortniteStats.fortniteProfileImageRefreshPromise = this.fetchFortniteProfileImage()
+                .then(image => {
+                    if (image) {
+                        FortniteStats.fortniteProfileImage = image;
+                        FortniteStats.fortniteProfileImageFetchedAt = Date.now();
+                    }
+                    return image || FortniteStats.fortniteProfileImage;
+                })
+                .finally(() => {
+                    FortniteStats.fortniteProfileImageRefreshPromise = null;
+                });
+        }
+
+        return await FortniteStats.fortniteProfileImageRefreshPromise;
+    }
+
+    private async drawSeasonPill(
+        ctx: CanvasRenderingContext2D,
+        season: SeasonCardLabel,
+        x: number,
+        y: number,
+        maxWidth: number,
+    ): Promise<number> {
+        const labelFont = "800 18px 'OpenSans'";
+        const emojiFont = "20px 'Noto Color Emoji'";
+        const pillHeight = 66;
+        const profileImageSize = 50;
+        const pillPaddingLeft = 12;
+        const pillPaddingRight = 18;
+        const profileGap = 16;
+        const emojiSize = 27;
+        const emojiGap = 16;
+        const label = season.name.toUpperCase();
+        const [emojiImage, profileImage] = await Promise.all([
+            season.emoji ? this.loadSeasonEmojiImage(season.emoji) : Promise.resolve(null),
+            this.loadFortniteProfileImage(),
+        ]);
+        const emojiWidth = season.emoji ? emojiSize : 0;
+        const labelEmojiGap = season.emoji ? emojiGap : 0;
+        const fixedWidth = pillPaddingLeft
+            + profileImageSize
+            + profileGap
+            + labelEmojiGap
+            + emojiWidth
+            + pillPaddingRight;
+        const availableLabelWidth = Math.max(1, maxWidth - fixedWidth);
+
+        ctx.font = labelFont;
+        const fittedLabel = this.fitText(ctx, label, availableLabelWidth);
+        const labelWidth = ctx.measureText(fittedLabel).width;
+        const pillWidth = Math.min(
+            maxWidth,
+            fixedWidth + labelWidth,
+        );
+
+        // A quiet, token-like chip matching the sprites UI: neutral panel fill,
+        // restrained rule, the official Fortnite avatar, and the shared emoji asset.
+        ctx.fillStyle = "rgba(35, 40, 46, 0.12)";
+        this.roundRect(ctx, x, y, pillWidth, pillHeight, pillHeight / 2);
+        ctx.fill();
+        ctx.strokeStyle = "rgba(117, 130, 143, 0.45)";
+        ctx.lineWidth = 1.5;
+        this.roundRect(ctx, x, y, pillWidth, pillHeight, pillHeight / 2);
+        ctx.stroke();
+
+        const profileX = x + pillPaddingLeft;
+        const profileY = y + ((pillHeight - profileImageSize) / 2);
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(
+            profileX + (profileImageSize / 2),
+            profileY + (profileImageSize / 2),
+            profileImageSize / 2,
+            0,
+            Math.PI * 2,
+        );
+        ctx.clip();
+        if (profileImage) {
+            ctx.drawImage(profileImage, profileX, profileY, profileImageSize, profileImageSize);
+        } else {
+            ctx.fillStyle = "#3a424c";
+            ctx.fill();
+        }
+        ctx.restore();
+
+        ctx.textBaseline = "middle";
+        ctx.font = labelFont;
+        ctx.fillStyle = "#eef1f4";
+        ctx.textAlign = "left";
+        const labelX = x + pillPaddingLeft + profileImageSize + profileGap;
+        ctx.fillText(fittedLabel, labelX, y + (pillHeight / 2));
+
+        if (season.emoji) {
+            const emojiX = labelX + labelWidth + emojiGap;
+
+            if (emojiImage) {
+                ctx.drawImage(emojiImage, emojiX, y + ((pillHeight - emojiSize) / 2), emojiSize, emojiSize);
+            } else {
+                ctx.font = emojiFont;
+                ctx.fillStyle = "#ffffff";
+                ctx.fillText(season.emoji, emojiX, y + (pillHeight / 2) - 1);
+            }
+        }
+
+        return pillWidth;
+    }
+
+    private drawSeasonEndLabel(
+        ctx: CanvasRenderingContext2D,
+        label: string,
+        x: number,
+        y: number,
+        maxWidth: number,
+    ): void {
+        if (maxWidth <= 0) return;
+
+        const font = "800 18px 'OpenSans'";
+        ctx.font = font;
+        const fittedLabel = this.fitText(ctx, label, maxWidth);
+        ctx.textBaseline = "middle";
+        ctx.textAlign = "left";
+        ctx.fillStyle = "#ffffff";
+        ctx.fillText(fittedLabel, x, y);
+    }
+
     private async generateProgressAttachment(data: any): Promise<MessageAttachment | null> {
         // --- 1. Register OPEN SANS Font ---
         try {
@@ -1215,21 +1420,40 @@ export class FortniteStats {
         const progress = Number(bp?.progress);
         const currentLevel = level + (Number.isFinite(progress) ? progress / 100 : 0);
 
-        // Compact Height (Battle Pass Only)
-        const width = 700;
-        const height = 220;
-        const canvas = createCanvas(width, height);
+        const [season, levelStats] = await Promise.all([
+            this.fetchSeasonContext(),
+            this.calcDailyLevelsPerGoal(currentLevel),
+        ]);
+        const seasonCardLabel = this.getSeasonCardLabel(season);
+        const liveSeasonEndLabel = this.formatSeasonEndShort(season?.endsAt);
+        const seasonEndLabel = seasonCardLabel
+            ? liveSeasonEndLabel || this.formatSeasonEndShort(await this.fetchSeasonEndDate())
+            : null;
+
+        // Render at 2x so Discord can scale the existing card down without
+        // softening its Open Sans text or the season emoji.
+        const renderScale = 2;
+        const hasSeasonPill = !!seasonCardLabel;
+        const width = hasSeasonPill ? 840 : 760;
+        const height = hasSeasonPill ? 370 : 220;
+        const canvas = createCanvas(width * renderScale, height * renderScale);
         const ctx = canvas.getContext("2d");
+        ctx.scale(renderScale, renderScale);
 
         // Layout Constants
-        const contentX = 135;
-        const rightPadding = 40;
+        const contentX = hasSeasonPill ? 150 : 135;
+        const rightPadding = hasSeasonPill ? 46 : 40;
+        const levelLabelY = hasSeasonPill ? 92 : 55;
+        const levelValueY = hasSeasonPill ? 99 : 62;
+        const progressBarY = hasSeasonPill ? 115 : 75;
+        const statsY = hasSeasonPill ? 185 : 135;
+        const separatorY = hasSeasonPill ? 170 : 120;
 
         // Colors
         const bgColor = "#18191c";
-        const labelColor = "#72767d"; // Gray
-        const valueColor = "#ffffff"; // White
-        const highlightColor = "#43B581"; // Green
+        const labelColor = "#72767d";
+        const valueColor = "#ffffff";
+        const highlightColor = "#43B581";
 
         // Background
         ctx.fillStyle = bgColor;
@@ -1239,33 +1463,46 @@ export class FortniteStats {
         const imagePath = path.join("assets", "battle-pass.png");
         try {
             const icon = await loadImage(imagePath);
-            ctx.drawImage(icon, 25, 25, 85, 85);
+            ctx.drawImage(
+                icon,
+                hasSeasonPill ? 27 : 25,
+                hasSeasonPill ? 58 : 25,
+                hasSeasonPill ? 92 : 85,
+                hasSeasonPill ? 92 : 85,
+            );
         } catch (error) {
-            ctx.fillStyle = "#2f3136"; ctx.beginPath(); ctx.arc(67, 67, 42, 0, Math.PI * 2); ctx.fill();
+            const iconCenterX = hasSeasonPill ? 73 : 67;
+            const iconCenterY = hasSeasonPill ? 104 : 67;
+            const iconRadius = hasSeasonPill ? 46 : 42;
+            ctx.fillStyle = "#2f3136";
+            ctx.beginPath();
+            ctx.arc(iconCenterX, iconCenterY, iconRadius, 0, Math.PI * 2);
+            ctx.fill();
         }
 
         // --- 3. Logic ---
         const goal = currentLevel >= 130 ? 200 : 150;
         const percent = Math.min(currentLevel / goal, 1);
-        const levelStats = await this.calcDailyLevelsPerGoal(currentLevel);
+
         // --- 4. Text ---
         ctx.textBaseline = "bottom";
 
         // Level Label (Open Sans)
-        ctx.fillStyle = labelColor; ctx.font = "800 20px 'OpenSans'";
-        ctx.fillText("LEVEL", contentX, 55);
+        ctx.fillStyle = labelColor; ctx.font = "800 16px 'OpenSans'";
+        ctx.fillText("LEVEL", contentX, levelLabelY);
 
         // Level Value (Open Sans)
-        ctx.fillStyle = valueColor; ctx.font = "800  45px 'OpenSans'";
-        ctx.fillText(`${Math.floor(currentLevel)}`, contentX + 70, 58);
+        ctx.fillStyle = valueColor;
+        ctx.font = `800 ${hasSeasonPill ? 42 : 40}px 'OpenSans'`;
+        ctx.fillText(`${Math.floor(currentLevel)}`, contentX + (hasSeasonPill ? 68 : 66), levelValueY);
 
         // Goal (Open Sans)
-        ctx.textAlign = "right"; ctx.fillStyle = labelColor; ctx.font = "800  20px 'OpenSans'";
-        ctx.fillText(`GOAL ${goal}`, width - rightPadding, 55);
+        ctx.textAlign = "right"; ctx.fillStyle = labelColor; ctx.font = "800 18px 'OpenSans'";
+        ctx.fillText(`GOAL ${goal}`, width - rightPadding, levelLabelY);
 
         // --- 5. Progress Bar ---
         const barX = contentX;
-        const barY = 75;
+        const barY = progressBarY;
         const barWidth = width - contentX - rightPadding;
         const barHeight = 25;
         const radius = 12.5;
@@ -1286,13 +1523,13 @@ export class FortniteStats {
         }
 
         // --- 6. Stats Grid ---
-        const statBoxY = 135;
+        const statBoxY = statsY;
         ctx.textAlign = "left";
         ctx.textBaseline = "top";
 
         // Separator Line
         ctx.strokeStyle = "#2f3136"; ctx.lineWidth = 2;
-        ctx.beginPath(); ctx.moveTo(contentX, 120); ctx.lineTo(width - rightPadding, 120); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(contentX, separatorY); ctx.lineTo(width - rightPadding, separatorY); ctx.stroke();
 
         // Helper to draw columns
         const drawStat = (label: string, value: string, xOffset: number, color: string = "#ffffff") => {
@@ -1304,8 +1541,9 @@ export class FortniteStats {
             ctx.fillText(value, x, statBoxY + 25);
         };
 
-        drawStat("Levels Left", `${Math.max(0, goal - currentLevel).toFixed(2)}`, 0);
-        drawStat("Days Left", levelStats.daysLeft === null ? "N/A" : `${levelStats.daysLeft}`, 130);
+        const statOffsets = hasSeasonPill ? [0, 170, 340, 520] : [0, 145, 290, 435];
+        drawStat("Levels Left", `${Math.max(0, goal - currentLevel).toFixed(2)}`, statOffsets[0]);
+        drawStat("Days Left", levelStats.daysLeft === null ? "N/A" : `${levelStats.daysLeft}`, statOffsets[1]);
 
         // Use index 0 (150) or 1 (200) depending on current goal
         const targetIndex = goal === 150 ? 0 : 1;
@@ -1319,9 +1557,37 @@ export class FortniteStats {
                     ? "#FEE75C"
                     : highlightColor;
 
-        drawStat(`Levels/Day REQ`, val, 260, difficultyColor);
+        drawStat(`Levels/Day REQ`, val, statOffsets[2], difficultyColor);
         const perWeek = levelStats.perWeek[targetIndex];
-        drawStat(`Levels/Week`, perWeek === null ? "N/A" : perWeek.toFixed(2), 410, perWeek === null ? labelColor : valueColor);
+        drawStat(`Levels/Week`, perWeek === null ? "N/A" : perWeek.toFixed(2), statOffsets[3], perWeek === null ? labelColor : valueColor);
+
+        if (seasonCardLabel) {
+            const seasonEndGap = seasonEndLabel ? 24 : 0;
+            ctx.font = "800 18px 'OpenSans'";
+            const seasonEndWidth = seasonEndLabel ? ctx.measureText(seasonEndLabel).width : 0;
+            const seasonPillMaxWidth = Math.max(
+                1,
+                width - contentX - rightPadding - seasonEndGap - seasonEndWidth,
+            );
+            const seasonPillY = 286;
+            const seasonPillWidth = await this.drawSeasonPill(
+                ctx,
+                seasonCardLabel,
+                contentX,
+                seasonPillY,
+                seasonPillMaxWidth,
+            );
+            if (seasonEndLabel) {
+                const seasonEndX = contentX + seasonPillWidth + seasonEndGap;
+                this.drawSeasonEndLabel(
+                    ctx,
+                    seasonEndLabel,
+                    seasonEndX,
+                    seasonPillY + 33,
+                    width - rightPadding - seasonEndX,
+                );
+            }
+        }
 
         const buffer = canvas.toBuffer("image/png");
         return new MessageAttachment(buffer, "progress.png");

@@ -25,7 +25,7 @@ import https from "https";
 import { createCanvas, loadImage } from "@napi-rs/canvas";
 import { applySpriteHistory, fetchSpriteData, mergeSpriteCatalog, mergeSpriteHistories, sanitizeSpriteHistory, SpriteDataFile, SpriteFamily, SpriteHistoryFile, SpriteRarity, SpriteVariant, SpriteVariantName, updateSpriteHistory, validateSpriteData } from "./spriteDataSource";
 import { FortniteSeasonContext } from "./fortniteSeason";
-import { getFortniteSeasonEmoji } from "../fortniteSeasonEmoji";
+import { getFortniteSeasonEmoji, getFortniteSeasonEmojiAssetUrl } from "../fortniteSeasonEmoji";
 import { archiveSpriteSnapshot } from "./spriteArchive";
 import { backupSpriteArchive, backupSpriteHistory, getSpriteArchiveBackupDirectory, getSpriteArchiveBackupStatus } from "./spriteArchiveBackup";
 import { buildTrackedSpriteMessageEditPayload } from "./spriteMessage";
@@ -3148,6 +3148,7 @@ export class FortniteSprites {
             .update(JSON.stringify(RARITY_CSS_COLORS))
             .update(JSON.stringify(RARITY_HEX_COLORS))
             .update(getFortniteSeasonEmoji.toString())
+            .update(getFortniteSeasonEmojiAssetUrl.toString())
             .digest("hex");
     }
 
@@ -5556,11 +5557,7 @@ export class FortniteSprites {
     }
 
     private getSeasonEmojiAssetUrl(emoji: string) {
-        const codepoints = Array.from(emoji)
-            .map(character => character.codePointAt(0)?.toString(16))
-            .filter(Boolean)
-            .join("-");
-        return `https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/svg/${codepoints}.svg`;
+        return getFortniteSeasonEmojiAssetUrl(emoji);
     }
 
     private renderSeasonCard(details: { introducedSeasonId?: string; availableSeasonIds: string[] }) {
