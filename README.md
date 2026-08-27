@@ -44,7 +44,6 @@ Optional variables are only required for features that use them:
 - `FORTNITE_SPRITE_ARCHIVE_B2_PREFIX` (optional object prefix)
 - `FORTNITE_SPRITE_ARCHIVE_B2_API_URL` (optional Native API override)
 - `FORTNITE_SPRITE_ARCHIVE_ASSET_CONCURRENCY` (optional bootstrap download concurrency)
-- `SCRAPER_API_KEY`
 - `TWITTER_BEARER_TOKEN`
 
 Default runtime values in `.env.example`:

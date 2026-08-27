@@ -120,7 +120,6 @@
 
 // //     private async updateWithRanks(i: BaseCommandInteraction<CacheType> | SelectMenuInteraction<CacheType>, e: MessageEmbed, name: string) {
 // //         try {
-// //             const { data } = await axios.get(`http://api.scraperapi.com/?api_key=${process.env.SCRAPER_API_KEY}&render=true&url=https://fortnitetracker.com/profile/all/${name.replace(" ", "%20")}/competitive`);
 // //             const $ = cheerio.load(data)
 // //             const modes: EmbedField[] = []
 
@@ -510,7 +509,6 @@
 
 //     private async updateWithRanks(i: BaseCommandInteraction<CacheType> | SelectMenuInteraction<CacheType>, e: MessageEmbed, name: string) {
 //         try {
-//             const { data } = await axios.get(`http://api.scraperapi.com/?api_key=${process.env.SCRAPER_API_KEY}&render=true&url=https://fortnitetracker.com/profile/all/${name.replace(" ", "%20")}/competitive`);
 //             const $ = cheerio.load(data)
 //             const modes: EmbedField[] = []
 
@@ -699,7 +697,6 @@ import axios from "axios";
 import { BaseCommandInteraction, CacheType, Client, EmbedField, MessageActionRow, MessageAttachment, MessageEmbed, MessageSelectMenu, SelectMenuInteraction } from "discord.js";
 import { version } from "../../index";
 import { platformChoices } from "../fortniteCommand";
-import * as cheerio from 'cheerio';
 import path from "path";
 import * as fs from "fs";
 import spriteData from "../FortniteSprites/spriteData.json";
@@ -709,7 +706,8 @@ import { registerComponent } from "../../runtimeDiagnostics";
 import { FortniteSeasonContext, resolveCurrentFortniteSeason } from "../FortniteSprites/fortniteSeason";
 import { getFortniteSeasonEmoji, getFortniteSeasonEmojiAssetUrl } from "../fortniteSeasonEmoji";
 
-const loadingStr = "Loading more... <a:loading:1140700893898084382>";
+const rankedLoadingEmoji = "<a:loading:1140700893898084382>";
+const loadingStr = `Loading more... ${rankedLoadingEmoji}`;
 
 type LevelStats = {
     perDay: Array<number | null>;
@@ -722,6 +720,8 @@ type SeasonCardLabel = {
     name: string;
     emoji?: string;
 };
+
+type RankedProgressReporter = (progress: number, status: string) => Promise<void>;
 
 export class FortniteStats {
     private static memoryCachedSeasonEndDate: Date | null = null;
@@ -1121,40 +1121,129 @@ export class FortniteStats {
         }
     }
 
-    private async updateWithRanks(i: BaseCommandInteraction<CacheType> | SelectMenuInteraction<CacheType>, e: MessageEmbed, name: string) {
+    private getPuppeteerExecutablePath(): string | undefined {
+        const configuredPath = process.env.GOOGLE_CHROME_BIN || process.env.PUPPETEER_EXECUTABLE_PATH;
+        if (configuredPath) return configuredPath;
+        if (process.platform !== "linux") return undefined;
+
+        return [
+            "/usr/bin/chromium",
+            "/usr/bin/chromium-browser",
+            "/snap/bin/chromium",
+            "/usr/bin/google-chrome",
+        ].find(candidate => fs.existsSync(candidate));
+    }
+
+    private formatRankLoadingProgress(progress: number, status: string): string {
+        const normalizedProgress = Math.max(0, Math.min(100, Math.round(progress)));
+        const barLength = 12;
+        const filledLength = Math.round((normalizedProgress / 100) * barLength);
+        const progressBar = "█".repeat(filledLength) + "░".repeat(barLength - filledLength);
+        return `Loading ranked data... ${rankedLoadingEmoji} \`${progressBar}\` ${normalizedProgress}%\n${status}`;
+    }
+
+    private async reportRankLoadingProgress(
+        i: BaseCommandInteraction<CacheType> | SelectMenuInteraction<CacheType>,
+        progress: number,
+        status: string,
+    ): Promise<void> {
         try {
-            const scraperApiKey = process.env.SCRAPER_API_KEY?.trim();
-            if (!scraperApiKey || !name) return;
+            await i.editReply({ content: this.formatRankLoadingProgress(progress, status) });
+        } catch (error) {
+            // Ranked loading is supplementary; a message edit failure must not
+            // prevent the ranked fields or the main stats response from completing.
+            console.warn("Failed to update ranked loading progress.", error);
+        }
+    }
 
-            const { data } = await axios.get("https://api.scraperapi.com/", {
-                params: {
-                    api_key: scraperApiKey,
-                    render: true,
-                    url: `https://fortnitetracker.com/profile/all/${encodeURIComponent(name)}/competitive`,
-                },
-                timeout: 20_000,
+    private async fetchRankedModes(name: string, reportProgress?: RankedProgressReporter): Promise<EmbedField[]> {
+        const report = reportProgress || (async () => { });
+        await report(8, "Starting Chromium");
+        const puppeteer = await import("puppeteer");
+        const browser = await puppeteer.launch({
+            headless: true,
+            executablePath: this.getPuppeteerExecutablePath(),
+            timeout: 15_000,
+            protocolTimeout: 25_000,
+            args: ["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage"],
+        });
+
+        try {
+            await report(24, "Opening FortniteTracker");
+            const page = await browser.newPage();
+            page.setDefaultNavigationTimeout(20_000);
+            page.setDefaultTimeout(15_000);
+            await page.setViewport({ width: 1440, height: 1000, deviceScaleFactor: 1 });
+            await page.setExtraHTTPHeaders({
+                "Accept-Language": "en-US,en;q=0.9",
             });
-            const $ = cheerio.load(data)
-            const modes: EmbedField[] = []
+            await report(34, "Loading competitive profile");
+            await page.goto(
+                `https://fortnitetracker.com/profile/all/${encodeURIComponent(name)}/competitive`,
+                { waitUntil: "domcontentloaded", timeout: 20_000 },
+            );
+            await report(58, "Waiting for ranked stats");
+            await page.waitForSelector(".profile-ranks__container", { timeout: 15_000 });
+            await report(76, "Reading ranked stats");
 
-            $(".profile-ranks__container").each(function (i, el) {
-                modes.push({
-                    name: `Ranked - ${$(this).children(".profile-ranks__title").eq(0).text()}`,
-                    value: `${$(this).find(".profile-rank__name").eq(0).text()} - ${$(this).find(".profile-rank-progress").eq(0).text() || $(this).find(".profile-rank__rank--top").eq(0).text()}`,
-                    inline: false,
+            const rankedModes = await page.$$eval(".profile-ranks__container", containers => containers.map(container => {
+                const readText = (selector: string): string => {
+                    const element = container.querySelector(selector) as HTMLElement | null;
+                    return element?.innerText?.trim() || "";
+                };
+
+                return {
+                    title: readText(".profile-ranks__title"),
+                    rank: readText(".profile-rank__name"),
+                    progress: readText(".profile-rank-progress") || readText(".profile-rank__rank--top"),
+                };
+            }));
+            await report(92, "Preparing ranked fields");
+
+            const fields = rankedModes
+                .map(mode => {
+                    const title = mode.title || "Battle Royale";
+                    const value = [mode.rank, mode.progress].filter(Boolean).join(" - ");
+                    return value
+                        ? { name: `Ranked - ${title}`, value, inline: false }
+                        : null;
                 })
-            })
+                .filter((mode): mode is EmbedField => !!mode);
 
-            const winsIndex = e.fields.findIndex(f => f.name.includes("Wins"));
-            if (winsIndex !== -1) {
-                e.fields.splice(winsIndex, 0, ...modes);
-            } else {
-                e.addFields(modes);
+            await report(100, "Ranked stats ready");
+            return fields;
+        } finally {
+            await browser.close();
+        }
+    }
+
+    private async updateWithRanks(i: BaseCommandInteraction<CacheType> | SelectMenuInteraction<CacheType>, e: MessageEmbed, name: string) {
+        let loadingStarted = false;
+        try {
+            if (!name) return;
+
+            loadingStarted = true;
+            await this.reportRankLoadingProgress(i, 0, "Starting ranked lookup");
+            const modes = await this.fetchRankedModes(
+                name,
+                (progress, status) => this.reportRankLoadingProgress(i, progress, status),
+            );
+
+            if (modes.length) {
+                const winsIndex = e.fields.findIndex(f => f.name.includes("Wins"));
+                if (winsIndex !== -1) {
+                    e.fields.splice(winsIndex, 0, ...modes);
+                } else {
+                    e.addFields(modes);
+                }
             }
 
-            await i.editReply({ embeds: [e] })
         } catch (err) {
-            console.log("Failed to fetch rank", err)
+            console.log("Failed to fetch rank", err);
+        } finally {
+            if (loadingStarted) {
+                await i.editReply({ content: " ", embeds: [e] }).catch(() => { });
+            }
         }
     }
 

@@ -1,6 +1,6 @@
 {
   "name": "creeper-bot",
-  "version": "4.0.41",
+  "version": "4.0.42",
   "engines": {
     "node": "22.x"
   },
