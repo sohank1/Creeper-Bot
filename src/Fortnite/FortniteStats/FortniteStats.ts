@@ -723,6 +723,21 @@ type SeasonCardLabel = {
 
 type RankedProgressReporter = (progress: number, status: string) => Promise<void>;
 
+type RankedNetworkRequestProgress = {
+    expectedBytes: number;
+    loadedBytes: number;
+    settled: boolean;
+};
+
+type RankedApiMode = {
+    rankingType?: string;
+    currentDivision?: {
+        divisionName?: string;
+    } | null;
+    promotionProgress?: number | null;
+    currentPlayerRanking?: number | null;
+};
+
 export class FortniteStats {
     private static memoryCachedSeasonEndDate: Date | null = null;
     private static memoryCacheLastFetchTime: number = 0;
@@ -1055,7 +1070,12 @@ export class FortniteStats {
                 files: attachment ? [attachment] : [],
                 content: " ",
             });
-            void this.updateWithRanks(interaction, embed, data.account?.name || username);
+            void this.updateWithRanks(
+                interaction,
+                embed,
+                data.account?.name || username,
+                data.account?.id,
+            );
         } catch (error) {
             this.lastStatsError = this.getErrorMessage(error);
             console.log(error?.response?.status || error);
@@ -1106,7 +1126,12 @@ export class FortniteStats {
                 files: attachment ? [attachment] : [],
                 content: " ",
             });
-            void this.updateWithRanks(i, embed, data.account?.name || username);
+            void this.updateWithRanks(
+                i,
+                embed,
+                data.account?.name || username,
+                data.account?.id,
+            );
 
         } catch (error) {
             this.lastStatsError = this.getErrorMessage(error);
@@ -1156,9 +1181,9 @@ export class FortniteStats {
         }
     }
 
-    private async fetchRankedModes(name: string, reportProgress?: RankedProgressReporter): Promise<EmbedField[]> {
+    private async fetchRankedModesFromTracker(name: string, reportProgress?: RankedProgressReporter): Promise<EmbedField[]> {
         const report = reportProgress || (async () => { });
-        await report(8, "Starting Chromium");
+        await report(1, "Starting Chromium");
         const puppeteer = await import("puppeteer");
         const browser = await puppeteer.launch({
             headless: true,
@@ -1167,9 +1192,11 @@ export class FortniteStats {
             protocolTimeout: 25_000,
             args: ["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage"],
         });
+        let reportChain: Promise<void> = Promise.resolve();
+        let detachClient: (() => Promise<void>) | null = null;
 
         try {
-            await report(24, "Opening FortniteTracker");
+            await report(2, "Opening FortniteTracker");
             const page = await browser.newPage();
             page.setDefaultNavigationTimeout(20_000);
             page.setDefaultTimeout(15_000);
@@ -1177,28 +1204,167 @@ export class FortniteStats {
             await page.setExtraHTTPHeaders({
                 "Accept-Language": "en-US,en;q=0.9",
             });
-            await report(34, "Loading competitive profile");
-            await page.goto(
+
+            const client = await page.createCDPSession();
+            detachClient = () => client.detach().catch(() => { });
+            await client.send("Network.enable");
+
+            let totalRequests = 0;
+            let completedRequests = 0;
+            let activeRequests = 0;
+            let expectedBytes = 0;
+            let loadedBytes = 0;
+            let lastReportedProgress = 0;
+            let lastReportedAt = 0;
+            const networkRequests = new Map<string, RankedNetworkRequestProgress>();
+
+            const queueReport = (progress: number, status: string): Promise<void> => {
+                reportChain = reportChain.then(() => report(progress, status));
+                return reportChain;
+            };
+
+            const ensureNetworkRequest = (requestId: string): RankedNetworkRequestProgress => {
+                let request = networkRequests.get(requestId);
+                if (!request) {
+                    request = { expectedBytes: 0, loadedBytes: 0, settled: false };
+                    networkRequests.set(requestId, request);
+                    totalRequests++;
+                    activeRequests++;
+                }
+                return request;
+            };
+
+            const formatBytes = (bytes: number): string => {
+                if (bytes < 1024) return `${Math.round(bytes)} B`;
+                if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
+                return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+            };
+
+            const queueNetworkProgress = (force = false, statusOverride?: string): Promise<void> => {
+                const requestTotal = Math.max(totalRequests, completedRequests);
+                const requestRatio = requestTotal ? completedRequests / requestTotal : 0;
+                const byteRatio = expectedBytes
+                    ? Math.min(1, loadedBytes / expectedBytes)
+                    : requestRatio;
+                const measuredRatio = expectedBytes
+                    ? (byteRatio * 0.8) + (requestRatio * 0.2)
+                    : requestRatio;
+                const progress = Math.min(88, Math.max(3, Math.round(measuredRatio * 88)));
+                const now = Date.now();
+
+                if (!force && (now - lastReportedAt < 750 || progress < lastReportedProgress + 3)) {
+                    return reportChain;
+                }
+
+                lastReportedProgress = Math.max(lastReportedProgress, progress);
+                lastReportedAt = now;
+                const requestStatus = `${completedRequests}/${requestTotal} requests${activeRequests ? ` · ${activeRequests} active` : ""}`;
+                const byteStatus = loadedBytes ? ` · ${formatBytes(loadedBytes)}` : "";
+                return queueReport(
+                    progress,
+                    statusOverride || `Loading FortniteTracker page · ${requestStatus}${byteStatus}`,
+                );
+            };
+
+            client.on("Network.requestWillBeSent", (event: { requestId: string }) => {
+                ensureNetworkRequest(event.requestId);
+                void queueNetworkProgress();
+            });
+
+            client.on("Network.responseReceived", (event: {
+                requestId: string;
+                response: { headers?: Record<string, string> };
+            }) => {
+                const request = ensureNetworkRequest(event.requestId);
+                const contentLengthKey = Object.keys(event.response.headers || {})
+                    .find(key => key.toLowerCase() === "content-length");
+                const contentLength = Number(contentLengthKey ? event.response.headers?.[contentLengthKey] : 0);
+                if (Number.isFinite(contentLength) && contentLength > 0) {
+                    expectedBytes += contentLength - request.expectedBytes;
+                    request.expectedBytes = contentLength;
+                }
+                void queueNetworkProgress();
+            });
+
+            client.on("Network.dataReceived", (event: {
+                requestId: string;
+                dataLength: number;
+                encodedDataLength: number;
+            }) => {
+                const request = ensureNetworkRequest(event.requestId);
+                const receivedBytes = Math.max(
+                    0,
+                    Number(event.encodedDataLength) || Number(event.dataLength) || 0,
+                );
+                request.loadedBytes += receivedBytes;
+                loadedBytes += receivedBytes;
+                void queueNetworkProgress();
+            });
+
+            client.on("Network.loadingFinished", (event: {
+                requestId: string;
+                encodedDataLength: number;
+            }) => {
+                const request = ensureNetworkRequest(event.requestId);
+                if (request.settled) return;
+                request.settled = true;
+                const finalBytes = Math.max(0, Number(event.encodedDataLength) || 0);
+                if (finalBytes > request.loadedBytes) {
+                    loadedBytes += finalBytes - request.loadedBytes;
+                    request.loadedBytes = finalBytes;
+                }
+                completedRequests++;
+                activeRequests = Math.max(0, activeRequests - 1);
+                void queueNetworkProgress();
+            });
+
+            client.on("Network.loadingFailed", (event: { requestId: string }) => {
+                const request = ensureNetworkRequest(event.requestId);
+                if (request.settled) return;
+                request.settled = true;
+                completedRequests++;
+                activeRequests = Math.max(0, activeRequests - 1);
+                void queueNetworkProgress();
+            });
+
+            const response = await page.goto(
                 `https://fortnitetracker.com/profile/all/${encodeURIComponent(name)}/competitive`,
                 { waitUntil: "domcontentloaded", timeout: 20_000 },
             );
-            await report(58, "Waiting for ranked stats");
+            await queueNetworkProgress(true, "Waiting for ranked stats");
+
+            const pageTitle = await page.title();
+            const pageText = await page.$eval("body", body => body.innerText).catch(() => "");
+            if (
+                response?.status() === 403
+                || pageTitle === "Just a moment..."
+                || /security verification|performing security verification/i.test(pageText)
+            ) {
+                throw new Error("FortniteTracker security verification blocked the ranked lookup.");
+            }
+
             await page.waitForSelector(".profile-ranks__container", { timeout: 15_000 });
-            await report(76, "Reading ranked stats");
+            await queueReport(92, "Ranked stats panel ready");
 
             const rankedModes = await page.$$eval(".profile-ranks__container", containers => containers.map(container => {
-                const readText = (selector: string): string => {
+                const readText = (...selectors: string[]): string => selectors.reduce((text, selector) => {
+                    if (text) return text;
                     const element = container.querySelector(selector) as HTMLElement | null;
-                    return element?.innerText?.trim() || "";
-                };
+                    return element?.innerText?.trim() || element?.textContent?.trim() || "";
+                }, "");
 
                 return {
                     title: readText(".profile-ranks__title"),
-                    rank: readText(".profile-rank__name"),
-                    progress: readText(".profile-rank-progress") || readText(".profile-rank__rank--top"),
+                    rank: readText(".profile-rank__value", ".profile-rank__name"),
+                    progress: readText(
+                        ".profile-rank__progress-value",
+                        ".profile-rank-progress__value",
+                        ".profile-rank-progress",
+                        ".profile-rank__rank--top",
+                    ),
                 };
             }));
-            await report(92, "Preparing ranked fields");
+            await queueReport(96, "Preparing ranked fields");
 
             const fields = rankedModes
                 .map(mode => {
@@ -1210,22 +1376,157 @@ export class FortniteStats {
                 })
                 .filter((mode): mode is EmbedField => !!mode);
 
-            await report(100, "Ranked stats ready");
+            await detachClient?.();
+            if (fields.length) await queueReport(100, "Ranked stats ready");
             return fields;
         } finally {
-            await browser.close();
+            await detachClient?.();
+            await browser.close().catch(() => { });
+            await reportChain.catch(() => { });
         }
     }
 
-    private async updateWithRanks(i: BaseCommandInteraction<CacheType> | SelectMenuInteraction<CacheType>, e: MessageEmbed, name: string) {
+    private normalizeEpicAccountId(accountId: unknown): string | null {
+        const normalized = String(accountId || "").replace(/-/g, "").trim().toLowerCase();
+        return /^[a-f0-9]{32}$/.test(normalized) ? normalized : null;
+    }
+
+    private getRankedModeTitle(rankingType?: string): string {
+        const titles: Record<string, string> = {
+            "ranked-br": "Battle Royale",
+            "ranked-br-combined": "Battle Royale",
+            "ranked-zb": "Zero Build",
+            "ranked-zb-combined": "Zero Build",
+            "ranked-blastberry-combined": "Reload",
+            "ranked_blastberry_build": "Reload",
+            "ranked_blastberry_nobuild": "Reload Zero Build",
+            "ranked-feral": "Ballistic",
+            "ranked-figment-build": "Fortnite OG",
+            "ranked-figment-nobuild": "Fortnite OG Zero Build",
+            "ranked-squareclub": "Arenas",
+            "delmar-competitive": "Rocket Racing",
+        };
+        if (rankingType && titles[rankingType]) return titles[rankingType];
+
+        const fallbackTitle = (rankingType || "")
+            .replace(/[-_]+/g, " ")
+            .replace(/\b\w/g, character => character.toUpperCase())
+            .replace(/\bRanked\b/g, "")
+            .replace(/\s+/g, " ")
+            .trim();
+        return fallbackTitle || "Battle Royale";
+    }
+
+    private async fetchRankedModesFromApi(
+        accountId: string,
+        reportProgress?: RankedProgressReporter,
+        startingProgress = 90,
+    ): Promise<EmbedField[]> {
+        const report = reportProgress || (async () => { });
+        const endpoint = process.env.FORTNITE_RANKED_API_URL?.trim()
+            || "https://fnapi.osirion.gg/v1/ranked/account-ranks";
+
+        await report(startingProgress, "Loading direct ranked data");
+        const response = await axios.get(endpoint, {
+            params: { accountId },
+            headers: { Accept: "application/json" },
+            timeout: 15_000,
+        });
+        const rankedModes = Array.isArray(response.data?.modes)
+            ? response.data.modes as RankedApiMode[]
+            : [];
+
+        await report(Math.min(99, startingProgress + 6), "Preparing ranked fields");
+
+        const fields = rankedModes
+            .map(mode => {
+                const rank = mode.currentDivision?.divisionName?.trim() || "";
+                const progressNumber = mode.promotionProgress === null || mode.promotionProgress === undefined
+                    ? null
+                    : Number(mode.promotionProgress);
+                const progress = progressNumber !== null && Number.isFinite(progressNumber)
+                    ? `${progressNumber}%`
+                    : "";
+                const playerRanking = mode.currentPlayerRanking === null || mode.currentPlayerRanking === undefined
+                    ? null
+                    : Number(mode.currentPlayerRanking);
+                const ranking = playerRanking !== null && Number.isFinite(playerRanking)
+                    ? `#${playerRanking.toLocaleString("en-US")}`
+                    : "";
+                const value = [rank, progress || ranking].filter(Boolean).join(" - ");
+
+                return value
+                    ? {
+                        name: `Ranked - ${this.getRankedModeTitle(mode.rankingType)}`,
+                        value,
+                        inline: false,
+                    }
+                    : null;
+            })
+            .filter((mode): mode is EmbedField => !!mode);
+
+        await report(100, "Ranked stats ready");
+        return fields;
+    }
+
+    private async fetchRankedModes(
+        name: string,
+        accountId?: unknown,
+        reportProgress?: RankedProgressReporter,
+    ): Promise<EmbedField[]> {
+        const report = reportProgress || (async () => { });
+        const normalizedAccountId = this.normalizeEpicAccountId(accountId);
+        let trackerModes: EmbedField[];
+
+        try {
+            trackerModes = await this.fetchRankedModesFromTracker(name, report);
+        } catch (error) {
+            if (!normalizedAccountId) throw error;
+            return this.fetchRankedModesFromApi(normalizedAccountId, report, 90);
+        }
+
+        if (trackerModes.length || !normalizedAccountId) return trackerModes;
+        return this.fetchRankedModesFromApi(normalizedAccountId, report, 97);
+    }
+
+    private setRankedStatus(embed: MessageEmbed, value: string): void {
+        const statusField = { name: "Ranked", value, inline: false };
+        const statusIndex = embed.fields.findIndex(field => field.name === statusField.name);
+
+        if (statusIndex === -1) {
+            embed.addFields(statusField);
+        } else {
+            embed.fields.splice(statusIndex, 1, statusField);
+        }
+    }
+
+    private getRankedFailureStatus(error: any): string {
+        const message = this.getErrorMessage(error);
+        if (/cloudflare|security verification|just a moment|automated lookup/i.test(message)) {
+            return "Unavailable — FortniteTracker blocked the browser lookup.";
+        }
+        return "Unavailable — ranked data could not be loaded.";
+    }
+
+    private async updateWithRanks(
+        i: BaseCommandInteraction<CacheType> | SelectMenuInteraction<CacheType>,
+        e: MessageEmbed,
+        name: string,
+        accountId?: unknown,
+    ) {
         let loadingStarted = false;
         try {
-            if (!name) return;
+            if (!name) {
+                this.setRankedStatus(e, "Unavailable — no player name was returned.");
+                await i.editReply({ content: " ", embeds: [e] }).catch(() => { });
+                return;
+            }
 
             loadingStarted = true;
             await this.reportRankLoadingProgress(i, 0, "Starting ranked lookup");
             const modes = await this.fetchRankedModes(
                 name,
+                accountId,
                 (progress, status) => this.reportRankLoadingProgress(i, progress, status),
             );
 
@@ -1236,10 +1537,13 @@ export class FortniteStats {
                 } else {
                     e.addFields(modes);
                 }
+            } else {
+                this.setRankedStatus(e, "No ranked modes were returned.");
             }
 
         } catch (err) {
             console.log("Failed to fetch rank", err);
+            this.setRankedStatus(e, this.getRankedFailureStatus(err));
         } finally {
             if (loadingStarted) {
                 await i.editReply({ content: " ", embeds: [e] }).catch(() => { });

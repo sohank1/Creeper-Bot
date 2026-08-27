@@ -32,6 +32,7 @@ Copy `.env.example` to `.env` and fill in the values you need:
 Optional variables are only required for features that use them:
 
 - `FORTNITE_API_KEY`
+- `FORTNITE_RANKED_API_URL` (optional override for the direct ranked-data fallback; defaults to Osirion and is used when FortniteTracker challenges Puppeteer)
 - `FORTNITE_MAP_API_KEY`
 - `FORTNITE_SPRITE_ARCHIVE_DIR` (persistent directory for sprite history/archives)
 - `FORTNITE_SPRITE_HISTORY_PATH` (optional explicit history file path)
