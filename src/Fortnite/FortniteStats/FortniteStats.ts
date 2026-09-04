@@ -738,6 +738,17 @@ type RankedApiMode = {
     currentPlayerRanking?: number | null;
 };
 
+type TrackerRankedStat = {
+    lastUpdated?: string;
+    modeName?: string;
+    currentDivisionName?: string;
+    divisionProgress?: number | null;
+};
+
+type TrackerProfile = {
+    rankedStats?: TrackerRankedStat[];
+};
+
 export class FortniteStats {
     private static memoryCachedSeasonEndDate: Date | null = null;
     private static memoryCacheLastFetchTime: number = 0;
@@ -1417,6 +1428,180 @@ export class FortniteStats {
         return fallbackTitle || "Battle Royale";
     }
 
+    private getTrackerRankedModeTitle(modeName?: string): string {
+        const normalized = String(modeName || "").trim().replace(/\s+/g, " ").toLowerCase();
+        const titles: Record<string, string> = {
+            "battle royale (build)": "Battle Royale",
+            "battle royale (zero build)": "Zero Build",
+            "battle royale": "Battle Royale",
+            "reload (build)": "Reload",
+            "reload (zero build)": "Reload Zero Build",
+            "reload": "Reload",
+            "ballistic": "Ballistic",
+            "fortnite og (build)": "Fortnite OG",
+            "fortnite og (zero build)": "Fortnite OG Zero Build",
+            "fortnite og": "Fortnite OG",
+            "arenas boxfights": "Arenas",
+            "rocket racing": "Rocket Racing",
+        };
+
+        return titles[normalized] || String(modeName || "").trim() || "Battle Royale";
+    }
+
+    private formatTrackerRankedProgress(progress: unknown): string {
+        const numericProgress = Number(progress);
+        if (!Number.isFinite(numericProgress)) return "";
+
+        // Tracker's embedded profile data uses a 0..1 ratio, while some older
+        // responses use an already-normalized percentage.
+        const percentage = Math.abs(numericProgress) <= 1
+            ? numericProgress * 100
+            : numericProgress;
+        return `${Math.round(Math.max(0, Math.min(100, percentage)))}%`;
+    }
+
+    private extractTrackerProfile(html: string): TrackerProfile | null {
+        const assignment = /(?:const|let|var)\s+profile\s*=\s*/.exec(html);
+        if (!assignment || assignment.index === undefined) return null;
+
+        let jsonStart = assignment.index + assignment[0].length;
+        while (/\s/.test(html[jsonStart] || "")) jsonStart++;
+        if (html[jsonStart] !== "{") return null;
+
+        let depth = 0;
+        let inString = false;
+        let escaped = false;
+
+        for (let index = jsonStart; index < html.length; index++) {
+            const character = html[index];
+
+            if (inString) {
+                if (escaped) {
+                    escaped = false;
+                } else if (character === "\\") {
+                    escaped = true;
+                } else if (character === '"') {
+                    inString = false;
+                }
+                continue;
+            }
+
+            if (character === '"') {
+                inString = true;
+            } else if (character === "{") {
+                depth++;
+            } else if (character === "}") {
+                depth--;
+                if (depth === 0) {
+                    try {
+                        return JSON.parse(html.slice(jsonStart, index + 1)) as TrackerProfile;
+                    } catch {
+                        return null;
+                    }
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private getTrackerRankedFields(profile: TrackerProfile | null): EmbedField[] {
+        const rankedStats = Array.isArray(profile?.rankedStats) ? profile.rankedStats : [];
+        const latestByMode = new Map<string, { stat: TrackerRankedStat; updatedAt: number }>();
+
+        for (const stat of rankedStats) {
+            if (!stat || typeof stat !== "object") continue;
+
+            const rank = String(stat.currentDivisionName || "").trim();
+            const progress = this.formatTrackerRankedProgress(stat.divisionProgress);
+            if (!rank && !progress) continue;
+
+            const modeTitle = this.getTrackerRankedModeTitle(stat.modeName);
+            const modeKey = modeTitle.toLowerCase().replace(/\s+/g, " ") || "unknown";
+            const updatedAt = stat.lastUpdated ? new Date(stat.lastUpdated).getTime() : 0;
+            const existing = latestByMode.get(modeKey);
+            if (!existing || updatedAt >= existing.updatedAt) {
+                latestByMode.set(modeKey, { stat, updatedAt: Number.isFinite(updatedAt) ? updatedAt : 0 });
+            }
+        }
+
+        return Array.from(latestByMode.values())
+            .sort((left, right) => right.updatedAt - left.updatedAt)
+            .slice(0, 10)
+            .map(({ stat }) => {
+                const rank = String(stat.currentDivisionName || "").trim();
+                const progress = this.formatTrackerRankedProgress(stat.divisionProgress);
+                return {
+                    name: `Ranked - ${this.getTrackerRankedModeTitle(stat.modeName)}`,
+                    value: [rank, progress].filter(Boolean).join(" - "),
+                    inline: false,
+                };
+            });
+    }
+
+    private getRankedProviderError(error: any): string {
+        const status = error?.response?.status;
+        const code = error?.code;
+        const message = error?.message || error?.response?.data?.error;
+        return [
+            status ? `status=${status}` : "",
+            code ? `code=${code}` : "",
+            message ? `message=${String(message).replace(/\s+/g, " ").slice(0, 180)}` : "",
+        ].filter(Boolean).join(" ");
+    }
+
+    private logRankedProviderFailure(provider: string, name: string, error: any): void {
+        const safeName = String(name || "player").replace(/\s+/g, " ").slice(0, 80);
+        console.warn(
+            `[FortniteStats] Ranked provider ${provider} failed for ${safeName}: `
+            + (this.getRankedProviderError(error) || "unknown error"),
+        );
+    }
+
+    private async fetchRankedModesFromScraperApi(
+        name: string,
+        reportProgress?: RankedProgressReporter,
+        startingProgress = 97,
+    ): Promise<EmbedField[]> {
+        const apiKey = process.env.SCRAPER_API_KEY?.trim();
+        if (!apiKey) throw new Error("ScraperAPI ranked fallback is not configured.");
+
+        const report = reportProgress || (async () => { });
+        await report(startingProgress, "Loading ranked fallback");
+
+        const trackerUrl = `https://fortnitetracker.com/profile/all/${encodeURIComponent(name)}/competitive`;
+        const response = await axios.get("https://api.scraperapi.com/", {
+            params: {
+                api_key: apiKey,
+                url: trackerUrl,
+                // The current Tracker page embeds its profile data in the
+                // initial HTML. render=true now hangs, while this response is
+                // fast and contains the same ranked data we need.
+                render: "false",
+            },
+            headers: { Accept: "text/html,application/xhtml+xml" },
+            timeout: 15_000,
+        });
+
+        const html = typeof response.data === "string" ? response.data : "";
+        if (!html.trim()) throw new Error("ScraperAPI returned an empty FortniteTracker response.");
+        if (/Just a moment|security verification|cf-chl-/i.test(html)) {
+            throw new Error("ScraperAPI returned a FortniteTracker security challenge.");
+        }
+
+        const profile = this.extractTrackerProfile(html);
+        if (!profile) throw new Error("ScraperAPI response did not contain Tracker profile data.");
+
+        await report(Math.min(99, startingProgress + 6), "Preparing ranked fields");
+        const fields = this.getTrackerRankedFields(profile);
+        if (fields.length) {
+            await report(100, "Ranked stats ready");
+        } else {
+            await report(Math.min(99, startingProgress + 6), "No ranked modes returned");
+        }
+        return fields;
+    }
+
     private async fetchRankedModesFromApi(
         accountId: string,
         reportProgress?: RankedProgressReporter,
@@ -1465,7 +1650,11 @@ export class FortniteStats {
             })
             .filter((mode): mode is EmbedField => !!mode);
 
-        await report(100, "Ranked stats ready");
+        if (fields.length) {
+            await report(100, "Ranked stats ready");
+        } else {
+            await report(Math.min(99, startingProgress + 6), "No direct ranked modes returned");
+        }
         return fields;
     }
 
@@ -1476,17 +1665,57 @@ export class FortniteStats {
     ): Promise<EmbedField[]> {
         const report = reportProgress || (async () => { });
         const normalizedAccountId = this.normalizeEpicAccountId(accountId);
-        let trackerModes: EmbedField[];
+        let trackerModes: EmbedField[] | null = null;
+        let trackerError: any = null;
+        let lastProviderError: any = null;
+        let successfulEmptyResponse = false;
 
         try {
             trackerModes = await this.fetchRankedModesFromTracker(name, report);
         } catch (error) {
-            if (!normalizedAccountId) throw error;
-            return this.fetchRankedModesFromApi(normalizedAccountId, report, 90);
+            trackerError = error;
+            lastProviderError = error;
+            this.logRankedProviderFailure("Puppeteer", name, error);
         }
 
-        if (trackerModes.length || !normalizedAccountId) return trackerModes;
-        return this.fetchRankedModesFromApi(normalizedAccountId, report, 97);
+        if (trackerModes?.length) {
+            console.info(`[FortniteStats] Ranked data provider=Puppeteer modes=${trackerModes.length}`);
+            return trackerModes;
+        }
+        if (trackerModes) successfulEmptyResponse = true;
+
+        if (normalizedAccountId) {
+            try {
+                const apiModes = await this.fetchRankedModesFromApi(normalizedAccountId, report, 90);
+                if (apiModes.length) {
+                    console.info(`[FortniteStats] Ranked data provider=Osirion modes=${apiModes.length}`);
+                    return apiModes;
+                }
+                successfulEmptyResponse = true;
+                console.warn("[FortniteStats] Ranked provider Osirion returned no populated modes.");
+            } catch (error) {
+                lastProviderError = error;
+                this.logRankedProviderFailure("Osirion", name, error);
+            }
+        }
+
+        if (process.env.SCRAPER_API_KEY?.trim()) {
+            try {
+                const scraperModes = await this.fetchRankedModesFromScraperApi(name, report, 97);
+                if (scraperModes.length) {
+                    console.info(`[FortniteStats] Ranked data provider=ScraperAPI modes=${scraperModes.length}`);
+                    return scraperModes;
+                }
+                successfulEmptyResponse = true;
+                console.warn("[FortniteStats] Ranked provider ScraperAPI returned no populated modes.");
+            } catch (error) {
+                lastProviderError = error;
+                this.logRankedProviderFailure("ScraperAPI", name, error);
+            }
+        }
+
+        if (successfulEmptyResponse) return [];
+        throw trackerError || lastProviderError || new Error("No ranked data provider returned a response.");
     }
 
     private setRankedStatus(embed: MessageEmbed, value: string): void {
