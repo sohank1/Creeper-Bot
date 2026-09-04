@@ -126,6 +126,7 @@ import DonaldModel, { DonaldData } from './DonaldTracker.model';
 import newsChannels from "./../news/newsChannels.json"
 import axios from "axios";
 import { TwitterApi } from "twitter-api-v2";
+import { createTrackedJob } from "../runtimeDiagnostics";
 const { puppeteer: Puppeteer } = Chromium
 const instance = process.env.NODE_ENV === 'production' ? process.env.NODE_ENV : 'development';
 
@@ -159,7 +160,7 @@ export class DonaldTracker {
 
         // page.setDefaultNavigationTimeout(0);
 
-        setInterval(async () => {
+        setInterval(createTrackedJob("donald-tracker-poll", "Donald Tracker Poll", "Every 15 seconds", async () => {
             // console.log("going..")
             // c?.send(`Started loading page on ${instance}`)
             // let t0 = performance.now()
@@ -225,7 +226,7 @@ export class DonaldTracker {
                 console.error(e)
                 c.send(`Error: ${e}`)
             }
-        }, 15000) //15 seconds changed from 5 seconds //5 mins 300000    
+        }), 15000) //15 seconds changed from 5 seconds //5 mins 300000    
 
     }
 

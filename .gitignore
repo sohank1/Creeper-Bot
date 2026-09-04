@@ -1,3 +1,11 @@
 node_modules
 .env
 dist
+.cache
+# Runtime archives stay on persistent storage; the optional second copy is a VPS bind mount.
+sprite-archives/*
+!sprite-archives/**/
+!sprite-archives/**/*.json
+sprite-archives/**/assets/*
+!sprite-archives/spriteHistory.json
+assets/fortnite-maps/

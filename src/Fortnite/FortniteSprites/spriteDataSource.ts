@@ -1,0 +1,614 @@
+import axios from "axios";
+import cheerio from "cheerio";
+import { createHash } from "crypto";
+import { FortniteSeasonContext, resolveCurrentFortniteSeason } from "./fortniteSeason";
+
+export type SpriteRarity = "rare" | "epic" | "legendary" | "mythic" | "special";
+export type SpriteVariantName = string;
+
+export type SpriteSpawnRate = {
+    percent: number;
+    label: string;
+};
+
+export type SpriteSpawnRates = {
+    spriteChest?: SpriteSpawnRate;
+    rareChest?: SpriteSpawnRate;
+    chest?: SpriteSpawnRate;
+    supplyDrop?: SpriteSpawnRate;
+};
+
+export type SpriteVariant = {
+    id: number;
+    name: string;
+    rarity: SpriteRarity;
+    chancePercent: number;
+    chanceLabel: string;
+    spawnRates?: SpriteSpawnRates;
+    starter: boolean;
+    variant: SpriteVariantName;
+    summonCost: number;
+    imageUrl: string;
+    effectText: string;
+    specialEffectText?: string;
+    detailStatus: "complete" | "partial";
+    /** Fortnite.GG's season key for the card (for example 41 or 42). */
+    sourceSeasonKey?: string;
+    /** Mirrors Fortnite.GG's Show unreleased toggle. */
+    isUnreleased?: boolean;
+    introducedSeasonId?: string;
+    /** Seasons in which this sprite was observed in the published sprite listing. */
+    availableSeasonIds?: string[];
+};
+
+export type SpriteAppearance = {
+    seasonId: string;
+    firstSeenAt: string;
+    lastSeenAt: string;
+};
+
+export type SpriteHistoryRecord = {
+    identityKey: string;
+    spriteId: number;
+    familyKey: string;
+    name: string;
+    variant: SpriteVariantName;
+    introducedSeasonId: string;
+    appearances: SpriteAppearance[];
+};
+
+export type SpriteHistoryFile = {
+    schemaVersion: 1;
+    records: SpriteHistoryRecord[];
+};
+
+export type SpriteFamily = {
+    key: string;
+    displayName: string;
+    effectSummary: string;
+    levelScaling: string;
+    location: string;
+    variants: SpriteVariant[];
+};
+
+export type SpriteDataFile = {
+    fetchedAt: string;
+    contentFingerprint?: string;
+    totalSprites: number;
+    totalLevels: number;
+    /** IDs that are present in the base /sprites listing, not merely known variants. */
+    listedVariantIds?: number[];
+    seasonContext?: FortniteSeasonContext;
+    families: SpriteFamily[];
+};
+
+type SpriteListItem = {
+    id: number;
+    name: string;
+    rarity: SpriteRarity;
+    chancePercent: number;
+    chanceLabel: string;
+    starter: boolean;
+    sourceUrl: string;
+    imageUrl: string;
+    sourceSeasonKey?: string;
+    isUnreleased?: boolean;
+};
+
+type SpriteVariantDetail = SpriteVariant & {
+    familyName: string;
+    location: string;
+    levelScaling: string;
+};
+
+const SOURCE_URL = "https://fortnite.gg/sprites";
+const BASE_URL = "https://fortnite.gg";
+const DETAIL_FETCH_CONCURRENCY = 4;
+
+function requestHeaders() {
+    return {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0 Safari/537.36",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
+    };
+}
+
+function absoluteUrl(url: string | undefined): string {
+    if (!url) return "";
+    if (url.startsWith("http")) return url;
+    return `${BASE_URL}${url}`;
+}
+
+function normalizeImageUrl(url: string): string {
+    return url.replace(/\.webp(\?.*)?$/i, ".png$1");
+}
+
+function normalizeText(value: string | undefined): string {
+    return (value || "").replace(/\s+/g, " ").trim();
+}
+
+function parsePercent(value: string): number {
+    const parsed = parseFloat(value.replace("%", "").replace(",", "").trim());
+    return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function parseNumber(value: string): number {
+    const parsed = parseInt(value.replace(/,/g, "").replace(/[^\d]/g, ""), 10);
+    return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function parseSpawnRate(value: string | undefined): SpriteSpawnRate | undefined {
+    const label = normalizeText(value);
+    if (!label || !/[\d.]/.test(label)) return undefined;
+    return {
+        percent: parsePercent(label),
+        label
+    };
+}
+
+function resolveFactValue(facts: Record<string, string>, keys: string[]): string | undefined {
+    return keys.map(key => facts[key]).find(value => !!normalizeText(value));
+}
+
+function buildSpawnRates(facts: Record<string, string>, fallbackRate: SpriteSpawnRate): SpriteSpawnRates {
+    const spriteChest = parseSpawnRate(resolveFactValue(facts, ["Sprite Chest", "Sprite Chest Chance", "Sprite Chest Spawn Rate"]));
+    const rareChest = parseSpawnRate(resolveFactValue(facts, ["Rare Chest", "Rare Chest Chance", "Rare Chest Spawn Rate"]));
+    const chest = parseSpawnRate(resolveFactValue(facts, ["Chest", "Chest Chance", "Chest Spawn Rate"]));
+    const supplyDrop = parseSpawnRate(resolveFactValue(facts, ["Supply Drop", "Supply Drop Chance", "Supply Drop Spawn Rate"]));
+
+    return {
+        ...(spriteChest ? { spriteChest } : {}),
+        ...(rareChest ? { rareChest } : {}),
+        ...(chest ? { chest } : {}),
+        ...(supplyDrop ? { supplyDrop } : {})
+    };
+}
+
+function toVariantBase(item: SpriteListItem) {
+    return {
+        id: item.id,
+        name: item.name,
+        rarity: item.rarity,
+        chancePercent: item.chancePercent,
+        chanceLabel: item.chanceLabel,
+        starter: item.starter,
+        imageUrl: item.imageUrl,
+        ...(item.sourceSeasonKey ? { sourceSeasonKey: item.sourceSeasonKey } : {}),
+        ...(item.isUnreleased ? { isUnreleased: true } : {})
+    };
+}
+
+function inferFamilyName(name: string, variant: string, relatedNames: string[]): string {
+    if (variant === "Base") return name;
+    if (relatedNames.length > 0) {
+        return [...relatedNames].sort((a, b) => a.length - b.length || a.localeCompare(b))[0];
+    }
+    return name;
+}
+
+function familyKey(displayName: string): string {
+    return displayName
+        .replace(/\s+Sprite$/i, "")
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-|-$/g, "");
+}
+
+function parseListPage(html: string, seasonKey?: string): { items: SpriteListItem[]; totalSprites: number; totalLevels: number } {
+    const $ = cheerio.load(html);
+    const items: SpriteListItem[] = [];
+
+    $(".sprite-card").each((_, el) => {
+        const card = $(el);
+        const id = parseInt(card.attr("data-sprite") || "", 10);
+        const nameLink = card.find(".sprite-name").first();
+        const name = normalizeText(nameLink.text());
+        const sourceUrl = absoluteUrl(nameLink.attr("href") || card.find(".sprite-art").attr("href"));
+        const imageUrl = normalizeImageUrl(absoluteUrl(card.find(".sprite-art img").first().attr("src")));
+        const pills = card.find(".sprite-pill").map((__, pill) => normalizeText($(pill).text())).get();
+        const rarity = (pills.find(p => ["rare", "epic", "legendary", "mythic", "special"].includes(p.toLowerCase())) || "rare").toLowerCase() as SpriteRarity;
+        const chanceLabel = pills.find(p => p.includes("%")) || "0%";
+        const starter = pills.some(p => p.toLowerCase() === "starter");
+        const sourceSeasonKey = normalizeText(card.attr("data-season")) || undefined;
+        const isUnreleased = card.attr("data-unreleased") === "1";
+
+        if (!id || !name || !sourceUrl || isUnreleased || (seasonKey && sourceSeasonKey !== seasonKey)) return;
+
+        items.push({
+            id,
+            name,
+            rarity,
+            chancePercent: parsePercent(chanceLabel),
+            chanceLabel,
+            starter,
+            sourceUrl,
+            imageUrl,
+            sourceSeasonKey,
+            isUnreleased
+        });
+    });
+
+    const statValues = $(".sprites-stat").map((_, el) => {
+        const current = normalizeText($(el).find("b").first().text());
+        const max = normalizeText($(el).find(".grey").first().text()).replace("/", "").trim();
+        return { current, max };
+    }).get();
+
+    const reportedTotalSprites = parseNumber(statValues[0]?.max);
+
+    return {
+        items: items.sort((a, b) => a.id - b.id),
+        totalSprites: seasonKey ? items.length : Math.max(reportedTotalSprites, items.length),
+        totalLevels: seasonKey ? items.length * 5 : parseNumber(statValues[1]?.max) || items.length * 5
+    };
+}
+
+async function fetchHtml(url: string): Promise<string> {
+    const res = await axios.get(url, {
+        headers: requestHeaders(),
+        timeout: 30000
+    });
+
+    if (typeof res.data !== "string" || !res.data.includes("sprite")) {
+        throw new Error(`Unexpected response while fetching ${url}`);
+    }
+
+    return res.data;
+}
+
+async function fetchDetail(item: SpriteListItem): Promise<SpriteVariantDetail> {
+    const fallbackRate: SpriteSpawnRate = {
+        percent: item.chancePercent,
+        label: item.chanceLabel
+    };
+
+    try {
+        const html = await fetchHtml(item.sourceUrl);
+        const $ = cheerio.load(html);
+        const panel = $(".sprite-detail-panel").first();
+        const descriptions = panel.find(".sprite-desc").map((_, el) => normalizeText($(el).text())).get();
+        const specialEffectText = normalizeText(panel.find(".sprite-desc-special").first().text()) || undefined;
+        const facts: Record<string, string> = {};
+
+        panel.find(".sprite-fact").each((_, el) => {
+            const key = normalizeText($(el).find("span").first().text());
+            const value = normalizeText($(el).find("b").first().text());
+            if (key) facts[key] = value;
+        });
+
+        const relatedNames = $(".sprite-related .sprite-name").map((_, el) => normalizeText($(el).text())).get();
+        const variant = normalizeText(facts["Variant"]) || "Base";
+        const spawnRates = buildSpawnRates(facts, fallbackRate);
+        const primaryRate = spawnRates.spriteChest || parseSpawnRate(facts["Chance"]) || fallbackRate;
+        const summonCost = parseNumber(facts["Summon Cost"]);
+
+        return {
+            ...toVariantBase(item),
+            chanceLabel: primaryRate.label,
+            chancePercent: primaryRate.percent,
+            spawnRates,
+            variant,
+            summonCost,
+            // Fortnite.GG has used both a separate level-scaling block and a
+            // single block containing the complete description. Keep the
+            // first block as the effect and preserve every remaining block in
+            // levelScaling so both layouts render completely.
+            effectText: descriptions[0] || "",
+            specialEffectText,
+            levelScaling: descriptions.slice(1).join(" "),
+            location: facts["Location"] || "",
+            familyName: inferFamilyName(item.name, variant, relatedNames),
+            detailStatus: "complete"
+        };
+    } catch (e: any) {
+        return {
+            ...toVariantBase(item),
+            spawnRates: {},
+            variant: "Base",
+            summonCost: 0,
+            effectText: "",
+            levelScaling: "",
+            location: "",
+            familyName: item.name,
+            detailStatus: "partial"
+        };
+    }
+}
+
+async function mapWithConcurrency<TInput, TOutput>(
+    items: TInput[],
+    concurrency: number,
+    mapper: (item: TInput, index: number) => Promise<TOutput>
+): Promise<TOutput[]> {
+    const limit = Math.max(1, Math.min(concurrency, items.length || 1));
+    const results = new Array<TOutput>(items.length);
+    let nextIndex = 0;
+
+    async function worker() {
+        while (true) {
+            const currentIndex = nextIndex;
+            nextIndex += 1;
+
+            if (currentIndex >= items.length) return;
+            results[currentIndex] = await mapper(items[currentIndex], currentIndex);
+        }
+    }
+
+    await Promise.all(Array.from({ length: limit }, () => worker()));
+    return results;
+}
+
+function buildFamilies(variants: SpriteVariantDetail[]): SpriteFamily[] {
+    const groups = new Map<string, SpriteVariantDetail[]>();
+
+    for (const variant of variants) {
+        const key = familyKey(variant.familyName);
+        if (!groups.has(key)) groups.set(key, []);
+        groups.get(key)!.push(variant);
+    }
+
+    return Array.from(groups.entries()).map(([key, familyVariants]) => {
+        familyVariants.sort((a, b) => {
+            if (a.variant === "Base" && b.variant !== "Base") return -1;
+            if (a.variant !== "Base" && b.variant === "Base") return 1;
+            return b.chancePercent - a.chancePercent || a.id - b.id;
+        });
+        const base = familyVariants.find(v => v.variant === "Base") || familyVariants[0];
+
+        return {
+            key,
+            displayName: base.familyName,
+            effectSummary: base.effectText || familyVariants.find(v => v.effectText)?.effectText || "No effect description available.",
+            levelScaling: base.levelScaling || familyVariants.find(v => v.levelScaling)?.levelScaling || "",
+            location: base.location || familyVariants.find(v => v.location)?.location || "Unknown",
+            variants: familyVariants.map(({ familyName, location, levelScaling, ...variant }) => variant)
+        };
+    }).sort((a, b) => a.variants[0].id - b.variants[0].id);
+}
+
+function validateSpawnRate(rate: SpriteSpawnRate | undefined, label: string, variantId: number) {
+    if (!rate) return;
+    if (!rate.label || !Number.isFinite(rate.percent)) {
+        throw new Error(`Invalid ${label} spawn rate for sprite ${variantId}.`);
+    }
+}
+
+export function validateSpriteData(data: SpriteDataFile) {
+    const variants = data.families.flatMap(f => f.variants);
+    const ids = new Set<number>();
+
+    if (variants.length === 0) throw new Error("No sprites were parsed.");
+    if (data.totalSprites && variants.length !== data.totalSprites) {
+        throw new Error(`Expected ${data.totalSprites} sprites, parsed ${variants.length}.`);
+    }
+
+    if (data.seasonContext && (!data.seasonContext.id || !data.seasonContext.chapter || !data.seasonContext.season)) {
+        throw new Error("Invalid Fortnite season context.");
+    }
+
+    for (const family of data.families) {
+        if (!family.key || !family.displayName || family.variants.length === 0) {
+            throw new Error(`Invalid family entry: ${JSON.stringify(family)}`);
+        }
+    }
+
+    for (const variant of variants) {
+        if (ids.has(variant.id)) throw new Error(`Duplicate sprite id ${variant.id}.`);
+        ids.add(variant.id);
+        if (!variant.name || !variant.rarity || !variant.variant || !variant.imageUrl) {
+            throw new Error(`Invalid sprite variant ${variant.id}.`);
+        }
+        if (variant.spawnRates) {
+            validateSpawnRate(variant.spawnRates.spriteChest, "sprite chest", variant.id);
+            validateSpawnRate(variant.spawnRates.rareChest, "rare chest", variant.id);
+            validateSpawnRate(variant.spawnRates.chest, "chest", variant.id);
+            validateSpawnRate(variant.spawnRates.supplyDrop, "supply drop", variant.id);
+        }
+    }
+}
+
+export async function fetchSpriteData(delayMs = 150, seasonContext?: FortniteSeasonContext, fallbackSeasonContext?: FortniteSeasonContext): Promise<SpriteDataFile> {
+    // Resolve the season before scraping the list so the stored context is
+    // associated with this exact scrape.
+    const resolvedSeason = seasonContext || await resolveCurrentFortniteSeason(false, fallbackSeasonContext);
+    const listHtml = await fetchHtml(SOURCE_URL);
+    const list = parseListPage(listHtml, resolvedSeason.seasonKey);
+
+    if (list.items.length === 0) {
+        throw new Error("No sprite cards were found on the remote sprite page.");
+    }
+
+    const details = await mapWithConcurrency(list.items, DETAIL_FETCH_CONCURRENCY, async item => {
+        const detail = await fetchDetail(item);
+        if (delayMs > 0) await new Promise(resolve => setTimeout(resolve, delayMs));
+        return detail;
+    });
+
+    const data: SpriteDataFile = {
+        fetchedAt: new Date().toISOString(),
+        totalSprites: list.totalSprites,
+        totalLevels: list.totalLevels,
+        listedVariantIds: list.items.map(item => item.id),
+        seasonContext: resolvedSeason,
+        families: buildFamilies(details)
+    };
+
+    data.contentFingerprint = spriteDataContentFingerprint(data);
+    validateSpriteData(data);
+    return data;
+}
+
+export function spriteDataContentFingerprint(data: SpriteDataFile): string {
+    return createHash("sha256")
+        .update(JSON.stringify({
+            totalSprites: data.totalSprites,
+            totalLevels: data.totalLevels,
+            listedVariantIds: data.listedVariantIds,
+            seasonContext: data.seasonContext ? {
+                id: data.seasonContext.id,
+                chapter: data.seasonContext.chapter,
+                season: data.seasonContext.season,
+                seasonKey: data.seasonContext.seasonKey,
+                source: data.seasonContext.source,
+                validatedBy: data.seasonContext.validatedBy
+            } : undefined,
+            families: data.families
+        }))
+        .digest("hex");
+}
+
+export function spriteHistoryIdentity(family: SpriteFamily, variant: SpriteVariant): string {
+    return `${variant.id}:${family.key}:${variant.name}:${variant.variant}`.toLowerCase();
+}
+
+export function updateSpriteHistory(history: SpriteHistoryFile, data: SpriteDataFile): SpriteHistoryFile {
+    const seasonId = data.seasonContext?.id;
+    if (!seasonId) throw new Error("Cannot update sprite history without a season context.");
+    const now = data.fetchedAt;
+    const records = new Map(history.records.map(record => [record.identityKey, record]));
+
+    for (const family of data.families) {
+        for (const variant of family.variants) {
+            const identityKey = spriteHistoryIdentity(family, variant);
+            // IDs are not sufficient identity: a later season can reuse an ID
+            // with a different family/name/variant. Only the full identity key
+            // may carry introduction history forward.
+            const existing = records.get(identityKey);
+            if (!existing) {
+                records.set(identityKey, {
+                    identityKey,
+                    spriteId: variant.id,
+                    familyKey: family.key,
+                    name: variant.name,
+                    variant: variant.variant,
+                    introducedSeasonId: seasonId,
+                    appearances: [{ seasonId, firstSeenAt: now, lastSeenAt: now }]
+                });
+                continue;
+            }
+
+            existing.familyKey = family.key;
+            existing.name = variant.name;
+            existing.variant = variant.variant;
+
+            const appearance = existing.appearances.find(item => item.seasonId === seasonId);
+            if (appearance) {
+                if (now < appearance.firstSeenAt) appearance.firstSeenAt = now;
+                if (now > appearance.lastSeenAt) appearance.lastSeenAt = now;
+            } else {
+                existing.appearances.push({ seasonId, firstSeenAt: now, lastSeenAt: now });
+            }
+
+            const earliestAppearance = [...existing.appearances].sort((a, b) => a.firstSeenAt.localeCompare(b.firstSeenAt))[0];
+            if (earliestAppearance) existing.introducedSeasonId = earliestAppearance.seasonId;
+        }
+    }
+
+    return {
+        schemaVersion: 1,
+        records: [...records.values()].sort((a, b) => a.spriteId - b.spriteId || a.identityKey.localeCompare(b.identityKey))
+    };
+}
+
+/**
+ * Removes history seasons that were not backed by a trusted snapshot. This is
+ * intentionally conservative: an old migrated record must not invent an
+ * introduction season from an unverified catalog merge.
+ */
+export function sanitizeSpriteHistory(history: SpriteHistoryFile, trustedSeasonIds: Set<string>): SpriteHistoryFile {
+    const records = history.records.flatMap(record => {
+        const appearances = record.appearances.filter(appearance => trustedSeasonIds.has(appearance.seasonId));
+        if (appearances.length === 0) return [];
+        const firstAppearance = [...appearances].sort((a, b) => a.firstSeenAt.localeCompare(b.firstSeenAt))[0];
+        return [{
+            ...record,
+            introducedSeasonId: firstAppearance.seasonId,
+            appearances
+        }];
+    });
+    return { schemaVersion: 1, records };
+}
+
+export function mergeSpriteHistories(left: SpriteHistoryFile, right: SpriteHistoryFile): SpriteHistoryFile {
+    const records = new Map(left.records.map(record => [record.identityKey, { ...record, appearances: [...record.appearances] }]));
+    for (const incoming of right.records) {
+        const existing = records.get(incoming.identityKey);
+        if (!existing) {
+            records.set(incoming.identityKey, { ...incoming, appearances: [...incoming.appearances] });
+            continue;
+        }
+        for (const appearance of incoming.appearances) {
+            const current = existing.appearances.find(item => item.seasonId === appearance.seasonId);
+            if (!current) existing.appearances.push({ ...appearance });
+            else {
+                if (appearance.firstSeenAt < current.firstSeenAt) current.firstSeenAt = appearance.firstSeenAt;
+                if (appearance.lastSeenAt > current.lastSeenAt) current.lastSeenAt = appearance.lastSeenAt;
+            }
+        }
+        const earliest = [...existing.appearances].sort((a, b) => a.firstSeenAt.localeCompare(b.firstSeenAt))[0];
+        if (earliest) existing.introducedSeasonId = earliest.seasonId;
+    }
+    return { schemaVersion: 1, records: [...records.values()].sort((a, b) => a.spriteId - b.spriteId || a.identityKey.localeCompare(b.identityKey)) };
+}
+
+export function applySpriteHistory(data: SpriteDataFile, history: SpriteHistoryFile): SpriteDataFile {
+    const records = new Map(history.records.map(record => [record.identityKey, record]));
+    return {
+        ...data,
+        families: data.families.map(family => ({
+            ...family,
+            variants: family.variants.map(variant => {
+                const record = records.get(spriteHistoryIdentity(family, variant));
+                const fallbackSeasonId = data.seasonContext?.id;
+                return {
+                    ...variant,
+                    introducedSeasonId: record?.introducedSeasonId || fallbackSeasonId,
+                    availableSeasonIds: record
+                        ? Array.from(new Set(record.appearances.map(appearance => appearance.seasonId)))
+                        : fallbackSeasonId ? [fallbackSeasonId] : []
+                };
+            })
+        }))
+    };
+}
+
+/** Retains prior-season sprites while preferring the latest scrape for matching variants. */
+export function mergeSpriteCatalog(previous: SpriteDataFile | null, latest: SpriteDataFile): SpriteDataFile {
+    if (!previous) return latest;
+    const latestIds = new Set(latest.families.flatMap(family => family.variants.map(variant => variant.id)));
+    // The catalog schema requires globally unique variant IDs. If the source
+    // ever reuses an ID in a different family, prefer the newly scraped
+    // variant everywhere instead of creating a merged catalog that cannot be
+    // validated or addressed reliably by the Discord UI.
+    const families = new Map(
+        previous.families
+            .map(family => [
+                family.key,
+                { ...family, variants: family.variants.filter(variant => !latestIds.has(variant.id)) }
+            ] as const)
+            .filter(([, family]) => family.variants.length > 0)
+    );
+
+    for (const latestFamily of latest.families) {
+        const existing = families.get(latestFamily.key);
+        if (!existing) {
+            families.set(latestFamily.key, { ...latestFamily, variants: [...latestFamily.variants] });
+            continue;
+        }
+        families.set(latestFamily.key, { ...latestFamily, variants: [...existing.variants, ...latestFamily.variants] });
+    }
+
+    const mergedFamilies = [...families.values()];
+    return {
+        ...latest,
+        totalSprites: mergedFamilies.reduce((total, family) => total + family.variants.length, 0),
+        totalLevels: mergedFamilies.reduce((total, family) => total + family.variants.length, 0),
+        families: mergedFamilies
+    };
+}
+
+export function stableSpriteDataJson(data: SpriteDataFile): string {
+    return JSON.stringify({
+        ...data,
+        contentFingerprint: spriteDataContentFingerprint(data)
+    }, null, 2) + "\n";
+}

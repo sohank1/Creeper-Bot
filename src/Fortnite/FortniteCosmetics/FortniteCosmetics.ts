@@ -4,6 +4,7 @@ import { ApplicationCommandOptionChoice, AutocompleteInteraction, BaseCommandInt
 import { Cosmetic, Cosmetics, CosmeticsResponse } from "./FortniteCosmetics.type"
 import { rarityColorTable, rarityEmojisTable } from "./rarityEmojisTable";
 import { scheduleJob } from "node-schedule";
+import { createTrackedJob, registerComponent } from "../../runtimeDiagnostics";
 // const cosmeticsData = <CosmeticsResponse>require("./cosmetics.json");
 
 export const sortingPriorities = {
@@ -34,23 +35,31 @@ export class FortniteCosmetics {
     private _cachedQueries: Map<string, ApplicationCommandOptionChoice[]> = new Map();
 
     constructor(private client: Client) {
+        registerComponent("fortniteCosmetics", this);
         this.fetchCosmetics().then(d => this._data = d);
 
-        scheduleJob({ minute: 10, second: 0 }, () => {
+        scheduleJob({ minute: 10, second: 0 }, createTrackedJob("fortnite-cosmetics-refresh", "Fortnite Cosmetics Refresh", "Hourly at mm:10", async () => {
             // const c = (<TextChannel>client.channels.cache.get('1045086199053820004')) || (<TextChannel>client.channels.cache.get("725143127723212830"))
             console.log("fetching cosmetics...");
-            this.fetchCosmetics().then(d => this._data = d);
+            this._data = await this.fetchCosmetics();
             this._cachedQueries.clear();
 
-        })
+        }))
 
         this.client.on("interactionCreate", (i) => {
             console.log(i.type)
 
             if (i.isCommand() && i.options?.getSubcommand(false) !== "cosmetic") return;
-            if (i.isAutocomplete()) this.resolveSearchQuery(i);
+            if (i.isAutocomplete() && i.commandName === "fortnite" && i.options.getSubcommand(false) === "cosmetic") this.resolveSearchQuery(i);
             if (i.isApplicationCommand()) return this.replyEmbed(i);
         })
+    }
+
+    public getDiagnostics() {
+        return {
+            cosmeticsLoaded: this._data?.length || 0,
+            cachedQueries: this._cachedQueries.size,
+        };
     }
 
     private async resolveSearchQuery(i: AutocompleteInteraction<CacheType>): Promise<void> {

@@ -102,6 +102,7 @@ import { Client, Message, MessageEmbed, TextChannel } from "discord.js";
 import axios from "axios";
 import { scheduleJob } from "node-schedule";
 import itemShopChannels from "../ShopSections/shopSectionChannels.json";
+import { createTrackedJob, registerComponent } from "../runtimeDiagnostics";
 
 // --- NEW INTERFACES BASED ON V2 API ---
 interface NewShopResponse {
@@ -147,12 +148,30 @@ interface TrackItem {
 }
 
 export class MissingCosmetics {
+    private lastDailyRunAt: string | null = null;
+    private lastDailyItemsMissing = 0;
+    private lastDailyShopDate: string | null = null;
+    private lastDailyError: string | null = null;
+
     constructor(private client: Client) {
+        registerComponent("missingCosmetics", this);
         client.on("messageCreate", (message) => {
             if (message.content.toLowerCase() === "c!missing") this.sendMissingCosmetics(message);
         });
 
-        scheduleJob({ hour: 0, minute: 0, second: 30, tz: "UTC" }, () => this.sendMissingCosmeticsFromTodaysShop());
+        scheduleJob(
+            { hour: 0, minute: 0, second: 30, tz: "UTC" },
+            createTrackedJob("missing-cosmetics-daily", "Missing Cosmetics Daily Report", "Daily at 00:00:30 UTC", () => this.sendMissingCosmeticsFromTodaysShop()),
+        );
+    }
+
+    public getDiagnostics() {
+        return {
+            lastDailyRunAt: this.lastDailyRunAt,
+            lastDailyItemsMissing: this.lastDailyItemsMissing,
+            lastDailyShopDate: this.lastDailyShopDate,
+            lastDailyError: this.lastDailyError,
+        };
     }
 
     public async sendMissingCosmeticsFromTodaysShop() {
@@ -161,8 +180,10 @@ export class MissingCosmetics {
             //  - Switched to the general V2 shop endpoint
             const resp = await axios.get<NewShopResponse>("https://fortnite-api.com/v2/shop?responseFlags=7");
             shopData = resp.data.data;
+            this.lastDailyError = null;
         } catch (err: any) {
             console.error("Error fetching shop for missing cosmetics:", err?.message ?? err);
+            this.lastDailyError = err?.message || String(err);
             return;
         }
 
@@ -233,6 +254,10 @@ export class MissingCosmetics {
                 }
             }
         }
+
+        this.lastDailyRunAt = new Date().toISOString();
+        this.lastDailyItemsMissing = itemsMissing;
+        this.lastDailyShopDate = shopData?.date || null;
 
         if (!d) return;
 

@@ -27,4 +27,28 @@ export const fortniteCommand = new SlashCommandBuilder()
             .setName('cosmetic')
             .setDescription('Search for a Fortnite cosmetic')
             .addStringOption(o => o.setName('query').setDescription('The cosmetic you are searching for').setAutocomplete(true).setRequired(true)))
+
+    .addSubcommand(subcommand =>
+        subcommand
+            .setName('sprites')
+            .setDescription('Browse Fortnite sprites by season, variant, rarity, location, and dust cost')
+            .addStringOption(o => o.setName('season').setDescription('Show sprites available during a specific season').setAutocomplete(true))
+            .addStringOption(o => o.setName('search').setDescription('Search by sprite family, variant, rarity, effect, or cost').setAutocomplete(true)))
+
+    .addSubcommandGroup(group =>
+        group
+            .setName('map')
+            .setDescription('Fortnite map commands')
+            .addSubcommand(subcommand =>
+                subcommand
+                    .setName('view')
+                    .setDescription('Search for a specific Fortnite map version')
+                    .addStringOption(o => o.setName('version').setDescription('The version of the map').setAutocomplete(true).setRequired(true))
+            )
+            .addSubcommand(subcommand =>
+                subcommand
+                    .setName('options')
+                    .setDescription('View all Fortnite map versions')
+            )
+    )
     .toJSON()

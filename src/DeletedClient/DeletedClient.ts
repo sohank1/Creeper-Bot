@@ -1,9 +1,31 @@
 import { Client, Message, MessageEmbed, TextChannel } from "discord.js";
 import { version } from "../"
+import { registerComponent } from "../runtimeDiagnostics";
 
 export class DeletedClient {
+    private deletedMessagesLogged = 0;
+    private editedMessagesLogged = 0;
+    private bulkDeleteEventsLogged = 0;
+    private bulkDeletedMessagesLogged = 0;
+    private lastDeletedAt: string | null = null;
+    private lastEditedAt: string | null = null;
+    private lastBulkDeleteAt: string | null = null;
+
     constructor(private client: Client) {
+        registerComponent("deletedClient", this);
         this.handle();
+    }
+
+    public getDiagnostics() {
+        return {
+            deletedMessagesLogged: this.deletedMessagesLogged,
+            editedMessagesLogged: this.editedMessagesLogged,
+            bulkDeleteEventsLogged: this.bulkDeleteEventsLogged,
+            bulkDeletedMessagesLogged: this.bulkDeletedMessagesLogged,
+            lastDeletedAt: this.lastDeletedAt,
+            lastEditedAt: this.lastEditedAt,
+            lastBulkDeleteAt: this.lastBulkDeleteAt,
+        };
     }
 
     private handle() {
@@ -42,6 +64,8 @@ export class DeletedClient {
                     .setFooter("Creeper Bot" + version);
 
                 await channel.send({ embeds: [deletedMessageEmbed] }).catch(console.error);
+                this.deletedMessagesLogged++;
+                this.lastDeletedAt = new Date().toISOString();
             } catch (err) {
                 console.error("DeletedClient messageDelete error:", err);
             }
@@ -87,6 +111,8 @@ export class DeletedClient {
                     .setTimestamp();
 
                 await editlogschannel.send({ embeds: [editEmbed] }).catch(console.error);
+                this.editedMessagesLogged++;
+                this.lastEditedAt = new Date().toISOString();
             } catch (err) {
                 console.error("DeletedClient messageUpdate error:", err);
             }
@@ -98,6 +124,9 @@ export class DeletedClient {
                 const purgedChannel = this.client.channels.cache.get("720667264738787340") as TextChannel;
                 if (!purgedChannel) return;
                 const deletedArray = messages.toJSON().reverse();
+                this.bulkDeleteEventsLogged++;
+                this.bulkDeletedMessagesLogged += deletedArray.length;
+                this.lastBulkDeleteAt = new Date().toISOString();
 
                 (async () => {
                     for (const message of deletedArray) {
