@@ -177,7 +177,7 @@ export class MissingCosmetics {
 
     constructor(private client: Client) {
         registerComponent("missingCosmetics", this);
-        registerMissingReportBrowser(client, () => this.sendMissingCosmeticsFromTodaysShop(false));
+        registerMissingReportBrowser(client);
         client.on("messageCreate", (message) => {
             if (message.content.toLowerCase() === "c!missing") this.sendMissingCosmetics(message);
         });
@@ -275,7 +275,7 @@ export class MissingCosmetics {
 
         // Filter out items with no history or weird data
         allItems = Array.from(offersByItem.values()).map(item => ({ ...item,
-            shopHistory: [...new Set((item.shopHistory || []).filter(value => typeof value === "string").map(value => value.slice(0, 10)))]
+            shopHistory: [...new Set([...(item.shopHistory || []).filter(value => typeof value === "string").map(value => value.slice(0, 10)), shopData.date.slice(0, 10)])]
                 .filter(value => validReportDate(value) && value <= shopData.date.slice(0, 10)).sort(),
         })).filter(item => item.shopHistory.length >= 2 && item.shopHistory[item.shopHistory.length - 1] === shopData.date.slice(0, 10));
 

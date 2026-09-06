@@ -1,7 +1,7 @@
 import assert from "assert";
-import { reportControls } from "../MissingCosmetics/MissingReportBrowser";
+import { reportControls, registerMissingReportBrowser } from "../MissingCosmetics/MissingReportBrowser";
 import { shiftDate, todayUTC, validReportDate, validMinimumDays, filteredItems } from "../MissingCosmetics/MissingReport";
-import { MissingHistoryIndex, MissingHistoryService } from "../MissingCosmetics/MissingHistory";
+import { MissingHistoryIndex, MissingHistoryService, mergeCurrentShop } from "../MissingCosmetics/MissingHistory";
 import { fortniteCommand } from "../Fortnite/fortniteCommand";
 
 assert(validReportDate("2024-02-29"));
@@ -45,11 +45,15 @@ for (const row of reportControls("123", "2024-02-02", false, [], 42)) {
 assert.equal(reportControls("123", todayUTC(), true, []).length, 1);
 assert(!fortniteCommand.options.some(option => option.name === "cosmetics"));
 const cosmetic: any = fortniteCommand.options.find(option => option.name === "cosmetic");
-assert.equal(cosmetic.type, 1); // Preserve the existing subcommand; do not add a group.
-assert(cosmetic.options.find(option => option.name === "query").required);
-assert(cosmetic.options.find(option => option.name === "query").autocomplete);
-assert(!cosmetic.options.find(option => option.name === "date").required);
-assert(!cosmetic.options.find(option => option.name === "min_days").required);
+assert.equal(cosmetic.type, 2);
+assert.deepEqual(cosmetic.options.map(option => option.name), ["search", "missing"]);
+const search = cosmetic.options[0];
+assert.equal(search.options.length, 1);
+assert.equal(search.options[0].name, "query");
+assert(search.options[0].required && search.options[0].autocomplete);
+const missing = cosmetic.options[1];
+assert.deepEqual(missing.options.map(option => option.name), ["date", "days"]);
+assert(missing.options.every(option => !option.required && !option.name.includes("_")));
 console.log("Missing report date, picker limits, leap-year and command tests passed.");
 
 const fixtures = { br: [
@@ -66,6 +70,17 @@ assert.equal(index.report("2024-12-30", 300).items[0].previousAppearances, 1);
 assert.equal(index.report("2024-12-31", 1).items[0].previousAppearances, 2);
 assert.deepEqual(index.available(300), [{ date: "2024-12-30", count: 2 }]);
 assert.equal(index.report("2024-01-01", 1).items.length, 0); // First release is not a return.
+const merged = mergeCurrentShop({ br: [{ id: "return", name: "Return", shopHistory: ["2024-01-01"] }] }, {
+    date: "2024-12-30T00:00:00Z", entries: [{ finalPrice: 800, brItems: [{ id: "return", name: "Return", shopHistory: ["2024-01-01"] }] }],
+}, "2024-12-30");
+const liveIndex = new MissingHistoryIndex(merged, "2024-12-30");
+assert.equal(liveIndex.report("2024-12-30", 300).items[0].daysMissing, 364);
+assert.equal(liveIndex.report("2024-12-30", 300).items[0].price, 800);
+assert.deepEqual(liveIndex.available(300), [{ date: "2024-12-30", count: 1 }]);
+assert.deepEqual(liveIndex.available(365), []);
+for (const minimum of [1, 30, 300, 365, 1000]) {
+    for (const day of index.available(minimum)) assert.equal(day.count, index.report(day.date, minimum).items.length);
+}
 async function testCache() {
     let calls = 0;
     const service = new MissingHistoryService(async () => { calls++; return fixtures; });
@@ -78,6 +93,26 @@ async function testCache() {
     await assert.rejects(recovering.get());
     await recovering.get();
     assert.equal(attempts, 2);
+    // Exercise the actual Discord command handler with omitted optional arguments.
+    // An empty today must still reply with today's date, default 300 and a picker.
+    const originalGet = MissingHistoryService.prototype.get;
+    MissingHistoryService.prototype.get = async () => new MissingHistoryIndex({ br: [] });
+    try {
+        let listener: (interaction: any) => Promise<void>;
+        registerMissingReportBrowser({ on: (_event, callback) => { listener = callback; } } as any);
+        let response: any;
+        let deferred = false;
+        await listener({
+            isCommand: () => true, isButton: () => false, isSelectMenu: () => false,
+            commandName: "fortnite", user: { id: "123" },
+            options: { getSubcommandGroup: () => "cosmetic", getSubcommand: () => "missing", getString: () => null, getInteger: () => null },
+            deferReply: async () => { deferred = true; }, editReply: async value => { response = value; },
+        });
+        assert(deferred);
+        assert(response.embeds[0].title.includes(todayUTC()));
+        assert(response.embeds[0].footer.text.includes("300+ days"));
+        assert(response.components[0].components.some(component => component.label === "Choose date"));
+    } finally { MissingHistoryService.prototype.get = originalGet; }
     console.log("History calculations, duplicates, first releases, historical counts and cache tests passed.");
 }
 testCache().catch(error => { console.error(error); process.exitCode = 1; });

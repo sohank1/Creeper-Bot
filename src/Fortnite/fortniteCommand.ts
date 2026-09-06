@@ -22,13 +22,15 @@ export const fortniteCommand = new SlashCommandBuilder()
     )
 
 
-    .addSubcommand(subcommand =>
-        subcommand
-            .setName('cosmetic')
-            .setDescription('Search for a Fortnite cosmetic')
-            .addStringOption(o => o.setName('query').setDescription('Search for a cosmetic, or choose missing for returning cosmetics').setAutocomplete(true).setRequired(true))
-            .addStringOption(o => o.setName('date').setDescription('Missing report only: UTC shop date (YYYY-MM-DD), default today'))
-            .addIntegerOption(o => o.setName('min_days').setDescription('Missing report only: minimum days away (default 300)').setMinValue(1).setMaxValue(100000)))
+    .addSubcommandGroup(group => group
+        .setName('cosmetic').setDescription('Fortnite cosmetic commands')
+        .addSubcommand(subcommand => subcommand
+            .setName('search').setDescription('Search for a Fortnite cosmetic')
+            .addStringOption(o => o.setName('query').setDescription('The cosmetic you are searching for').setAutocomplete(true).setRequired(true)))
+        .addSubcommand(subcommand => subcommand
+            .setName('missing').setDescription('View cosmetics returning after time away from the shop')
+            .addStringOption(o => o.setName('date').setDescription('Shop date in UTC (YYYY-MM-DD); defaults to today'))
+            .addIntegerOption(o => o.setName('days').setDescription('Minimum days away from the shop; defaults to 300').setMinValue(1).setMaxValue(100000))))
 
     .addSubcommand(subcommand =>
         subcommand

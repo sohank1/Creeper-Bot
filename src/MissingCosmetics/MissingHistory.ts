@@ -7,6 +7,7 @@ interface ReturnEvent { item: MissingCosmeticImageItem; gap: number; previous: s
 
 export class MissingHistoryIndex {
     private days = new Map<string, ReturnEvent[]>();
+    private liveArtwork = new Map<string, Partial<MissingCosmeticImageItem>>();
     public cosmeticsWithHistory = 0;
     public eventCount = 0;
     constructor(data: Record<string, any[]>, readonly asOf = todayUTC()) {
@@ -23,6 +24,7 @@ export class MissingHistoryIndex {
             for (const cosmetic of cosmetics) {
                 if (!cosmetic.id || seen.has(cosmetic.id) || !Array.isArray(cosmetic.shopHistory)) continue;
                 seen.add(cosmetic.id);
+                if (cosmetic._shopDate === asOf && cosmetic._shopArtwork) this.liveArtwork.set(cosmetic.id, cosmetic._shopArtwork);
                 const history = [...new Set<string>(cosmetic.shopHistory.filter((value: unknown) => typeof value === "string").map((value: string) => value.slice(0, 10)))]
                     .filter(value => Number.isFinite(dateNumber(value))).sort();
                 if (!history.length) continue;
@@ -65,18 +67,61 @@ export class MissingHistoryIndex {
         const items: MissingCosmeticImageItem[] = [];
         for (const event of this.days.get(date) || []) {
             if (event.gap < minimum) break;
-            items.push({ ...event.item, daysMissing: event.gap, lastSeenLabel: event.previous,
+            items.push({ ...event.item, ...(date === this.asOf ? this.liveArtwork.get(event.item.id) : {}), daysMissing: event.gap, lastSeenLabel: event.previous,
                 previousAppearances: event.appearances, previousRotations: event.rotations, recordReturn: event.record });
         }
         return { date, items, description: reportDescription(items) };
     }
 }
 
+// The catalog can lag behind the shop after reset. A live shop entry proves an
+// appearance on that shop date; merge it before computing both counts and reports.
+export function mergeCurrentShop(data: Record<string, any[]>, shop: any, today = todayUTC()) {
+    if (!shop || shop.date?.slice(0, 10) !== today || !Array.isArray(shop.entries)) return data;
+    const merged = { ...data };
+    for (const [category, field] of [["br", "brItems"], ["tracks", "tracks"], ["cars", "cars"], ["instruments", "instruments"], ["legoKits", "legoKits"]]) {
+        const byId = new Map((data[category] || []).map(item => [item.id, item]));
+        const standalone = new Set<string>();
+        for (const entry of shop.entries) {
+            const total = ["brItems", "tracks", "cars", "instruments", "legoKits"].reduce((count, key) => count + (entry[key]?.length || 0), 0);
+            for (const item of entry[field] || []) {
+                const previous = byId.get(item.id);
+                const ownOffer = total === 1;
+                const artwork = entry.newDisplayAsset?.renderImages?.find(image => image.productTag === "Product.BR")?.image || entry.newDisplayAsset?.renderImages?.[0]?.image;
+                const image = item.images?.icon || item.images?.large || item.albumArt;
+                const featured = (ownOffer && artwork) || item.images?.featured || image;
+                const art = {
+                    ...(image ? { imageUrl: image } : {}), ...(featured ? { featuredImageUrl: featured } : {}),
+                    featuredImageIsShopArtwork: Boolean(ownOffer && artwork), price: ownOffer ? entry.finalPrice : undefined,
+                    backgroundColors: [entry.colors?.color1, entry.colors?.color2, entry.colors?.color3].filter(Boolean),
+                    textBackgroundColor: entry.colors?.textBackgroundColor, tileSize: entry.tileSize, shopSection: entry.layout?.name,
+                };
+                byId.set(item.id, { ...previous, ...item,
+                    shopHistory: [...(previous?.shopHistory || []), ...(item.shopHistory || []), today],
+                    _shopDate: today, _shopArtwork: standalone.has(item.id) ? previous._shopArtwork : art,
+                });
+                if (ownOffer) standalone.add(item.id);
+            }
+        }
+        merged[category] = [...byId.values()];
+    }
+    return merged;
+}
+
+async function fetchHistories() {
+    const [catalog, shop] = await Promise.all([
+        axios.get("https://fortnite-api.com/v2/cosmetics?responseFlags=7", { timeout: 45000 }),
+        axios.get("https://fortnite-api.com/v2/shop?responseFlags=7", { timeout: 30000 }),
+    ]);
+    if (!catalog.data?.data || !Array.isArray(catalog.data.data.br) || !Array.isArray(shop.data?.data?.entries)) throw new Error("Invalid cosmetics/shop API response");
+    return mergeCurrentShop(catalog.data.data, shop.data.data);
+}
+
 // Transient API/index cache only: no saved reports, files or database reads/writes.
 export class MissingHistoryService {
     private cached?: { index: MissingHistoryIndex; expires: number; date: string };
     private loading?: Promise<MissingHistoryIndex>;
-    constructor(private fetchData = async () => (await axios.get("https://fortnite-api.com/v2/cosmetics?responseFlags=7", { timeout: 45000 })).data.data) {}
+    constructor(private fetchData = fetchHistories) {}
     async get(): Promise<MissingHistoryIndex> {
         if (this.cached && this.cached.expires > Date.now() && this.cached.date === todayUTC()) return this.cached.index;
         if (!this.loading) this.loading = this.fetchData().then(data => {

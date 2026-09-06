@@ -1,5 +1,5 @@
 import { Client, MessageActionRow, MessageAttachment, MessageButton, MessageEmbed, MessageSelectMenu } from "discord.js";
-import { MissingReport, todayUTC, validReportDate, validMinimumDays, reportDescription } from "./MissingReport";
+import { todayUTC, validReportDate, validMinimumDays, reportDescription } from "./MissingReport";
 import { MissingHistoryService } from "./MissingHistory";
 import { renderMissingCosmeticsImage } from "./MissingCosmeticsImage";
 
@@ -34,22 +34,22 @@ export function reportControls(owner: string, date: string, picker = false, avai
     return rows;
 }
 
-export function registerMissingReportBrowser(client: Client, fetchToday: () => Promise<MissingReport | undefined>) {
+export function registerMissingReportBrowser(client: Client) {
     const busy = new Set<string>();
     const histories = new MissingHistoryService();
     client.on("interactionCreate", async interaction => {
         const command = interaction.isCommand() && interaction.commandName === "fortnite"
-            && interaction.options.getSubcommand(false) === "cosmetic" && interaction.options.getString("query")?.trim().toLowerCase() === "missing";
+            && interaction.options.getSubcommandGroup(false) === "cosmetic" && interaction.options.getSubcommand(false) === "missing";
         const component = (interaction.isButton() || interaction.isSelectMenu()) && interaction.customId.startsWith("missing-report:");
         if (!command && !component) return;
         if (!interaction.isCommand() && !interaction.isButton() && !interaction.isSelectMenu()) return;
         let date = todayUTC();
         let action = "report";
         let minimum = 300;
-        if (interaction.isCommand()) { date = interaction.options.getString("date") || date; minimum = interaction.options.getInteger("min_days") ?? 300; }
+        if (interaction.isCommand()) { date = interaction.options.getString("date") || date; minimum = interaction.options.getInteger("days") ?? 300; }
         else {
             const [, owner, selected, operation, threshold] = interaction.customId.split(":");
-            if (owner !== interaction.user.id) { await interaction.reply({ content: "Open your own report with /fortnite cosmetic query:missing.", ephemeral: true }); return; }
+            if (owner !== interaction.user.id) { await interaction.reply({ content: "Open your own report with /fortnite cosmetic missing.", ephemeral: true }); return; }
             date = selected; action = operation;
             minimum = threshold === undefined ? 300 : Number(threshold);
         }
@@ -65,7 +65,7 @@ export function registerMissingReportBrowser(client: Client, fetchToday: () => P
                 const presets = [...new Set([30, 90, 180, 300, 365, 730, 1000, minimum])].sort((a, b) => a - b);
                 const select = new MessageSelectMenu().setCustomId(`missing-report:${interaction.user.id}:${date}:threshold:${minimum}`)
                     .setPlaceholder("Minimum days away").addOptions(presets.map(value => ({ label: `${value}+ days${value === 300 ? " (default)" : ""}`, value: String(value), default: value === minimum })));
-                await interaction.editReply({ content: `Choose a minimum, or enter any whole number (1–100,000) with:\n\`/fortnite cosmetic query:missing date:${date} min_days:${minimum}\``, embeds: [], attachments: [],
+                await interaction.editReply({ content: `Choose a minimum number of days away, or enter any whole number (1–100,000) with:\n\`/fortnite cosmetic missing date:${date} days:${minimum}\``, embeds: [], attachments: [],
                     components: [new MessageActionRow().addComponents(select), ...reportControls(interaction.user.id, date, false, [], minimum)] });
                 return;
             }
@@ -103,23 +103,9 @@ export function registerMissingReportBrowser(client: Client, fetchToday: () => P
                 return;
             }
             const report = history.report(date, minimum);
-            let items = report.items;
-            // Current shop provides optional price/art enrichment, never the historical calculation.
-            if (date === todayUTC() && items.length) {
-                try {
-                    const current = await fetchToday();
-                    if (current?.date === date) {
-                        const art = new Map(current.items.map(item => [item.id, item]));
-                        items = items.map(item => {
-                            const live = art.get(item.id);
-                            return live ? { ...live, ...item, imageUrl: live.imageUrl || item.imageUrl,
-                                featuredImageUrl: live.featuredImageUrl || item.featuredImageUrl } : item;
-                        });
-                    }
-                } catch (error) { console.error("Current shop enrichment unavailable:", error); }
-            }
+            const items = report.items;
             const embed = new MessageEmbed().setColor("#2186DB").setTitle(`Back from the vault · ${date}`)
-                .setDescription(items.length ? reportDescription(items).slice(0, 4096) : `No ${minimum}+ day returns were found for this date in the available API histories.`)
+                .setDescription(items.length ? reportDescription(items).slice(0, 4096) : `No ${minimum}+ day returns were found on ${date}. Use **Choose date** to browse days with matching returns, or **Filter** to change the minimum days away.`)
                 .setFooter({ text: `${items.length} items · UTC · ${minimum}+ days away · API history coverage only${date !== todayUTC() ? " · Current artwork; historical prices unavailable" : ""}` });
             let render: Awaited<ReturnType<typeof renderMissingCosmeticsImage>>;
             try {
