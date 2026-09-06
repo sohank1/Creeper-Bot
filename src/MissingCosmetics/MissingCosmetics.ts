@@ -104,7 +104,7 @@ import { scheduleJob } from "node-schedule";
 import itemShopChannels from "../ShopSections/shopSectionChannels.json";
 import { createTrackedJob, registerComponent } from "../runtimeDiagnostics";
 import { MissingCosmeticImageItem, renderMissingCosmeticsImage } from "./MissingCosmeticsImage";
-import { MissingReport, reportDescription, validReportDate } from "./MissingReport";
+import { MissingReport, validReportDate } from "./MissingReport";
 import { registerMissingReportBrowser } from "./MissingReportBrowser";
 
 // --- NEW INTERFACES BASED ON V2 API ---
@@ -330,6 +330,7 @@ export class MissingCosmetics {
                         imageUrl: i.imageUrl,
                         featuredImageUrl: i.featuredImageUrl,
                         featuredImageIsShopArtwork: i.featuredImageIsShopArtwork,
+                        fnbrUrl: `https://fnbr.co/${cleanType}/${cleanName}`,
                         daysMissing: Math.round(differenceInDays),
                         lastSeenLabel,
                         rarity: i.rarity?.displayValue,
@@ -359,7 +360,7 @@ export class MissingCosmetics {
         missingImageItems.splice(0, missingImageItems.length, ...dailyItems);
         itemsMissing = dailyItems.length;
         this.lastDailyItemsMissing = itemsMissing;
-        d = reportDescription(dailyItems);
+        d = dailyItems.map(item => `[${item.name} (${item.type})](${item.fnbrUrl}): ${item.daysMissing} days ago (${item.lastSeenLabel})`).join("\n");
         if (!d) return report;
         const shopDateLabel = new Date(`${shopData.date.slice(0, 10)}T00:00:00Z`).toLocaleDateString("en-US", { timeZone: "UTC" });
         const e = new MessageEmbed()

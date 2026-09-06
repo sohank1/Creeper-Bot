@@ -8,6 +8,7 @@ export interface MissingCosmeticImageItem {
     imageUrl: string | null;
     featuredImageUrl?: string | null;
     featuredImageIsShopArtwork?: boolean;
+    fnbrUrl?: string;
     daysMissing: number;
     lastSeenLabel: string;
     rarity?: string;
