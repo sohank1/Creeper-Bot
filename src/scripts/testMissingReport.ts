@@ -1,8 +1,9 @@
 import assert from "assert";
-import { reportControls, registerMissingReportBrowser } from "../MissingCosmetics/MissingReportBrowser";
+import { reportControls, registerMissingReportBrowser, resolveReportDate } from "../MissingCosmetics/MissingReportBrowser";
 import { shiftDate, todayUTC, validReportDate, validMinimumDays, filteredItems } from "../MissingCosmetics/MissingReport";
 import { MissingHistoryIndex, MissingHistoryService, mergeCurrentShop } from "../MissingCosmetics/MissingHistory";
 import { fortniteCommand } from "../Fortnite/fortniteCommand";
+import { buildFortniteItemShopReplicaHtml } from "../MissingCosmetics/MissingCosmeticsImage";
 
 assert(validReportDate("2024-02-29"));
 for (const invalid of ["2023-02-29", "2024-13-01", "2024-04-31", "24-01-01", "../2024-01-01", "2099-01-01"]) assert(!validReportDate(invalid), invalid);
@@ -31,8 +32,23 @@ for (const date of ["2024-02-29", "2023-02-28", "2024-01-31", todayUTC()]) {
     }
 }
 const sparse = reportControls("123", "2024-02-02", true, [{ date: "2024-02-02", count: 12 }, { date: "2024-02-27", count: 3 }]);
-const dayMenu: any = sparse[2].toJSON().components[0];
+const dayMenu: any = sparse[0].toJSON().components[0];
 assert.deepEqual(dayMenu.options.map(option => option.label), ["February 2 (12 items)", "February 27 (3 items)"]);
+assert(sparse[1].components[0].customId.includes(":month:"));
+assert(sparse[2].components[0].customId.includes(":year:"));
+assert.equal(sparse[3].components.length, 4);
+const arrows = (date: string, available = [{ date: "2024-02-02", count: 12 }, { date: "2024-02-27", count: 3 }]) =>
+    reportControls("123", date, false, available)[0].toJSON().components as any[];
+assert.equal(arrows("2024-02-02")[0].label, "←");
+assert.equal(arrows("2024-02-02")[2].label, "→");
+assert(arrows("2024-02-02")[0].disabled);
+assert(!arrows("2024-02-02")[2].disabled);
+assert(!arrows("2024-02-27")[0].disabled);
+assert(arrows("2024-02-27")[2].disabled);
+assert(arrows("2024-02-02", [])[0].disabled && arrows("2024-02-02", [])[2].disabled);
+assert.equal(resolveReportDate("2024-03-01", [{ date: "2024-02-02", count: 2 }, { date: "2024-02-27", count: 1 }], "2024-03-01"), "2024-02-27");
+assert.equal(resolveReportDate("2024-02-20", [{ date: "2024-02-02", count: 2 }], "2024-03-01"), "2024-02-20");
+assert.equal(resolveReportDate("2024-03-01", [], "2024-03-01"), "2024-03-01");
 assert(validMinimumDays(1) && validMinimumDays(100000));
 for (const value of [0, -1, 2.5, NaN, 100001]) assert(!validMinimumDays(value));
 const legacy: any = { items: [{ daysMissing: 299 }, { daysMissing: 300 }, { daysMissing: 730 }] };
@@ -70,6 +86,11 @@ assert.equal(index.report("2024-12-30", 300).items[0].previousAppearances, 1);
 assert.equal(index.report("2024-12-31", 1).items[0].previousAppearances, 2);
 assert.deepEqual(index.available(300), [{ date: "2024-12-30", count: 2 }]);
 assert.equal(index.report("2024-01-01", 1).items.length, 0); // First release is not a return.
+const html = buildFortniteItemShopReplicaHtml(index.report("2024-12-30", 42).items, "2024-12-30", 42);
+assert(html.includes("42+ DAYS AWAY"));
+assert(!html.includes("300+ DAYS AWAY"));
+assert(!html.includes("IN SHOP"));
+assert(html.includes('class="fs-report-date"'));
 const merged = mergeCurrentShop({ br: [{ id: "return", name: "Return", shopHistory: ["2024-01-01"] }] }, {
     date: "2024-12-30T00:00:00Z", entries: [{ finalPrice: 800, brItems: [{ id: "return", name: "Return", shopHistory: ["2024-01-01"] }] }],
 }, "2024-12-30");
@@ -106,11 +127,13 @@ async function testCache() {
             isCommand: () => true, isButton: () => false, isSelectMenu: () => false,
             commandName: "fortnite", user: { id: "123" },
             options: { getSubcommandGroup: () => "cosmetic", getSubcommand: () => "missing", getString: () => null, getInteger: () => null },
-            deferReply: async () => { deferred = true; }, editReply: async value => { response = value; },
+            deferReply: async options => { assert.strictEqual(options.ephemeral, false); deferred = true; }, editReply: async value => { response = { ...response, ...value }; },
         });
         assert(deferred);
         assert(response.embeds[0].title.includes(todayUTC()));
-        assert(response.embeds[0].footer.text.includes("300+ days"));
+        assert(response.embeds[0].description.includes("300+ day"));
+        assert(response.embeds[0].fields.some(field => field.name.includes("Performance") && field.value.includes("Calculation") && field.value.includes("Render") && field.value.includes("Delivery")));
+        assert(!response.embeds[0].image);
         assert(response.components[0].components.some(component => component.label === "Choose date"));
     } finally { MissingHistoryService.prototype.get = originalGet; }
     console.log("History calculations, duplicates, first releases, historical counts and cache tests passed.");

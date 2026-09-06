@@ -1,4 +1,5 @@
 import axios from "axios";
+import { performance } from "perf_hooks";
 import { MissingCosmeticImageItem } from "./MissingCosmeticsImage";
 import { MissingReport, reportDescription, todayUTC, validMinimumDays, validReportDate } from "./MissingReport";
 
@@ -10,7 +11,9 @@ export class MissingHistoryIndex {
     private liveArtwork = new Map<string, Partial<MissingCosmeticImageItem>>();
     public cosmeticsWithHistory = 0;
     public eventCount = 0;
+    public buildMs = 0;
     constructor(data: Record<string, any[]>, readonly asOf = todayUTC()) {
+        const started = performance.now();
         const seen = new Set<string>();
         // Hundreds of thousands of appearances reuse only a few thousand UTC dates.
         // Validate/parse each distinct date once, not once per cosmetic appearance.
@@ -51,6 +54,7 @@ export class MissingHistoryIndex {
         }
         // Sorted once: date/filter requests only scan until the first smaller gap.
         for (const events of this.days.values()) events.sort((a, b) => b.gap - a.gap || a.item.id.localeCompare(b.item.id));
+        this.buildMs = performance.now() - started;
     }
     available(minimum: number) {
         if (!validMinimumDays(minimum)) throw new Error("Invalid minimum days");
@@ -67,7 +71,8 @@ export class MissingHistoryIndex {
         const items: MissingCosmeticImageItem[] = [];
         for (const event of this.days.get(date) || []) {
             if (event.gap < minimum) break;
-            items.push({ ...event.item, ...(date === this.asOf ? this.liveArtwork.get(event.item.id) : {}), daysMissing: event.gap, lastSeenLabel: event.previous,
+            const currentPrice = this.liveArtwork.get(event.item.id)?.price;
+            items.push({ ...event.item, ...(date === this.asOf ? this.liveArtwork.get(event.item.id) : { price: currentPrice, priceIsCurrent: currentPrice !== undefined }), daysMissing: event.gap, lastSeenLabel: event.previous,
                 previousAppearances: event.appearances, previousRotations: event.rotations, recordReturn: event.record });
         }
         return { date, items, description: reportDescription(items) };
@@ -122,6 +127,12 @@ export class MissingHistoryService {
     private cached?: { index: MissingHistoryIndex; expires: number; date: string };
     private loading?: Promise<MissingHistoryIndex>;
     constructor(private fetchData = fetchHistories) {}
+    async measured() {
+        const cached = Boolean(this.cached && this.cached.expires > Date.now() && this.cached.date === todayUTC());
+        const started = performance.now();
+        const index = await this.get();
+        return { index, cached, loadMs: performance.now() - started, buildMs: cached ? 0 : index.buildMs };
+    }
     async get(): Promise<MissingHistoryIndex> {
         if (this.cached && this.cached.expires > Date.now() && this.cached.date === todayUTC()) return this.cached.index;
         if (!this.loading) this.loading = this.fetchData().then(data => {

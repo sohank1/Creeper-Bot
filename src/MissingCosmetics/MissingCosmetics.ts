@@ -370,7 +370,6 @@ export class MissingCosmetics {
         let render: Awaited<ReturnType<typeof renderMissingCosmeticsImage>> | null = null;
         try {
             render = await renderMissingCosmeticsImage(missingImageItems, shopDateLabel, "item-shop");
-            e.setImage("attachment://returning-cosmetics.png");
             for (const s of Object.values(itemShopChannels)) {
                 const channel = this.client.channels.cache.get(s.channel) as TextChannel;
                 if (!channel) continue;
