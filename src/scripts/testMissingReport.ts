@@ -1,0 +1,80 @@
+import assert from "assert";
+import { reportControls } from "../MissingCosmetics/MissingReportBrowser";
+import { shiftDate, todayUTC, validReportDate, validMinimumDays, filteredItems } from "../MissingCosmetics/MissingReport";
+import { MissingHistoryIndex, MissingHistoryService } from "../MissingCosmetics/MissingHistory";
+import { fortniteCommand } from "../Fortnite/fortniteCommand";
+
+assert(validReportDate("2024-02-29"));
+for (const invalid of ["2023-02-29", "2024-13-01", "2024-04-31", "24-01-01", "../2024-01-01", "2099-01-01"]) assert(!validReportDate(invalid), invalid);
+assert.equal(shiftDate("2024-03-01", -1), "2024-02-29");
+assert.equal(shiftDate("2023-12-31", 1), "2024-01-01");
+for (const date of ["2024-02-29", "2023-02-28", "2024-01-31", todayUTC()]) {
+    for (const picker of [true, false]) {
+        const [y, m] = date.split("-").map(Number);
+        const count = date.slice(0, 7) === todayUTC().slice(0, 7) ? new Date().getUTCDate() : new Date(Date.UTC(y, m, 0)).getUTCDate();
+        const available = Array.from({ length: count }, (_, i) => ({ date: `${date.slice(0, 7)}-${String(i + 1).padStart(2, "0")}`, count: i + 1 }));
+        const rows = reportControls("123456789012345678", date, picker, available).map(row => row.toJSON());
+        assert(rows.length <= 5);
+        const dayValues: number[] = [];
+        for (const row of rows) for (const component of row.components) {
+            assert("custom_id" in component && component.custom_id.length <= 100);
+            if (component.type === 3) {
+                assert(component.options.length > 0 && component.options.length <= 25);
+                if (component.custom_id.includes(":day")) dayValues.push(...component.options.map(option => Number(option.value)));
+            }
+        }
+        if (picker) {
+            const [year, month] = date.split("-").map(Number);
+            const expected = date.slice(0, 7) === todayUTC().slice(0, 7) ? new Date().getUTCDate() : new Date(Date.UTC(year, month, 0)).getUTCDate();
+            assert.deepEqual(dayValues, Array.from({ length: expected }, (_, i) => i + 1));
+        }
+    }
+}
+const sparse = reportControls("123", "2024-02-02", true, [{ date: "2024-02-02", count: 12 }, { date: "2024-02-27", count: 3 }]);
+const dayMenu: any = sparse[2].toJSON().components[0];
+assert.deepEqual(dayMenu.options.map(option => option.label), ["February 2 (12 items)", "February 27 (3 items)"]);
+assert(validMinimumDays(1) && validMinimumDays(100000));
+for (const value of [0, -1, 2.5, NaN, 100001]) assert(!validMinimumDays(value));
+const legacy: any = { items: [{ daysMissing: 299 }, { daysMissing: 300 }, { daysMissing: 730 }] };
+assert.equal(filteredItems(legacy, 300).length, 2);
+assert.equal(filteredItems(legacy, 730).length, 1);
+for (const row of reportControls("123", "2024-02-02", false, [], 42)) {
+    assert(row.components.length <= 5);
+    for (const component of row.components) assert(component.customId.endsWith(":42"));
+}
+assert.equal(reportControls("123", todayUTC(), true, []).length, 1);
+const group: any = fortniteCommand.options.find(option => option.name === "cosmetics");
+assert.equal(group.options[0].name, "missing");
+assert.equal(group.options[0].options[0].name, "date");
+assert(!group.options[0].options[0].required);
+console.log("Missing report date, picker limits, leap-year and command tests passed.");
+
+const fixtures = { br: [
+    { id: "a", name: "A", shopHistory: ["2024-12-31", "2024-01-01T12:00:00Z", "2024-01-01T00:00:00Z", "bad", "2024-12-30", "2099-01-01"] },
+    { id: "b", name: "B", shopHistory: ["2024-12-30"] },
+    { id: "a", name: "Duplicate", shopHistory: ["2024-01-01", "2024-12-30"] },
+], legoKits: [{ id: "kit", name: "Kit", shopHistory: ["2024-01-01", "2024-12-30"] }] };
+const index = new MissingHistoryIndex(fixtures, "2024-12-31");
+assert.equal(index.report("2024-12-30", 364).items.length, 2);
+assert.equal(index.report("2024-12-30", 365).items.length, 0);
+assert.equal(index.report("2024-12-31", 300).items.length, 0);
+assert.equal(index.report("2024-12-31", 1).items.length, 1);
+assert.equal(index.report("2024-12-30", 300).items[0].previousAppearances, 1);
+assert.equal(index.report("2024-12-31", 1).items[0].previousAppearances, 2);
+assert.deepEqual(index.available(300), [{ date: "2024-12-30", count: 2 }]);
+assert.equal(index.report("2024-01-01", 1).items.length, 0); // First release is not a return.
+async function testCache() {
+    let calls = 0;
+    const service = new MissingHistoryService(async () => { calls++; return fixtures; });
+    const [a, b] = await Promise.all([service.get(), service.get()]);
+    assert.strictEqual(a, b);
+    assert.strictEqual(await service.get(), a);
+    assert.equal(calls, 1);
+    let attempts = 0;
+    const recovering = new MissingHistoryService(async () => { if (++attempts === 1) throw new Error("offline"); return fixtures; });
+    await assert.rejects(recovering.get());
+    await recovering.get();
+    assert.equal(attempts, 2);
+    console.log("History calculations, duplicates, first releases, historical counts and cache tests passed.");
+}
+testCache().catch(error => { console.error(error); process.exitCode = 1; });

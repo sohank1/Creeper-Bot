@@ -10,6 +10,13 @@ export const platformChoices = [
 export const fortniteCommand = new SlashCommandBuilder()
     .setName('fortnite')
     .setDescription('Fortnite commands')
+    .addSubcommandGroup(group => group
+        .setName('cosmetics').setDescription('Fortnite cosmetic reports')
+        .addSubcommand(sub => sub.setName('missing')
+            .setDescription('View cosmetics returning after 300+ days away')
+            .addStringOption(option => option.setName('date')
+                .setDescription('Shop date in UTC (YYYY-MM-DD); defaults to today'))
+            .addIntegerOption(option => option.setName('min_days').setDescription('Minimum days away (default: 300)').setMinValue(1).setMaxValue(100000))))
 
     .addSubcommand(subcommand =>
         subcommand
