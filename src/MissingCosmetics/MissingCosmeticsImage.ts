@@ -1,5 +1,7 @@
 import fs from "fs";
 import type { Browser } from "puppeteer";
+import { applyMissingPalettes, fallbackPalette } from "./MissingPalette";
+import { selectMissingPreview, prepareMissingPreviews } from "./MissingPreview";
 
 export interface MissingCosmeticImageItem {
     id: string;
@@ -22,6 +24,7 @@ export interface MissingCosmeticImageItem {
     recordReturn?: boolean;
     tileSize?: string;
     shopSection?: string;
+    setKey?: string;
 }
 
 export interface MissingCosmeticsRender {
@@ -275,11 +278,12 @@ function buildLegacyFortniteItemShopReplicaHtml(items: MissingCosmeticImageItem[
 export function buildFortniteItemShopReplicaHtml(items: MissingCosmeticImageItem[], shopDateLabel: string, minimumDays = 300): string {
     const useFeaturedMosaic = items.length <= 10;
     const isFlatMedia = (item: MissingCosmeticImageItem) =>
-        /jam track|music|loading screen|emote|emoticon|emoji|spray|banner|wrap/i.test(item.type);
+        /jam track|music|loading screen|emoticon|emoji|spray|banner|backpack|back bling/i.test(item.type);
     const featuredScore = (item: MissingCosmeticImageItem) => {
         if (!item.imageUrl && !item.featuredImageUrl) return -1;
         if (isFlatMedia(item)) return -1;
-        return (item.featuredImageUrl ? 40 : 0)
+        return (/outfit|character|skin/i.test(item.type) ? 200 : 0)
+            + (item.featuredImageUrl ? 40 : 0)
             + (/2_x_2|1_x_2/i.test(item.tileSize || "") ? 100 : 0);
     };
     const preferredFeatured = items
@@ -328,19 +332,19 @@ export function buildFortniteItemShopReplicaHtml(items: MissingCosmeticImageItem
 
     const tiles = displayItems.map((item, index) => {
         const featured = useFeaturedMosaic && index < featuredCount;
-        const primary = apiColor(item.backgroundColors?.[0], "#ff55a7ff");
-        const secondary = apiColor(item.backgroundColors?.[1], "#df2787ff");
-        const tertiary = apiColor(item.backgroundColors?.[2], secondary);
+        const fallback = fallbackPalette(item.setKey || item.id);
+        const primary = apiColor(item.backgroundColors?.[0], fallback[0]);
+        const secondary = apiColor(item.backgroundColors?.[1], fallback[1]);
+        const tertiary = apiColor(item.backgroundColors?.[2], item.backgroundColors?.length ? secondary : fallback[2]);
         const textBackground = apiColor(item.textBackgroundColor, "#161616ff");
         const accent = rarityAccent(item.rarity, tertiary);
         const character = /outfit|character|skin/i.test(item.type);
         // The API icon is framed for square portrait cards; display artwork
         // is reserved for the tall offers.
-        const imageUrl = featured
-            ? item.featuredImageUrl || item.imageUrl
-            : item.imageUrl || item.featuredImageUrl || null;
+        const preview = selectMissingPreview(item, featured);
+        const imageUrl = preview.url;
         const introduced = introductionBadge(item.introduced);
-        const artworkClass = featured && item.featuredImageIsShopArtwork ? " fs-prepared-art" : " fs-fallback-art";
+        const artworkClass = ` fs-preview-${preview.kind}`;
         const trackSeparator = /jam track|music/i.test(item.type) ? item.name.indexOf(" - ") : -1;
         const rawDisplayName = trackSeparator >= 0 ? item.name.slice(trackSeparator + 3) : item.name;
         const displayName = trackSeparator >= 0
@@ -372,6 +376,12 @@ export function buildFortniteItemShopReplicaHtml(items: MissingCosmeticImageItem
 .fs-compact .fs-art img{object-fit:contain;padding:3px;transform:none}
 .fs-featured .fs-art.fs-character img{object-fit:cover;object-position:center 18%;padding:0;transform:none}
 .fs-compact .fs-art.fs-character img{display:block;object-fit:contain;object-position:center bottom;padding:6px 5px 0;transform:none}
+.fs-featured .fs-art.fs-preview-composition img,.fs-compact .fs-art.fs-preview-composition img{object-fit:contain;object-position:center center;padding:0;transform:none;filter:none}
+.fs-featured .fs-art.fs-preview-portrait img{object-fit:contain;object-position:center bottom;padding:3% 2% 0;transform:none}
+.fs-compact .fs-art.fs-preview-portrait img{object-fit:contain;object-position:center bottom;padding:6px 7px 0;transform:none}
+.fs-art.fs-preview-equipment img{object-fit:contain;object-position:center center;padding:7% 7% 12%;transform:none}
+.fs-art.fs-preview-silhouette img{object-fit:contain;object-position:center center;padding:7% 9% 12%;transform:none;filter:none}
+.fs-art.fs-preview-album img{object-fit:contain;object-position:center center;padding:5% 5% 12%;transform:none;filter:none}
 .fs-label{position:relative;padding-left:8px;padding-right:8px;box-shadow:none}
 .fs-label h2{top:2px}
 .fs-price{position:absolute;top:auto;bottom:0;left:0;right:0;height:${smallText ? 20 : 24}px;margin:0;padding:0 7px;background:#0b0b0b}
@@ -410,6 +420,7 @@ export async function renderMissingCosmeticsImage(
     variant: MissingCosmeticsImageVariant = "vault-grid",
     minimumDays = 300,
 ): Promise<MissingCosmeticsRender> {
+    if (variant === "item-shop") items = await prepareMissingPreviews(await applyMissingPalettes(items));
     const { default: puppeteer } = await Function('return import("puppeteer")')();
     const browser: Browser = await puppeteer.launch({
         headless: true,

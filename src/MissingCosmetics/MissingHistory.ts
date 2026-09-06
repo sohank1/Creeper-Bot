@@ -1,4 +1,5 @@
 import axios from "axios";
+import { selectBRShopArtwork } from "./MissingPreview";
 import { performance } from "perf_hooks";
 import { MissingCosmeticImageItem } from "./MissingCosmeticsImage";
 import { MissingReport, reportDescription, todayUTC, validMinimumDays, validReportDate } from "./MissingReport";
@@ -38,6 +39,7 @@ export class MissingHistoryIndex {
                     imageUrl: cosmetic.images?.icon || cosmetic.images?.large || cosmetic.images?.small || cosmetic.images?.smallIcon || cosmetic.albumArt || cosmetic.images?.featured || null,
                     featuredImageUrl: cosmetic.images?.featured || cosmetic.images?.large || cosmetic.images?.icon || cosmetic.albumArt || null,
                     introduced: cosmetic.introduction?.text, rarity: cosmetic.rarity?.displayValue, daysMissing: 0, lastSeenLabel: "",
+                    setKey: cosmetic.set?.value || cosmetic.set?.text,
                 };
                 let rotations = 1;
                 let longestGap = 0;
@@ -71,8 +73,14 @@ export class MissingHistoryIndex {
         const items: MissingCosmeticImageItem[] = [];
         for (const event of this.days.get(date) || []) {
             if (event.gap < minimum) break;
-            const currentPrice = this.liveArtwork.get(event.item.id)?.price;
-            items.push({ ...event.item, ...(date === this.asOf ? this.liveArtwork.get(event.item.id) : { price: currentPrice, priceIsCurrent: currentPrice !== undefined }), daysMissing: event.gap, lastSeenLabel: event.previous,
+            const artwork = this.liveArtwork.get(event.item.id);
+            const currentPrice = artwork?.price;
+            // Artwork represents the cosmetic, not proof of a historical price
+            // or layout. Reuse verified standalone art without altering history.
+            const historicalArt = artwork?.featuredImageIsShopArtwork ? {
+                featuredImageUrl: artwork.featuredImageUrl, featuredImageIsShopArtwork: true,
+            } : {};
+            items.push({ ...event.item, ...(date === this.asOf ? artwork : { ...historicalArt, price: currentPrice, priceIsCurrent: currentPrice !== undefined, backgroundColors: artwork?.backgroundColors }), daysMissing: event.gap, lastSeenLabel: event.previous,
                 previousAppearances: event.appearances, previousRotations: event.rotations, recordReturn: event.record });
         }
         return { date, items, description: reportDescription(items) };
@@ -92,7 +100,7 @@ export function mergeCurrentShop(data: Record<string, any[]>, shop: any, today =
             for (const item of entry[field] || []) {
                 const previous = byId.get(item.id);
                 const ownOffer = total === 1;
-                const artwork = entry.newDisplayAsset?.renderImages?.find(image => image.productTag === "Product.BR")?.image || entry.newDisplayAsset?.renderImages?.[0]?.image;
+                const artwork = selectBRShopArtwork(entry.newDisplayAsset?.renderImages);
                 const image = item.images?.icon || item.images?.large || item.albumArt;
                 const featured = (ownOffer && artwork) || item.images?.featured || image;
                 const art = {

@@ -1,3 +1,4 @@
+import { selectBRShopArtwork } from "./MissingPreview";
 // import { Client, Message, MessageEmbed, TextChannel } from "discord.js";
 // import axios from "axios";
 // import { scheduleJob } from "node-schedule";
@@ -133,6 +134,7 @@ interface ShopEntry {
 
 // Helper interface to normalize data for your loop
 interface NormalizedItem {
+    set?: { value?: string; text?: string };
     id: string;
     name: string;
     type: { value: string; displayValue: string };
@@ -224,8 +226,7 @@ export class MissingCosmetics {
         for (const entry of shopData.entries) {
             const entryItems = [...(entry.brItems || []), ...(entry.cars || []), ...(entry.instruments || []), ...(entry.tracks || [])];
             const shopArtwork = entryItems.length === 1
-                ? entry.newDisplayAsset?.renderImages?.find(image => image.productTag === "Product.BR")?.image
-                    || entry.newDisplayAsset?.renderImages?.[0]?.image
+                ? selectBRShopArtwork(entry.newDisplayAsset?.renderImages)
                 : undefined;
             // Extract BR Items (Skins, Pickaxes, Emotes)
             if (entry.brItems) {
@@ -325,6 +326,7 @@ export class MissingCosmetics {
                     itemsMissing++;
                     missingImageItems.push({
                         id: i.id,
+                        setKey: i.set?.value || i.set?.text,
                         name: i.name,
                         type: i.type.displayValue,
                         imageUrl: i.imageUrl,
