@@ -43,10 +43,13 @@ for (const row of reportControls("123", "2024-02-02", false, [], 42)) {
     for (const component of row.components) assert(component.customId.endsWith(":42"));
 }
 assert.equal(reportControls("123", todayUTC(), true, []).length, 1);
-const group: any = fortniteCommand.options.find(option => option.name === "cosmetics");
-assert.equal(group.options[0].name, "missing");
-assert.equal(group.options[0].options[0].name, "date");
-assert(!group.options[0].options[0].required);
+assert(!fortniteCommand.options.some(option => option.name === "cosmetics"));
+const cosmetic: any = fortniteCommand.options.find(option => option.name === "cosmetic");
+assert.equal(cosmetic.type, 1); // Preserve the existing subcommand; do not add a group.
+assert(cosmetic.options.find(option => option.name === "query").required);
+assert(cosmetic.options.find(option => option.name === "query").autocomplete);
+assert(!cosmetic.options.find(option => option.name === "date").required);
+assert(!cosmetic.options.find(option => option.name === "min_days").required);
 console.log("Missing report date, picker limits, leap-year and command tests passed.");
 
 const fixtures = { br: [

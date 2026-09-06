@@ -39,7 +39,7 @@ export function registerMissingReportBrowser(client: Client, fetchToday: () => P
     const histories = new MissingHistoryService();
     client.on("interactionCreate", async interaction => {
         const command = interaction.isCommand() && interaction.commandName === "fortnite"
-            && interaction.options.getSubcommandGroup(false) === "cosmetics" && interaction.options.getSubcommand(false) === "missing";
+            && interaction.options.getSubcommand(false) === "cosmetic" && interaction.options.getString("query")?.trim().toLowerCase() === "missing";
         const component = (interaction.isButton() || interaction.isSelectMenu()) && interaction.customId.startsWith("missing-report:");
         if (!command && !component) return;
         if (!interaction.isCommand() && !interaction.isButton() && !interaction.isSelectMenu()) return;
@@ -49,7 +49,7 @@ export function registerMissingReportBrowser(client: Client, fetchToday: () => P
         if (interaction.isCommand()) { date = interaction.options.getString("date") || date; minimum = interaction.options.getInteger("min_days") ?? 300; }
         else {
             const [, owner, selected, operation, threshold] = interaction.customId.split(":");
-            if (owner !== interaction.user.id) { await interaction.reply({ content: "Open your own report with /fortnite cosmetics missing.", ephemeral: true }); return; }
+            if (owner !== interaction.user.id) { await interaction.reply({ content: "Open your own report with /fortnite cosmetic query:missing.", ephemeral: true }); return; }
             date = selected; action = operation;
             minimum = threshold === undefined ? 300 : Number(threshold);
         }
@@ -65,7 +65,7 @@ export function registerMissingReportBrowser(client: Client, fetchToday: () => P
                 const presets = [...new Set([30, 90, 180, 300, 365, 730, 1000, minimum])].sort((a, b) => a - b);
                 const select = new MessageSelectMenu().setCustomId(`missing-report:${interaction.user.id}:${date}:threshold:${minimum}`)
                     .setPlaceholder("Minimum days away").addOptions(presets.map(value => ({ label: `${value}+ days${value === 300 ? " (default)" : ""}`, value: String(value), default: value === minimum })));
-                await interaction.editReply({ content: `Choose a minimum, or enter any whole number (1–100,000) with:\n\`/fortnite cosmetics missing date:${date} min_days:${minimum}\``, embeds: [], attachments: [],
+                await interaction.editReply({ content: `Choose a minimum, or enter any whole number (1–100,000) with:\n\`/fortnite cosmetic query:missing date:${date} min_days:${minimum}\``, embeds: [], attachments: [],
                     components: [new MessageActionRow().addComponents(select), ...reportControls(interaction.user.id, date, false, [], minimum)] });
                 return;
             }

@@ -49,7 +49,7 @@ export class FortniteCosmetics {
         this.client.on("interactionCreate", (i) => {
             console.log(i.type)
 
-            if (i.isCommand() && i.options?.getSubcommand(false) !== "cosmetic") return;
+            if (i.isCommand() && (i.commandName !== "fortnite" || i.options?.getSubcommand(false) !== "cosmetic" || i.options.getString("query")?.trim().toLowerCase() === "missing")) return;
             if (i.isAutocomplete() && i.commandName === "fortnite" && i.options.getSubcommand(false) === "cosmetic") this.resolveSearchQuery(i);
             if (i.isApplicationCommand()) return this.replyEmbed(i);
         })
@@ -64,8 +64,13 @@ export class FortniteCosmetics {
 
     private async resolveSearchQuery(i: AutocompleteInteraction<CacheType>): Promise<void> {
         const t0 = performance.now();
+        const focusedQuery = String(i.options.getFocused(true).value).trim().toLowerCase();
+        if (focusedQuery && "missing".startsWith(focusedQuery)) {
+            const matches = (this._data || []).filter(c => c.name?.toLowerCase().includes(focusedQuery)).slice(0, 24);
+            return void i.respond([{ name: "Missing cosmetics — browse returning items by date", value: "missing" }, ...matches.map(c => ({ name: c.name.slice(0, 100), value: c.id }))]);
+        }
 
-        if (!this._data) return i.respond([{ name: "Loading...", value: LOADING_STRING }]);
+        if (!this._data) return i.respond([{ name: "Missing cosmetics — browse returning items by date", value: "missing" }, { name: "Loading...", value: LOADING_STRING }]);
 
         const query = <string>i.options.getFocused(true).value;
         if (query === "") return this.respondWithNewCosmetics(i);
@@ -137,7 +142,7 @@ export class FortniteCosmetics {
             .map(c => this.formatAutoCompleteResponse(c))
             .slice(0, 25)
         // console.log(newItems)
-        return i.respond(newItems)
+        return i.respond([{ name: "Missing cosmetics — browse returning items by date", value: "missing" }, ...newItems.slice(0, 24)])
     }
 
     private formatAutoCompleteResponse(c: Cosmetic): ApplicationCommandOptionChoice {
