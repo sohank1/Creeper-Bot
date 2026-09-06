@@ -5,6 +5,7 @@ import { Cosmetic, Cosmetics, CosmeticsResponse } from "./FortniteCosmetics.type
 import { rarityColorTable, rarityEmojisTable } from "./rarityEmojisTable";
 import { scheduleJob } from "node-schedule";
 import { createTrackedJob, registerComponent } from "../../runtimeDiagnostics";
+import { getFortniteSeasonEmoji } from "../fortniteSeasonEmoji";
 // const cosmeticsData = <CosmeticsResponse>require("./cosmetics.json");
 
 export const sortingPriorities = {
@@ -144,6 +145,22 @@ export class FortniteCosmetics {
         return { name: `${rarityEmojisTable[c.rarity.value] || ""} ${c.name} ${rarityEmojisTable[c.type.value] || ""}`, value: c.id }
     }
 
+    private getSeasonLabel(introduction: Cosmetic["introduction"]): string {
+        if (!introduction) return "";
+
+        const emoji = getFortniteSeasonEmoji(Number(introduction.chapter), Number(introduction.season));
+        return `Chapter ${introduction.chapter}, Season ${introduction.season}${emoji ? ` ${emoji}` : ""}`;
+    }
+
+    private formatIntroductionText(introduction: Cosmetic["introduction"]): string | null {
+        if (!introduction?.text) return null;
+
+        const emoji = getFortniteSeasonEmoji(Number(introduction.chapter), Number(introduction.season));
+        if (!emoji) return introduction.text;
+
+        return introduction.text.replace(/(Season\s+[^.?!]+)([.?!]?)(\s*)$/, `$1 ${emoji}$2$3`);
+    }
+
 
     private async replyEmbed(i: BaseCommandInteraction<CacheType>): Promise<void> {
         const query = i.options.get("query").value;
@@ -161,7 +178,8 @@ export class FortniteCosmetics {
         e.addField("Type", cosmetic.type.displayValue, true)
         e.addField("Rarity", cosmetic.rarity.displayValue, true)
         cosmetic.set?.text && e.addField("Set", cosmetic.set.text)
-        cosmetic.introduction?.text && e.addField("Introduction", cosmetic.introduction.text);
+        const introductionText = this.formatIntroductionText(cosmetic.introduction);
+        introductionText && e.addField("Introduction", introductionText);
 
         const features = [];
         cosmetic.gameplayTags?.join().includes("Emote.Traversal") && features.push("Traversal")
@@ -172,8 +190,8 @@ export class FortniteCosmetics {
         features.length && e.addField("Features", features.join(", "))
         e.addField("Added to Files On", new Date(cosmetic.added).toLocaleDateString(), true)
 
-        cosmetic.gameplayTags?.join().includes("BattlePass.Free") && e.addField("Battle Pass", cosmetic.introduction ? `Obtained in the Chapter ${cosmetic.introduction?.chapter}, Season ${cosmetic.introduction?.season} Battle Pass for free.` : `Obtained in the Battle Pass for free.`);
-        cosmetic.gameplayTags?.join().includes("BattlePass.Paid") && e.addField("Battle Pass", cosmetic.introduction ? `Obtained in the paid Chapter ${cosmetic.introduction?.chapter}, Season ${cosmetic.introduction?.season} Battle Pass.` : `Obtained in the paid Battle Pass.`)
+        cosmetic.gameplayTags?.join().includes("BattlePass.Free") && e.addField("Battle Pass", cosmetic.introduction ? `Obtained in the ${this.getSeasonLabel(cosmetic.introduction)} Battle Pass for free.` : `Obtained in the Battle Pass for free.`);
+        cosmetic.gameplayTags?.join().includes("BattlePass.Paid") && e.addField("Battle Pass", cosmetic.introduction ? `Obtained in the paid ${this.getSeasonLabel(cosmetic.introduction)} Battle Pass.` : `Obtained in the paid Battle Pass.`)
 
 
         // e.setColor("#2186DB")
