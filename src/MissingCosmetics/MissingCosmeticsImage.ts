@@ -411,9 +411,9 @@ export function buildFortniteItemShopReplicaHtml(items: MissingCosmeticImageItem
 .fs-meta{position:absolute;z-index:4;left:7px;right:7px;bottom:9px;display:flex;align-items:center;justify-content:space-between;gap:6px;background:transparent}
 .fs-art:after{display:none}
 .fs-wide{grid-column:span 2}
-.fs-offer .fs-art.fs-object img{display:block;object-fit:contain;padding:20px 8px 30px;transform:none}
-.fs-offer .fs-art.fs-object.fs-shape-wide img{padding:20px 12px 30px}
-.fs-offer .fs-art.fs-object.fs-shape-tall img{padding:18px 6px 28px}
+.fs-offer .fs-art.fs-object.fs-preview-equipment>img{display:block;object-fit:contain;object-position:center;padding:4% 4% 7%;transform:none}
+.fs-offer .fs-art.fs-object.fs-preview-equipment.fs-shape-wide>img{padding:4% 3% 7%}
+.fs-offer .fs-art.fs-object.fs-preview-equipment.fs-shape-tall>img{padding:3% 3% 6%}
 .fs-meta .fs-intro{position:relative;isolation:isolate;left:auto;bottom:auto;max-width:calc(100% - 55px);display:inline-flex;align-items:center;gap:3px;line-height:1.2;padding:3px 13px 3px 6px;clip-path:none;background:transparent;overflow:visible}
 .fs-meta .fs-intro:before{content:"";position:absolute;inset:0;z-index:-1;background:#10245dd9;clip-path:polygon(0 0,100% 0,calc(100% - 7px) 100%,0 100%);pointer-events:none}
 .fs-meta .fs-appearances{position:relative;right:auto;bottom:auto;margin-left:auto;flex:none}
