@@ -1,4 +1,5 @@
 import assert from "assert";
+import { missingItemControls, missingItemEmbed } from "../MissingCosmetics/MissingItemDetails";
 import { reportControls, registerMissingReportBrowser, resolveReportDate } from "../MissingCosmetics/MissingReportBrowser";
 import { shiftDate, todayUTC, validReportDate, validMinimumDays, filteredItems } from "../MissingCosmetics/MissingReport";
 import { MissingHistoryIndex, MissingHistoryService, mergeCurrentShop } from "../MissingCosmetics/MissingHistory";
@@ -17,6 +18,20 @@ assert(!buildFortniteItemShopReplicaHtml([], "2026-09-06").includes('class="fs-b
 import { selectMissingPreview, missingArtworkShape, missingArtworkWarnings } from "../MissingCosmetics/MissingPreview";
 
 const previewFixture = { id: "fixture", name: "Fixture", type: "Outfit", daysMissing: 300, lastSeenLabel: "2024-01-01", imageUrl: "portrait", featuredImageUrl: "shop", featuredImageIsShopArtwork: true };
+const detailItems = Array.from({ length: 61 }, (_, i) => ({ ...previewFixture, id: `item-${i}`, name: `Item ${i}` }));
+for (const page of [0, 1, 2, 999, -1]) {
+    const rows = missingItemControls("123", "2024-12-01", 42, detailItems, page).map(row => row.toJSON());
+    assert(rows.length <= 5);
+    const menu = rows[0].components[0] as any;
+    assert(menu.options.length <= 25);
+    assert(menu.options.every(option => detailItems[Number(option.value)]));
+    assert(menu.custom_id.endsWith(":42"));
+}
+assert.equal((missingItemControls("123", "2024-12-01", 300, detailItems, 2)[0].toJSON().components[0] as any).options.length, 11);
+const detail = missingItemEmbed({ ...previewFixture, previousAppearances: 0, price: 0 }, "2024-12-01").toJSON();
+assert(detail.fields.some(field => field.name === "Earlier shop appearances" && field.value === "0"));
+assert(detail.fields.some(field => field.name === "Price" && field.value === "0 V-Bucks"));
+assert(missingItemEmbed(previewFixture, "2024-12-01").fields.some(field => field.name === "Price" && field.value === "Unavailable"));
 const wideFixture = { ...previewFixture, type: "Glider", featuredFraming: { aspect: 2, touchesBottom: false, emptyFraction: .8 } };
 assert.equal(missingArtworkShape(wideFixture, true), "wide");
 assert.equal(missingArtworkShape({ ...wideFixture, featuredFraming: { ...wideFixture.featuredFraming, aspect: .4 } }, true), "tall");

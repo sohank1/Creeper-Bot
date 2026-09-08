@@ -5,6 +5,7 @@ import { renderMissingCosmeticsImage } from "./MissingCosmeticsImage";
 import { fetchMissingBotLogo } from "./MissingBranding";
 import { performance } from "perf_hooks";
 import { MissingTelemetry, MissingTiming, timingLabel } from "./MissingTelemetry";
+import { missingItemControls, missingItemEmbed } from "./MissingItemDetails";
 
 export interface AvailableReportDay { date: string; count: number }
 
@@ -35,6 +36,7 @@ export function reportControls(owner: string, date: string, picker = false, avai
         button(picker ? "report" : "picker", picker ? "View report" : "Choose date").setStyle("PRIMARY").setEmoji(picker ? "🖼️" : "📅"),
         button("next", "→", !available.some(day => day.date > date)),
         button("filter", `${minimum}+ days`).setStyle("SUCCESS").setEmoji("🔎"),
+        ...(!picker && available.some(day => day.date === date) ? [button("items-0", "Item details").setEmoji("🔍")] : []),
     ));
     return rows;
 }
@@ -93,6 +95,21 @@ export function registerMissingReportBrowser(client: Client) {
             timing.historyMs = loaded.loadMs; timing.indexMs = loaded.buildMs; timing.cached = loaded.cached;
             const history = loaded.index;
             const mathStart = performance.now();
+            if (/^items--?\d+$/.test(action) || action === "item") {
+                const report = history.report(date, minimum);
+                timing.items = report.items.length;
+                const selected = interaction.isSelectMenu() && action === "item" ? Number(interaction.values[0]) : -1;
+                if (action === "item" && (!Number.isInteger(selected) || !report.items[selected])) {
+                    await interaction.followUp({ content: "That item is no longer available. Open Item details again.", ephemeral: true });
+                    return;
+                }
+                const page = action === "item" ? Math.floor(selected / 25) : Number(action.slice(6));
+                timing.calculationMs = performance.now() - mathStart;
+                await deliver({ content: `**Items returned on ${date} · ${minimum}+ days away**\nChoose an item to see its return details. The report image stays below.`,
+                    ...(selected >= 0 ? { embeds: [missingItemEmbed(report.items[selected], date)] } : {}),
+                    components: missingItemControls(interaction.user.id, date, minimum, report.items, page) });
+                return;
+            }
             const available = history.available(minimum);
             timing.calculationMs = performance.now() - mathStart;
             const metrics = () => `Math ${(loaded.buildMs + performance.now() - mathStart).toFixed(1)} ms · History ${loaded.loadMs.toFixed(0)} ms (${loaded.cached ? "cached" : "load + index"})`;
@@ -106,7 +123,7 @@ export function registerMissingReportBrowser(client: Client) {
                 date = adjacent.date;
             }
             if (action === "today") date = todayUTC();
-            if (interaction.isSelectMenu() && action !== "threshold") {
+            if (interaction.isSelectMenu() && ["year", "month", "day", "day-late"].includes(action)) {
                 const number = Number(interaction.values[0]);
                 let [year, month, day] = date.split("-").map(Number);
                 if (action === "year") year = number;
