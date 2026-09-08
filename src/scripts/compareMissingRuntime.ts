@@ -32,6 +32,7 @@ async function main() {
     await fs.promises.mkdir(output, { recursive: true });
     for (const [name, renderer] of [["running", running.renderMissingCosmeticsImage], ["restored", renderMissingCosmeticsImage]] as const) {
         const render = await renderer(report.items, report.date, "item-shop", 300, storedMissingBotLogo());
+        if (name === "restored") console.log("Artwork diagnostics:", render.artworkWarnings || []);
         try { await fs.promises.writeFile(path.join(output, `${name}.png`), render.image); }
         finally { await render.close(); }
     }

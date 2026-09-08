@@ -1,7 +1,7 @@
 import fs from "fs";
 import type { Browser } from "puppeteer";
 import { applyMissingPalettes, fallbackPalette } from "./MissingPalette";
-import { selectMissingPreview, prepareMissingPreviews } from "./MissingPreview";
+import { selectMissingPreview, prepareMissingPreviews, missingArtworkShape, missingArtworkWarnings } from "./MissingPreview";
 import { getFortniteSeasonEmoji, getFortniteSeasonEmojiAssetUrl } from "../Fortnite/fortniteSeasonEmoji";
 
 export interface MissingCosmeticImageItem {
@@ -26,11 +26,14 @@ export interface MissingCosmeticImageItem {
     tileSize?: string;
     shopSection?: string;
     setKey?: string;
+    imageFraming?: { aspect: number; touchesBottom: boolean; emptyFraction: number };
+    featuredFraming?: { aspect: number; touchesBottom: boolean; emptyFraction: number };
 }
 
 export interface MissingCosmeticsRender {
     image: Buffer;
     close: () => Promise<void>;
+    artworkWarnings?: string[];
 }
 
 export type MissingCosmeticsImageVariant = "vault-grid" | "locker-files" | "storm-scan" | "return-pass" | "bus-arrivals" | "supply-drop" | "island-broadcast" | "item-shop";
@@ -296,8 +299,10 @@ export function buildFortniteItemShopReplicaHtml(items: MissingCosmeticImageItem
     const featuredScore = (item: MissingCosmeticImageItem) => {
         if (!item.imageUrl && !item.featuredImageUrl) return -1;
         if (isFlatMedia(item)) return -1;
+        if (missingArtworkShape(item, true) === "wide") return -1;
         return (/outfit|character|skin/i.test(item.type) ? 200 : 0)
             + (item.featuredImageUrl ? 40 : 0)
+            + (missingArtworkShape(item, true) === "tall" ? 80 : 0)
             + (/2_x_2|1_x_2/i.test(item.tileSize || "") ? 100 : 0);
     };
     const preferredFeatured = items
@@ -358,13 +363,14 @@ export function buildFortniteItemShopReplicaHtml(items: MissingCosmeticImageItem
         const preview = selectMissingPreview(item, featured);
         const imageUrl = preview.url;
         const introduced = introductionBadge(item.introduced);
-        const artworkClass = ` fs-preview-${preview.kind}`;
+        const shape = missingArtworkShape(item, featured);
+        const artworkClass = ` fs-preview-${preview.kind} fs-shape-${shape}`;
         const trackSeparator = /jam track|music/i.test(item.type) ? item.name.indexOf(" - ") : -1;
         const rawDisplayName = trackSeparator >= 0 ? item.name.slice(trackSeparator + 3) : item.name;
         const displayName = trackSeparator >= 0
             ? rawDisplayName.replace(/\s*\([^)]*(?:\.{3}|…)[^)]*\)\s*$/, "").trim()
             : rawDisplayName;
-        return `<article class="fs-offer${featured ? " fs-featured" : " fs-compact"}" style="--fs-c1:${primary};--fs-c2:${secondary};--fs-c3:${tertiary};--fs-text-bg:${textBackground};background:radial-gradient(ellipse at 50% 42%,var(--fs-c1) 0%,var(--fs-c2) 62%,var(--fs-c3) 100%)"><div class="fs-days">${item.daysMissing.toLocaleString("en-US")} DAYS</div><div class="fs-art${character ? " fs-character" : " fs-object"}${artworkClass}">${imageUrl ? `<img src="${escapeHtml(imageUrl)}" alt="" />` : `<div class="fs-placeholder">?</div>`}<div class="fs-meta">${introduced ? `<div class="fs-intro" data-min-size="${smallText ? 5 : 6}">${introductionBadgeHtml(item.introduced)}</div>` : ""}${item.previousAppearances !== undefined ? `<div class="fs-appearances" title="Shop appearances including today"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5v6h6M3 11a9 9 0 1 1 2 7M12 7v5l3 2"/></svg>${(item.previousAppearances + 1).toLocaleString("en-US")}×</div>` : ""}</div></div><div class="fs-accent" style="background:${accent}"></div><div class="fs-label"><h2 class="fs-fit" data-min-size="${smallText ? 7 : 10}">${escapeHtml(displayName)}</h2><div class="fs-price"><b>${item.price !== undefined ? `${item.price.toLocaleString("en-US")}${item.priceIsCurrent ? "*" : ""} ${coin}` : ""}</b></div></div></article>`;
+        return `<article class="fs-offer${featured ? " fs-featured" : " fs-compact"}${!useFeaturedMosaic && shape === "wide" && !character ? " fs-wide" : ""}" style="--fs-c1:${primary};--fs-c2:${secondary};--fs-c3:${tertiary};--fs-text-bg:${textBackground};background:radial-gradient(ellipse at 50% 42%,var(--fs-c1) 0%,var(--fs-c2) 62%,var(--fs-c3) 100%)"><div class="fs-days">${item.daysMissing.toLocaleString("en-US")} DAYS</div><div class="fs-art${character ? " fs-character" : " fs-object"}${artworkClass}">${imageUrl ? `<img src="${escapeHtml(imageUrl)}" alt="" />` : `<div class="fs-placeholder">?</div>`}<div class="fs-meta">${introduced ? `<div class="fs-intro" data-min-size="${smallText ? 5 : 6}">${introductionBadgeHtml(item.introduced)}</div>` : ""}${item.previousAppearances !== undefined ? `<div class="fs-appearances" title="Shop appearances including today"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5v6h6M3 11a9 9 0 1 1 2 7M12 7v5l3 2"/></svg>${(item.previousAppearances + 1).toLocaleString("en-US")}×</div>` : ""}</div></div><div class="fs-accent" style="background:${accent}"></div><div class="fs-label"><h2 class="fs-fit" data-min-size="${smallText ? 7 : 10}">${escapeHtml(displayName)}</h2><div class="fs-price"><b>${item.price !== undefined ? `${item.price.toLocaleString("en-US")}${item.priceIsCurrent ? "*" : ""} ${coin}` : ""}</b></div></div></article>`;
     }).join("");
 
     const nextTiles = displayItems.slice(0, 4).map(item => {
@@ -404,6 +410,10 @@ export function buildFortniteItemShopReplicaHtml(items: MissingCosmeticImageItem
 .fs-intro{max-width:calc(100% - 75px)}
 .fs-meta{position:absolute;z-index:4;left:7px;right:7px;bottom:9px;display:flex;align-items:center;justify-content:space-between;gap:6px;background:transparent}
 .fs-art:after{display:none}
+.fs-wide{grid-column:span 2}
+.fs-offer .fs-art.fs-object img{display:block;object-fit:contain;padding:20px 8px 30px;transform:none}
+.fs-offer .fs-art.fs-object.fs-shape-wide img{padding:20px 12px 30px}
+.fs-offer .fs-art.fs-object.fs-shape-tall img{padding:18px 6px 28px}
 .fs-meta .fs-intro{position:relative;isolation:isolate;left:auto;bottom:auto;max-width:calc(100% - 55px);display:inline-flex;align-items:center;gap:3px;line-height:1.2;padding:3px 13px 3px 6px;clip-path:none;background:transparent;overflow:visible}
 .fs-meta .fs-intro:before{content:"";position:absolute;inset:0;z-index:-1;background:#10245dd9;clip-path:polygon(0 0,100% 0,calc(100% - 7px) 100%,0 100%);pointer-events:none}
 .fs-meta .fs-appearances{position:relative;right:auto;bottom:auto;margin-left:auto;flex:none}
@@ -488,7 +498,7 @@ export async function renderMissingCosmeticsImage(
             captureBeyondViewport: true,
             ...(variant === "item-shop" ? { clip: await page.evaluate(() => ({ x: 0, y: 0, width: 1440, height: Math.ceil(document.body.getBoundingClientRect().height) })) } : {}),
         }));
-        return { image, close: () => browser.close() };
+        return { image, close: () => browser.close(), artworkWarnings: variant === "item-shop" ? missingArtworkWarnings(items) : [] };
     } catch (error) {
         await browser.close().catch(() => { });
         throw error;

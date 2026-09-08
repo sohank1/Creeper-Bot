@@ -14,9 +14,15 @@ const brandedHtml = buildFortniteItemShopReplicaHtml([], "2026-09-06", 300, "htt
 assert(brandedHtml.includes('class="fs-bot-logo"'));
 assert(brandedHtml.includes("logo.png?size=1024"));
 assert(!buildFortniteItemShopReplicaHtml([], "2026-09-06").includes('class="fs-bot-logo"'));
-import { selectMissingPreview } from "../MissingCosmetics/MissingPreview";
+import { selectMissingPreview, missingArtworkShape, missingArtworkWarnings } from "../MissingCosmetics/MissingPreview";
 
 const previewFixture = { id: "fixture", name: "Fixture", type: "Outfit", daysMissing: 300, lastSeenLabel: "2024-01-01", imageUrl: "portrait", featuredImageUrl: "shop", featuredImageIsShopArtwork: true };
+const wideFixture = { ...previewFixture, type: "Glider", featuredFraming: { aspect: 2, touchesBottom: false, emptyFraction: .8 } };
+assert.equal(missingArtworkShape(wideFixture, true), "wide");
+assert.equal(missingArtworkShape({ ...wideFixture, featuredFraming: { ...wideFixture.featuredFraming, aspect: .4 } }, true), "tall");
+assert.equal(missingArtworkShape(previewFixture, true), "square");
+assert(missingArtworkWarnings([wideFixture]).some(warning => warning.includes("70%")));
+assert(missingArtworkWarnings([{ ...wideFixture, featuredFraming: { ...wideFixture.featuredFraming, touchesBottom: true } }]).some(warning => warning.includes("may be pre-cropped")));
 assert.deepEqual(selectMissingPreview(previewFixture, false), { url: "portrait", kind: "portrait" });
 assert.deepEqual(selectMissingPreview(previewFixture, true), { url: "shop", kind: "composition" });
 assert.deepEqual(selectMissingPreview({ ...previewFixture, imageUrl: null }, false), { url: "shop", kind: "composition" });

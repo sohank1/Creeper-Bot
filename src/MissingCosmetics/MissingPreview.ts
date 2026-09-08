@@ -2,9 +2,10 @@ import type { MissingCosmeticImageItem } from "./MissingCosmeticsImage";
 import axios from "axios";
 import { createCanvas, loadImage } from "@napi-rs/canvas";
 
-const trimmed = new Map<string, Promise<string>>();
-async function trimTransparentMargin(url: string, alphaThreshold = 128): Promise<string> {
-    if (!/^https:\/\//.test(url)) return url;
+type PreparedImage = { url: string; framing?: NonNullable<MissingCosmeticImageItem["imageFraming"]> };
+const trimmed = new Map<string, Promise<PreparedImage>>();
+async function trimTransparentMargin(url: string, alphaThreshold = 128): Promise<PreparedImage> {
+    if (!/^https:\/\//.test(url)) return { url };
     const cacheKey = `${alphaThreshold}:${url}`;
     if (!trimmed.has(cacheKey)) {
         if (trimmed.size >= 64) trimmed.delete(trimmed.keys().next().value);
@@ -26,14 +27,20 @@ async function trimTransparentMargin(url: string, alphaThreshold = 128): Promise
                         top = Math.min(top, y); bottom = Math.max(bottom, y);
                     }
                 }
-                if (right < left || (left === 0 && top === 0 && right === canvas.width - 1 && bottom === canvas.height - 1)) return url;
+                if (right < left) return { url };
+                const framing = {
+                    aspect: (right - left + 1) / (bottom - top + 1),
+                    touchesBottom: bottom >= canvas.height - 2,
+                    emptyFraction: 1 - ((right - left + 1) * (bottom - top + 1)) / (canvas.width * canvas.height),
+                };
+                if (left === 0 && top === 0 && right === canvas.width - 1 && bottom === canvas.height - 1) return { url, framing };
                 const padding = Math.ceil(Math.max(right - left + 1, bottom - top + 1) * .025);
                 // Keep the artwork's bottom flush: cropped source portraits must
                 // meet the tile baseline rather than expose a floating cut edge.
                 const output = createCanvas(right - left + 1 + padding * 2, bottom - top + 1 + padding);
                 output.getContext("2d").drawImage(canvas, left, top, right - left + 1, bottom - top + 1, padding, padding, right - left + 1, bottom - top + 1);
-                return output.toDataURL("image/png");
-            } catch { return url; }
+                return { url: output.toDataURL("image/png"), framing };
+            } catch { return { url }; }
         })());
     }
     return trimmed.get(cacheKey)!;
@@ -51,14 +58,39 @@ export async function prepareMissingPreviews(items: MissingCosmeticImageItem[]):
             // Preserve translucent equipment effects; only outfits need shadow
             // rejection. Album covers and multi-item compositions stay intact.
             const threshold = outfit ? 128 : 8;
-            if (item.imageUrl) item.imageUrl = await trimTransparentMargin(item.imageUrl, threshold);
-            if (item.featuredImageUrl) item.featuredImageUrl = await trimTransparentMargin(item.featuredImageUrl, threshold);
+            if (item.imageUrl) {
+                const image = await trimTransparentMargin(item.imageUrl, threshold);
+                item.imageUrl = image.url; item.imageFraming = image.framing;
+            }
+            if (item.featuredImageUrl) {
+                const image = await trimTransparentMargin(item.featuredImageUrl, threshold);
+                item.featuredImageUrl = image.url; item.featuredFraming = image.framing;
+            }
         }
     }));
     return result;
 }
 
 export type PreviewKind = "portrait" | "composition" | "equipment" | "silhouette" | "album";
+
+export function missingArtworkShape(item: MissingCosmeticImageItem, tall: boolean): "tall" | "wide" | "square" {
+    const preview = selectMissingPreview(item, tall);
+    const framing = preview.url === item.featuredImageUrl ? item.featuredFraming : item.imageFraming;
+    if (!framing) return "square";
+    return framing.aspect < .65 ? "tall" : framing.aspect > 1.55 ? "wide" : "square";
+}
+
+// Diagnostic hints only: touching an edge may be intentional shop framing.
+export function missingArtworkWarnings(items: MissingCosmeticImageItem[]): string[] {
+    return items.flatMap(item => {
+        const framing = item.featuredFraming || item.imageFraming;
+        return [
+            ...(!item.imageUrl && !item.featuredImageUrl ? [`${item.id}: missing artwork`] : []),
+            ...(framing?.touchesBottom ? [`${item.id}: source touches bottom edge; may be pre-cropped`] : []),
+            ...(framing && framing.emptyFraction > .7 ? [`${item.id}: source has over 70% empty bounding-box space`] : []),
+        ];
+    });
+}
 
 // Never substitute a LEGO render for a Battle Royale cosmetic, even when it
 // happens to be the first image in the API response.
