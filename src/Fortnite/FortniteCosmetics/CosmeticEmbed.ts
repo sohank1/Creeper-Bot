@@ -1,7 +1,7 @@
 import { MessageEmbed } from "discord.js";
 import { Cosmetic } from "./FortniteCosmetics.type";
 import { rarityColorTable, rarityEmojisTable } from "./rarityEmojisTable";
-import { getFortniteSeasonEmoji } from "../fortniteSeasonEmoji";
+import { cosmeticIntroduction, getCosmeticSeasonEmoji } from "./CosmeticIntroduction";
 
 export type CatalogCosmetic = Cosmetic & {
     category?: string; artist?: string; album?: string; releaseYear?: number; duration?: number;
@@ -29,6 +29,7 @@ export function normalizeCosmetic(raw: any, category = "br", parent?: any): Cata
     const catalogPrice = Number.isFinite(raw.price) && raw.price >= 0 ? raw.price : undefined;
     const price = shopPrice !== undefined ? shopPrice : catalogPrice;
     return { ...raw, category,
+        introduction: cosmeticIntroduction(raw.id, raw.introduction),
         price, priceIsCurrent: shopPrice !== undefined ? true : raw.priceIsCurrent === true,
         priceObservedAt: shopPrice !== undefined ? undefined : raw.priceObservedAt,
         name: raw.name && raw.name !== "null" && raw.name !== "Banner" ? raw.name : raw.title || parent?.name || raw.id,
@@ -53,6 +54,7 @@ export interface CosmeticReturnContext {
 
 // Shared by cosmetic search and historical return selection; no second embed design.
 export function buildCosmeticEmbed(cosmetic: CatalogCosmetic, context?: CosmeticReturnContext): MessageEmbed {
+    cosmetic = { ...cosmetic, introduction: cosmeticIntroduction(cosmetic.id, cosmetic.introduction) };
     const e = new MessageEmbed().setTitle((cosmetic.name || cosmetic.id).slice(0, 256));
     const field = (name: string, value: unknown, inline = false) => {
         const room = Math.min(700, 5800 - e.length - name.length);
@@ -66,7 +68,7 @@ export function buildCosmeticEmbed(cosmetic: CatalogCosmetic, context?: Cosmetic
     field("Set", cosmetic.set?.text);
     const intro = cosmetic.introduction;
     if (intro?.text) {
-        const emoji = getFortniteSeasonEmoji(Number(intro.chapter), intro.season === "X" ? 10 : Number(intro.season));
+        const emoji = getCosmeticSeasonEmoji(Number(intro.chapter), String(intro.season));
         field("Introduction", emoji ? intro.text.replace(/(Season\s+[^.?!]+)([.?!]?)(\s*)$/, `$1 ${emoji}$2$3`) : intro.text);
     }
     const tags = (cosmetic.gameplayTags || []).join(" ");
@@ -75,7 +77,7 @@ export function buildCosmeticEmbed(cosmetic: CatalogCosmetic, context?: Cosmetic
     if (cosmetic.added && Number.isFinite(Date.parse(cosmetic.added))) field("Added to Files On", cosmetic.added.slice(0, 10), true);
     for (const [tag, free] of [["BattlePass.Free", true], ["BattlePass.Paid", false]] as const) {
         if (tags.includes(tag)) {
-            const emoji = intro ? getFortniteSeasonEmoji(Number(intro.chapter), intro.season === "X" ? 10 : Number(intro.season)) : "";
+            const emoji = intro ? getCosmeticSeasonEmoji(Number(intro.chapter), String(intro.season)) : "";
             field("Battle Pass", `Obtained in the ${free ? "" : "paid "}${intro ? `Chapter ${intro.chapter}, Season ${intro.season}${emoji ? ` ${emoji}` : ""} ` : ""}Battle Pass${free ? " for free" : ""}.`);
         }
     }

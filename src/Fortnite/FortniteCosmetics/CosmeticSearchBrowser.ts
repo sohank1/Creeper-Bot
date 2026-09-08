@@ -1,7 +1,7 @@
 import { randomBytes } from "crypto";
 import { MessageActionRow, MessageButton, MessageEmbed, MessageSelectMenu } from "discord.js";
 import { buildCosmeticEmbed, cosmeticTypeEmoji } from "./CosmeticEmbed";
-import { cosmeticWatchControls } from "./CosmeticAlertsUI";
+import { cosmeticWatchControls, cosmeticWatchControlsFor } from "./CosmeticAlertsUI";
 import { CosmeticSearchHit } from "./CosmeticSearch";
 
 interface SearchSession { owner: string; query: string; hits: CosmeticSearchHit[]; expires: number }
@@ -47,7 +47,9 @@ export class CosmeticSearchBrowser {
             const ownView = this.create(i.user.id, session.query, session.hits);
             id = ownView.components[0].components[0].customId.split(":")[2];
         } else await i.deferUpdate();
-        await i.editReply(this.view(id, page, selected));
+        const payload = this.view(id, page, selected);
+        if (selected !== undefined) payload.components[0] = await cosmeticWatchControlsFor(i.client?.user?.id, i.user.id, session.hits[selected].item.id);
+        await i.editReply(payload);
         return true;
     }
 }

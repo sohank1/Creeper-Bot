@@ -7,7 +7,9 @@ import { fortniteCommand } from "../Fortnite/fortniteCommand";
 import { buildFortniteItemShopReplicaHtml, introductionBadgeHtml } from "../MissingCosmetics/MissingCosmeticsImage";
 import { getFortniteSeasonEmoji, getFortniteSeasonEmojiAssetUrl } from "../Fortnite/fortniteSeasonEmoji";
 
-assert(introductionBadgeHtml("Introduced in Chapter 6, Season 3.").includes(getFortniteSeasonEmojiAssetUrl(getFortniteSeasonEmoji(6, 3)!)));
+assert(introductionBadgeHtml("Introduced in Chapter 6, Season 3.").includes(getFortniteSeasonEmojiAssetUrl(getFortniteSeasonEmoji(6, 4)!)));
+assert(introductionBadgeHtml("Introduced in Chapter 6, Season Galactic Battle.").includes(getFortniteSeasonEmojiAssetUrl(getFortniteSeasonEmoji(6, 3)!)));
+assert(introductionBadgeHtml("Introduced in Chapter 6, Season 4.").includes(getFortniteSeasonEmojiAssetUrl(getFortniteSeasonEmoji(6, 5)!)));
 assert(introductionBadgeHtml("Introduced in Season X.").includes(getFortniteSeasonEmojiAssetUrl(getFortniteSeasonEmoji(1, 10)!)));
 assert(!introductionBadgeHtml("Introduced in Chapter 99, Season 1.").includes("<img"));
 assert.equal(introductionBadgeHtml(undefined), "");

@@ -1,4 +1,5 @@
 import { selectBRShopArtwork } from "./MissingPreview";
+import { cosmeticIntroduction } from "../Fortnite/FortniteCosmetics/CosmeticIntroduction";
 import { fetchMissingBotLogo } from "./MissingBranding";
 // import { Client, Message, MessageEmbed, TextChannel } from "discord.js";
 // import axios from "axios";
@@ -355,7 +356,7 @@ export class MissingCosmetics {
                         price: i.price,
                         priceIsCurrent: i.priceIsCurrent, priceObservedAt: i.priceObservedAt,
                         previousAppearances: i.shopHistory.length - 1,
-                        introduced: i.introduction?.text,
+                        introduced: cosmeticIntroduction(i.id, i.introduction)?.text,
                         backgroundColors: i.backgroundColors,
                         textBackgroundColor: i.textBackgroundColor,
                         tileSize: i.tileSize,

@@ -5,6 +5,17 @@ import { CosmeticSearchIndex, cosmeticEditDistance, normalizeCosmeticQuery } fro
 import { CosmeticSearchBrowser } from "../Fortnite/FortniteCosmetics/CosmeticSearchBrowser";
 
 async function main() {
+    const punctuation = new CosmeticSearchIndex(normalizeCosmeticCatalog({ br: [
+        { id: "bang", name: "!", added: "2024-01-01" },
+        { id: "dots", name: "...", added: "2019-01-01" },
+        { id: "latest", name: "Latest cosmetic", added: "2026-09-08" },
+    ] }));
+    for (const query of ["", " ", "   "]) {
+        assert.equal(punctuation.search(query)[0].item.id, "latest");
+        assert(!punctuation.search(query).some(hit => hit.exact));
+    }
+    assert.equal(punctuation.search("!")[0].item.id, "bang");
+    assert.equal(punctuation.search("...")[0].item.id, "dots");
     const catalog = normalizeCosmeticCatalog({ br: [
         { id: "renegade", name: "Renegade Raider", type: { value: "outfit", displayValue: "Outfit" }, introduction: { chapter: "1", season: "1" } },
         { id: "dugh", name: "D’ugh", type: { value: "outfit", displayValue: "Outfit" } },

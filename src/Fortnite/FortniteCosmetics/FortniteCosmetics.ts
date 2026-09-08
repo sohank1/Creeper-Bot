@@ -5,7 +5,7 @@ import { createTrackedJob, registerComponent } from "../../runtimeDiagnostics";
 import { buildCosmeticEmbed, CatalogCosmetic, cosmeticTypeEmoji, normalizeCosmeticCatalog } from "./CosmeticEmbed";
 import { mergeCurrentShop } from "../../MissingCosmetics/MissingHistory";
 import { fortnitePriceService, mergeFortnitePrices } from "./FortnitePriceService";
-import { cosmeticWatchControls } from "./CosmeticAlertsUI";
+import { cosmeticWatchControlsFor } from "./CosmeticAlertsUI";
 import { CosmeticSearchIndex } from "./CosmeticSearch";
 import { CosmeticSearchBrowser } from "./CosmeticSearchBrowser";
 // const cosmeticsData = <CosmeticsResponse>require("./cosmetics.json");
@@ -97,7 +97,7 @@ export class FortniteCosmetics {
         const exact = hits.filter(hit => hit.exact);
         if (exact.length === 1) {
             const cosmetic = exact[0].item;
-            await i.editReply({ embeds: [buildCosmeticEmbed(cosmetic)], components: [cosmeticWatchControls(i.user.id, cosmetic.id)] });
+            await i.editReply({ embeds: [buildCosmeticEmbed(cosmetic)], components: [await cosmeticWatchControlsFor(this.client.user?.id, i.user.id, cosmetic.id)] });
         } else if (hits.length) {
             await i.editReply(this.searchBrowser.create(i.user.id, query, hits));
         } else {

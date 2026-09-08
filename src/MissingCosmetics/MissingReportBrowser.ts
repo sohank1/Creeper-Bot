@@ -6,7 +6,7 @@ import { fetchMissingBotLogo } from "./MissingBranding";
 import { performance } from "perf_hooks";
 import { MissingTelemetry, MissingTiming, timingLabel } from "./MissingTelemetry";
 import { missingItemControls, missingItemEmbed } from "./MissingItemDetails";
-import { cosmeticWatchControls } from "../Fortnite/FortniteCosmetics/CosmeticAlertsUI";
+import { cosmeticWatchControlsFor } from "../Fortnite/FortniteCosmetics/CosmeticAlertsUI";
 
 export interface AvailableReportDay { date: string; count: number }
 
@@ -110,7 +110,7 @@ export function registerMissingReportBrowser(client: Client) {
                 await deliver({ content: `**Items returned on ${date} · ${minimum}+ days away**\nChoose an item to see its return details. The report image stays below.`,
                     ...(selected >= 0 ? { embeds: [missingItemEmbed(report.items[selected], date)] } : {}),
                     components: [...missingItemControls(interaction.user.id, date, minimum, report.items, page),
-                        ...(selected >= 0 ? [cosmeticWatchControls(interaction.user.id, report.items[selected].id)] : [])] });
+                        ...(selected >= 0 ? [await cosmeticWatchControlsFor(client.user?.id, interaction.user.id, report.items[selected].id)] : [])] });
                 return;
             }
             const available = history.available(minimum);

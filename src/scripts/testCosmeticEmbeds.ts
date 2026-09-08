@@ -3,6 +3,16 @@ import { buildCosmeticEmbed, cosmeticTypeEmoji, normalizeCosmeticCatalog } from 
 import { missingItemEmbed } from "../MissingCosmetics/MissingItemDetails";
 import { mergeCurrentShop } from "../MissingCosmetics/MissingHistory";
 import { mergeFortnitePrices, priceForCosmetic } from "../Fortnite/FortniteCosmetics/FortnitePriceService";
+import { cosmeticIntroduction } from "../Fortnite/FortniteCosmetics/CosmeticIntroduction";
+
+const badIntro = { chapter: "6", season: "5", text: "Introduced in Chapter 6, Season 5.", backendValue: 37 };
+assert.equal(cosmeticIntroduction("Pickaxe_SplishSplash", badIntro).season, "4");
+assert.equal(cosmeticIntroduction("Different_Item", badIntro).season, "4");
+assert.equal(cosmeticIntroduction("Robin", { ...badIntro, backendValue: 36 }).season, "3");
+assert.equal(cosmeticIntroduction("JarJar", { ...badIntro, backendValue: 35 }).season, "Galactic Battle");
+assert.equal(cosmeticIntroduction("Other", { ...badIntro, chapter: "7" }).season, "5");
+assert.deepEqual(cosmeticIntroduction("x", cosmeticIntroduction("x", badIntro)), cosmeticIntroduction("x", badIntro));
+assert.equal(badIntro.season, "5");
 
 const catalog = normalizeCosmeticCatalog({
     br: [{ id: "outfit", name: "Outfit", type: { value: "outfit", displayValue: "Outfit" }, description: "Original description", images: { featured: "https://example.com/outfit.png" }, introduction: { chapter: "1", season: "X", text: "Introduced in Season X." }, shopHistory: ["invalid", "2020-01-01", "2020-01-01", "2025-01-01"] }],

@@ -42,7 +42,7 @@ export class MissingHistoryIndex {
                     type: cosmetic.type?.displayValue || (category === "tracks" ? "Jam Track" : category === "legoKits" ? "LEGO Kit" : category),
                     imageUrl: cosmetic.images?.icon || cosmetic.images?.large || cosmetic.images?.small || cosmetic.images?.smallIcon || cosmetic.albumArt || cosmetic.images?.featured || null,
                     featuredImageUrl: cosmetic.images?.featured || cosmetic.images?.large || cosmetic.images?.icon || cosmetic.albumArt || null,
-                    introduced: cosmetic.introduction?.text, rarity: cosmetic.rarity?.displayValue, daysMissing: 0, lastSeenLabel: "",
+                    introduced: normalized.introduction?.text, rarity: cosmetic.rarity?.displayValue, daysMissing: 0, lastSeenLabel: "",
                     setKey: cosmetic.set?.value || cosmetic.set?.text,
                     price: normalized.price, priceIsCurrent: normalized.priceIsCurrent, priceObservedAt: normalized.priceObservedAt,
                 };

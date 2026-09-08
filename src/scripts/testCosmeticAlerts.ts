@@ -1,6 +1,12 @@
 import assert from "assert";
+import { MessageButton } from "discord.js";
 import { alertShopOffers, alertTransition, sendAlertWithFallback, CosmeticAlerts } from "../Fortnite/FortniteCosmetics/CosmeticAlerts";
 import { cosmeticAlertKey, cosmeticWatchControls } from "../Fortnite/FortniteCosmetics/CosmeticAlertsUI";
+
+assert.equal((cosmeticWatchControls("user", "item").components[0] as MessageButton).label, "Notify me");
+assert.equal((cosmeticWatchControls("user", "item", { mode: "once" }).components[0] as MessageButton).label, "Watching · Manage");
+assert.equal((cosmeticWatchControls("user", "item", { mode: "every", paused: true }).components[0] as MessageButton).label, "Alert paused · Manage");
+assert.equal((cosmeticWatchControls("user", "item", null).components[0] as MessageButton).label, "Alert options");
 import { CosmeticWatch, CosmeticDelivery } from "../Fortnite/FortniteCosmetics/CosmeticAlerts.model";
 
 async function main() {

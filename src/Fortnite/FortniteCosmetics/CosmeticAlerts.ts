@@ -3,10 +3,11 @@ import { randomBytes, createHash } from "crypto";
 import { Client, MessageActionRow, MessageEmbed, MessageSelectMenu } from "discord.js";
 import { scheduleJob } from "node-schedule";
 import { createTrackedJob, registerComponent } from "../../runtimeDiagnostics";
-import { buildCosmeticEmbed, CatalogCosmetic, normalizeCosmetic, normalizeCosmeticCatalog } from "./CosmeticEmbed";
+import { buildCosmeticEmbed, CatalogCosmetic, cosmeticTypeEmoji, normalizeCosmetic, normalizeCosmeticCatalog } from "./CosmeticEmbed";
 import { CosmeticWatch, CosmeticDelivery, CosmeticAlertLease } from "./CosmeticAlerts.model";
 import { alertButton, cosmeticAlertKey } from "./CosmeticAlertsUI";
 import { fortnitePriceService, FortnitePriceLookup, registryPriceFields, validCosmeticPrice } from "./FortnitePriceService";
+import { MissingCosmeticsRender, renderMissingCosmeticsImage } from "../../MissingCosmetics/MissingCosmeticsImage";
 
 const fields = { brItems: "br", tracks: "tracks", cars: "cars", instruments: "instruments", legoKits: "legoKits" };
 class AlertInputError extends Error {}
@@ -73,6 +74,7 @@ export class CosmeticAlerts {
     private catalogLoad: Promise<CatalogCosmetic[]>;
     private running = false;
     private busyUsers = new Set<string>();
+    private watchlistRenders = new Map<string, MissingCosmeticsRender>();
     private ready: Promise<any>;
     private lastChecked: string | null = null;
     private lastError: string | null = null;
@@ -97,6 +99,28 @@ export class CosmeticAlerts {
         return enrichAlertOfferPrices(offers, lookup);
     }
     private query(user: string, key?: string) { return { bot: this.client.user.id, user, ...(key ? { key } : {}) }; }
+    private async watchlistImage(viewer: string, watches: any[], payload: any, page: number, total: number) {
+        if (!watches.length) return payload;
+        try {
+            const profile = await this.client.users.fetch(watches[0].user || viewer).catch(() => null);
+            const rendered = await renderMissingCosmeticsImage(watches.map(watch => {
+                const item = normalizeCosmetic(watch.item, watch.item.category || "br");
+                return { id: item.id, name: item.name, cosmetic: item, type: item.type.displayValue,
+                    imageUrl: item.images?.icon || null, featuredImageUrl: item.images?.featured || null,
+                    rarity: item.rarity?.value, introduced: item.introduction?.text,
+                    daysMissing: 0, lastSeenLabel: "", badgeLabel: watch.paused ? "PAUSED" : watch.mode === "once" ? "NEXT RETURN" : "EVERY RETURN" };
+            }), `PAGE ${page + 1}`, "item-shop", 300, undefined,
+            { title: "SHOP ALERTS", subtitle: "WATCHLIST", footer: `${total} SAVED ALERTS · PAUSED ALERTS SKIP RETURNS`,
+                profileName: profile ? (profile as any).globalName || profile.username : "Fortnite player",
+                profileAvatar: profile?.displayAvatarURL({ format: "png", size: 256 }) });
+            this.watchlistRenders.set(viewer, rendered);
+            return { ...payload, files: [{ attachment: rendered.image, name: "cosmetic-alerts.png" }] };
+        } catch (error) {
+            // Management must remain usable if artwork or Chromium is unavailable.
+            console.warn("Watchlist image unavailable:", error.name);
+            return payload;
+        }
+    }
     private async manager(user: string, page = 0) {
         const watches: any[] = await CosmeticWatch.find(this.query(user)).sort({ createdAt: 1 }).lean();
         page = Math.max(0, Math.min(Math.ceil(watches.length / 25) - 1, page)) || 0;
@@ -105,10 +129,12 @@ export class CosmeticAlerts {
             .setDescription(watches.length ? `${watches.length} saved ${watches.length === 1 ? "alert" : "alerts"} · Choose an item to manage it.\n\n${slice.map(w => `**${w.item.name.slice(0, 60)}** · ${w.paused ? "Paused" : w.status}\n${w.mode === "once" ? "Next return" : "Every return"} → <#${w.channel}>`).join("\n\n")}` : "Your watchlist is empty.\nSearch for a cosmetic, then choose **Notify me**.")
             .setFooter({ text: "Alerts reply where you saved them, then try the channel, then DMs. Only you can change this list." });
         const rows: MessageActionRow[] = [];
-        if (slice.length) rows.push(new MessageActionRow().addComponents(new MessageSelectMenu().setCustomId(`cosmetic-alert:${user}:manage:0`).setPlaceholder("Choose an alert").addOptions(slice.map(w => ({ label: w.item.name.slice(0, 100), value: w.key })))));
-        rows.push(new MessageActionRow().addComponents(alertButton(user, "list", String(page - 1), "←").setDisabled(page === 0),
+        if (slice.length) rows.push(new MessageActionRow().addComponents(new MessageSelectMenu().setCustomId(`cosmetic-alert:${user}:manage:0`).setPlaceholder("Choose an item to manage its alert").addOptions(slice.map(w => ({ label: w.item.name.slice(0, 100), value: w.key,
+            emoji: cosmeticTypeEmoji(w.item), description: `${w.paused ? "Paused" : "Watching"} · ${w.mode === "once" ? "Next return" : "Every return"}` })))));
+        if (watches.length > 25) rows.push(new MessageActionRow().addComponents(alertButton(user, "list", String(page - 1), "←").setDisabled(page === 0),
             alertButton(user, "list", String(page + 1), "→").setDisabled((page + 1) * 25 >= watches.length)));
-        return { content: null, embeds: [embed], components: rows, attachments: [] };
+        if (slice.length) embed.setDescription(`${watches.length} saved ${watches.length === 1 ? "alert" : "alerts"} · Choose an item below to manage it.\nPause, change return mode, move the destination, or remove an alert.`);
+        return this.watchlistImage(user, slice, { content: null, embeds: [embed], components: rows, attachments: [] }, page, watches.length);
     }
     private async publicWatchlist(viewer: string, user: string, page = 0) {
         const watches: any[] = await CosmeticWatch.find(this.query(user)).sort({ createdAt: 1 }).lean();
@@ -119,10 +145,18 @@ export class CosmeticAlerts {
                 ? watches.slice(page * 20, page * 20 + 20).map(w => `**${escape(w.item.name)}** · ${w.paused ? "Paused" : w.mode === "once" ? "Next return" : "Every return"}`).join("\n")
                 : "No saved alerts."}`)
             .setFooter({ text: `Page ${page + 1} of ${Math.max(1, Math.ceil(watches.length / 20))} · Read-only · Only the owner can change these alerts` });
-        return { content: null, embeds: [embed], allowedMentions: { parse: [] }, attachments: [], components: [new MessageActionRow().addComponents(
+        const slice = watches.slice(page * 20, page * 20 + 20);
+        const rows: MessageActionRow[] = [];
+        if (slice.length) rows.push(new MessageActionRow().addComponents(new MessageSelectMenu()
+            .setCustomId(`cosmetic-alert:${viewer}:setup:0`).setPlaceholder("Choose an item to get your own alert")
+            .addOptions(slice.map(w => ({ label: w.item.name.slice(0, 100), value: w.key, emoji: cosmeticTypeEmoji(w.item) })))));
+        const navigation = new MessageActionRow();
+        if (watches.length > 20) navigation.addComponents(
             alertButton(viewer, "view", user, "←").setCustomId(`cosmetic-alert:${viewer}:view:${user}:${page - 1}`).setDisabled(page === 0),
-            alertButton(viewer, "view", user, "→").setCustomId(`cosmetic-alert:${viewer}:view:${user}:${page + 1}`).setDisabled((page + 1) * 20 >= watches.length),
-            alertButton(viewer, "list", "0", "My alerts"))] };
+            alertButton(viewer, "view", user, "→").setCustomId(`cosmetic-alert:${viewer}:view:${user}:${page + 1}`).setDisabled((page + 1) * 20 >= watches.length));
+        navigation.addComponents(alertButton(viewer, "list", "0", "My alerts", "PRIMARY"));
+        rows.push(navigation);
+        return this.watchlistImage(viewer, slice, { content: null, embeds: [embed], allowedMentions: { parse: [] }, attachments: [], components: rows }, page, watches.length);
     }
     private async handle(i: any) {
         const command = i.isCommand() && i.commandName === "fortnite" && i.options.getSubcommandGroup(false) === "cosmetic" && i.options.getSubcommand(false) === "alerts";
@@ -145,7 +179,7 @@ export class CosmeticAlerts {
             if (command || fork || operation === "setup") await i.deferReply(); else await i.deferUpdate();
             await this.ready;
             if (operation === "view") return await i.editReply(await this.publicWatchlist(owner, token, Number(anchor) || 0));
-            const key = i.isSelectMenu() && operation === "manage" ? i.values[0] : token;
+            const key = i.isSelectMenu() && ["manage", "setup"].includes(operation) ? i.values[0] : token;
             if (operation === "list") return await i.editReply(await this.manager(owner, Number(token) || 0));
             if (["setup", "once", "every"].includes(operation)) {
                 const item = (await this.loadCatalog()).find(item => cosmeticAlertKey(item.id) === key);
@@ -168,26 +202,43 @@ export class CosmeticAlerts {
             if (operation.startsWith("delivery") || operation === "retry") return await this.deliveryInteraction(i, owner, operation, key);
             const watch: any = await CosmeticWatch.findOne(this.query(owner, key)).lean();
             if (!watch) return await i.editReply(await this.manager(owner));
-            if (operation === "remove") await CosmeticWatch.deleteOne({ _id: watch._id });
+            if (operation === "remove") return await i.editReply({ content: null, attachments: [],
+                embeds: [new MessageEmbed().setColor("#E8AA35").setTitle("Remove this alert?")
+                    .setDescription(`You’ll stop receiving return notifications for **${watch.item.name.slice(0, 80)}**. You can add it again later.`)],
+                components: [new MessageActionRow().addComponents(
+                    alertButton(owner, "confirmremove", key, "Remove alert", "DANGER").setEmoji("🗑️"),
+                    alertButton(owner, "manage", key, "Keep alert", "SECONDARY").setEmoji("↩️"))] });
+            if (operation === "confirmremove") {
+                await CosmeticWatch.deleteOne({ _id: watch._id });
+                return await i.editReply({ ...await this.manager(owner), content: "✅ Alert removed." });
+            }
             if (["pause", "resume", "move", "mode"].includes(operation)) {
                 const update: any = operation === "pause" ? { paused: true, pending: null, status: "Watching" } : operation === "move" ? { channel: i.channelId, message: i.message.id }
                     : operation === "mode" ? { mode: watch.mode === "once" ? "every" : "once" } : { paused: false, present: (await this.shop()).has(watch.itemId), absentChecks: 0, status: watch.pending ? watch.status : "Watching" };
                 await CosmeticWatch.updateOne({ _id: watch._id }, { $set: update });
+                const updated: any = await CosmeticWatch.findOne(this.query(owner, key)).lean();
+                const messages = { pause: "⏸️ Alert paused. Returns while paused are skipped.", resume: "▶️ Alert resumed.", move: "📍 Notifications will be sent to this channel.", mode: "✅ Notification frequency updated." };
+                return await i.editReply({ ...await this.manage(owner, updated || watch), content: messages[operation] });
             }
             if (operation === "manage") return await i.editReply(await this.manage(owner, watch));
             return await i.editReply(await this.manager(owner));
         } catch (error) {
             console.warn("Cosmetic alert action failed:", error.code || error.name);
             if (i.deferred || i.replied) await i.editReply({ content: error instanceof AlertInputError ? error.message : "Couldn't update your alerts. Please check My alerts before trying again.", embeds: [], components: [new MessageActionRow().addComponents(alertButton(owner, "list", "0", "My alerts"))] }).catch(() => {});
-        } finally { this.busyUsers.delete(owner); }
+        } finally {
+            const rendered = this.watchlistRenders.get(owner);
+            this.watchlistRenders.delete(owner);
+            if (rendered) await rendered.close().catch(() => {});
+            this.busyUsers.delete(owner);
+        }
     }
     private async manage(user: string, watch: any) {
         const embed = new MessageEmbed().setColor("#2186DB").setTitle(watch.item.name.slice(0, 256))
-            .setDescription(`**${watch.paused ? "Paused" : watch.status}** · ${watch.mode === "once" ? "Next return" : "Every return"}\nDeliver to <#${watch.channel}> · DM fallback enabled\n\nPausing skips returns while paused. Move here changes the destination to this channel.`);
+            .setDescription(`${watch.paused ? "⏸️ **Paused**" : `🔔 **${watch.status}**`}\n${watch.mode === "once" ? "🔔 Notify on the next return, then remove this alert." : "🔁 Notify on every return—no daily repeats."}\n\n📍 <#${watch.channel}>\n✉️ DM fallback if the channel is unavailable.\n\nPausing skips returns while paused.`);
         return { content: null, embeds: [embed], attachments: [], components: [new MessageActionRow().addComponents(
-            alertButton(user, watch.paused ? "resume" : "pause", watch.key, watch.paused ? "Resume" : "Pause", "PRIMARY"),
+            alertButton(user, watch.paused ? "resume" : "pause", watch.key, watch.paused ? "Resume" : "Pause", watch.paused ? "SUCCESS" : "SECONDARY"),
             alertButton(user, "mode", watch.key, watch.mode === "once" ? "Watch every return" : "Watch next return"),
-            alertButton(user, "move", watch.key, "Move here"), alertButton(user, "remove", watch.key, "Remove", "DANGER"), alertButton(user, "list", "0", "All alerts")),
+            alertButton(user, "move", watch.key, "Send here"), alertButton(user, "remove", watch.key, "Remove", "DANGER"), alertButton(user, "list", "0", "My alerts", "PRIMARY")),
             ...(watch.pending?.delivery ? [new MessageActionRow().addComponents(alertButton(user, "retry", watch.pending.delivery, "Retry delivery"))] : [])] };
     }
 

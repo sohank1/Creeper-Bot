@@ -82,7 +82,8 @@ export class CosmeticSearchIndex {
                 literalFields: [item.name, item.description, item.set?.text, item.id, item.introduction?.text,
                     item.rarity?.displayValue, item.type?.displayValue].filter(Boolean).map(value => value.toLowerCase()) });
             this.ids.set(item.id.toLowerCase(), index);
-            this.names.set(compact(name), [...(this.names.get(compact(name)) || []), index]);
+            const nameKey = compact(name) || `literal:${item.name.trim().toLowerCase()}`;
+            this.names.set(nameKey, [...(this.names.get(nameKey) || []), index]);
             const add = (text: string, weight: number, reason: string) => {
                 const normalized = normalizeCosmeticQuery(text || "");
                 for (const token of new Set([...normalized.split(" "), ...(weight >= 8 ? [compact(normalized)] : [])])) {
@@ -138,7 +139,7 @@ export class CosmeticSearchIndex {
             const directId = this.ids.get(query.toLowerCase());
             if (directId !== undefined) return [{ item: this.documents[directId].item, score: 10000, reason: "Exact item ID", exact: true }];
             const parsed = parseCosmeticQuery(query);
-            const exactNames = this.names.get(compact(normalized)) || [];
+            const exactNames = query ? this.names.get(compact(normalized) || `literal:${query.toLowerCase()}`) || [] : [];
             const allowed = (doc: SearchDocument) => (!parsed.category || doc.item.category === parsed.category)
                 && (!parsed.types.size || parsed.types.has(doc.item.type?.value) || parsed.category && alternate(doc.item) && parsed.types.has("outfit"))
                 && (!parsed.rarity || doc.item.rarity?.value === parsed.rarity)
