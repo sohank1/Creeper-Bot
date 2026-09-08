@@ -18,14 +18,18 @@ async function trimTransparentMargin(url: string): Promise<string> {
                 const pixels = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
                 let left = canvas.width, top = canvas.height, right = -1, bottom = -1;
                 for (let y = 0; y < canvas.height; y++) for (let x = 0; x < canvas.width; x++) {
-                    if (pixels[(y * canvas.width + x) * 4 + 3] > 8) {
+                    // Ground shadows and near-transparent effects can extend to
+                    // the canvas edge (e.g. Jar Jar), shifting/scaling the body.
+                    if (pixels[(y * canvas.width + x) * 4 + 3] >= 128) {
                         left = Math.min(left, x); right = Math.max(right, x);
                         top = Math.min(top, y); bottom = Math.max(bottom, y);
                     }
                 }
                 if (right < left || (left === 0 && top === 0 && right === canvas.width - 1 && bottom === canvas.height - 1)) return url;
                 const padding = Math.ceil(Math.max(right - left + 1, bottom - top + 1) * .025);
-                const output = createCanvas(right - left + 1 + padding * 2, bottom - top + 1 + padding * 2);
+                // Keep the artwork's bottom flush: cropped source portraits must
+                // meet the tile baseline rather than expose a floating cut edge.
+                const output = createCanvas(right - left + 1 + padding * 2, bottom - top + 1 + padding);
                 output.getContext("2d").drawImage(canvas, left, top, right - left + 1, bottom - top + 1, padding, padding, right - left + 1, bottom - top + 1);
                 return output.toDataURL("image/png");
             } catch { return url; }
@@ -60,10 +64,14 @@ export function selectBRShopArtwork(images?: Array<{ productTag?: string; image?
 export function selectMissingPreview(item: MissingCosmeticImageItem, tall: boolean): { url: string | null; kind: PreviewKind } {
     const type = item.type.toLowerCase();
     if (/jam track|music|loading screen/.test(type)) return { url: item.imageUrl || item.featuredImageUrl || null, kind: "album" };
-    if (/emote|emoticon|emoji|spray|banner/.test(type)) return { url: item.imageUrl || item.featuredImageUrl || null, kind: "silhouette" };
+    // A full-height shop pose is not a square portrait. Use the cosmetic's
+    // purpose-made portrait in compact outfit cards, without zooming into it.
+    if (!tall && /outfit|character|skin/.test(type) && item.imageUrl) return { url: item.imageUrl, kind: "portrait" };
+    if (/emoticon|emoji|spray|banner/.test(type)) return { url: item.imageUrl || item.featuredImageUrl || null, kind: "silhouette" };
     // Shop display artwork may include extra styles or included items. Never
     // zoom/crop it as though it were a single character render.
     if (item.featuredImageIsShopArtwork && item.featuredImageUrl) return { url: item.featuredImageUrl, kind: "composition" };
+    if (/emote/.test(type)) return { url: item.imageUrl || item.featuredImageUrl || null, kind: "silhouette" };
     if (/outfit|character|skin/.test(type)) return {
         url: tall ? item.featuredImageUrl || item.imageUrl : item.imageUrl || item.featuredImageUrl,
         kind: "portrait",

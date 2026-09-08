@@ -6,6 +6,7 @@ import { renderMissingCosmeticsImage } from "../MissingCosmetics/MissingCosmetic
 import { applyMissingPalettes, dominantHue, fallbackPalette } from "../MissingCosmetics/MissingPalette";
 import assert from "assert";
 import { selectMissingPreview, selectBRShopArtwork } from "../MissingCosmetics/MissingPreview";
+import { storedMissingBotLogo } from "../MissingCosmetics/MissingBranding";
 
 async function main() {
     assert.equal(dominantHue(new Uint8ClampedArray([255, 0, 0, 255, 255, 0, 0, 255])), 0);
@@ -20,19 +21,30 @@ async function main() {
     const report = index.report(day.date, 300);
     const fixture = { ...report.items[0], type: "Outfit", imageUrl: "icon", featuredImageUrl: "featured", featuredImageIsShopArtwork: true };
     assert.deepEqual(selectMissingPreview(fixture, true), { url: "featured", kind: "composition" });
-    assert.deepEqual(selectMissingPreview(fixture, false), { url: "featured", kind: "composition" });
+    assert.deepEqual(selectMissingPreview(fixture, false), { url: "icon", kind: "portrait" });
     assert.deepEqual(selectMissingPreview({ ...fixture, featuredImageIsShopArtwork: false }, false), { url: "icon", kind: "portrait" });
     assert.equal(selectBRShopArtwork([{ productTag: "Product.Juno", image: "lego" }]), undefined);
     assert.equal(selectBRShopArtwork([{ productTag: "Product.Juno", image: "lego" }, { productTag: "Product.BR", image: "br" }]), "br");
     assert.equal(selectBRShopArtwork([{ productTag: "Product.BR", image: "alternate" }, { productTag: "Product.BR", image: "default", isDefault: true }]), "default");
-    assert.equal(selectMissingPreview({ ...fixture, type: "Emote" }, true).kind, "silhouette");
+    assert.deepEqual(selectMissingPreview({ ...fixture, type: "Emote" }, true), { url: "featured", kind: "composition" });
+    assert.equal(selectMissingPreview({ ...fixture, type: "Emote", featuredImageIsShopArtwork: false }, true).kind, "silhouette");
     assert.equal(selectMissingPreview({ ...fixture, type: "Jam Track" }, true).kind, "album");
     assert.equal(selectMissingPreview({ ...fixture, type: "Glider", featuredImageIsShopArtwork: false }, false).kind, "equipment");
     const output = path.resolve("artifacts", "palette-comparison");
     await fs.promises.mkdir(output, { recursive: true });
+    const framingItems = ["Jar Jar Binks", "Shot Caller", "Champion Crystal", "Nash Nori"].map(name => {
+        const cosmetic = data.br.find(item => item.name === name);
+        if (!cosmetic) throw new Error(`Missing framing fixture: ${name}`);
+        return { id: cosmetic.id, name, type: "Outfit", imageUrl: cosmetic.images.icon,
+            featuredImageUrl: cosmetic.images.featured, introduced: cosmetic.introduction?.text,
+            daysMissing: 300, lastSeenLabel: "", previousAppearances: 9 };
+    });
+    const framing = await renderMissingCosmeticsImage(framingItems, "Framing test", "item-shop", 300, storedMissingBotLogo());
+    try { await fs.promises.writeFile(path.join(output, "framing.png"), framing.image); }
+    finally { await framing.close(); }
     const colored = await applyMissingPalettes(report.items);
     for (const [name, items] of [["before", report.items.map(item => ({ ...item, backgroundColors: ["#ff55a7", "#df2787", "#df2787"] }))], ["after", colored]] as const) {
-        const render = await renderMissingCosmeticsImage([...items], report.date, "item-shop", 300);
+        const render = await renderMissingCosmeticsImage([...items], report.date, "item-shop", 300, storedMissingBotLogo());
         try { await fs.promises.writeFile(path.join(output, `${name}.png`), render.image); }
         finally { await render.close(); }
     }
@@ -44,7 +56,7 @@ async function main() {
     const busyDay = index.available(300).find(day => day.count >= 24 && day.count <= 40);
     if (busyDay) {
         const busyReport = index.report(busyDay.date, 300);
-        const render = await renderMissingCosmeticsImage(busyReport.items, busyDay.date, "item-shop", 300);
+        const render = await renderMissingCosmeticsImage(busyReport.items, busyDay.date, "item-shop", 300, storedMissingBotLogo());
         try { await fs.promises.writeFile(path.join(output, "mixed-items.png"), render.image); }
         finally { await render.close(); }
         console.log("Mixed report:", busyDay, busyReport.items.map(item => item.type));

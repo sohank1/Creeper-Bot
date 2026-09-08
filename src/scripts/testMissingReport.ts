@@ -3,7 +3,26 @@ import { reportControls, registerMissingReportBrowser, resolveReportDate } from 
 import { shiftDate, todayUTC, validReportDate, validMinimumDays, filteredItems } from "../MissingCosmetics/MissingReport";
 import { MissingHistoryIndex, MissingHistoryService, mergeCurrentShop } from "../MissingCosmetics/MissingHistory";
 import { fortniteCommand } from "../Fortnite/fortniteCommand";
-import { buildFortniteItemShopReplicaHtml } from "../MissingCosmetics/MissingCosmeticsImage";
+import { buildFortniteItemShopReplicaHtml, introductionBadgeHtml } from "../MissingCosmetics/MissingCosmeticsImage";
+import { getFortniteSeasonEmoji, getFortniteSeasonEmojiAssetUrl } from "../Fortnite/fortniteSeasonEmoji";
+
+assert(introductionBadgeHtml("Introduced in Chapter 6, Season 3.").includes(getFortniteSeasonEmojiAssetUrl(getFortniteSeasonEmoji(6, 3)!)));
+assert(introductionBadgeHtml("Introduced in Season X.").includes(getFortniteSeasonEmojiAssetUrl(getFortniteSeasonEmoji(1, 10)!)));
+assert(!introductionBadgeHtml("Introduced in Chapter 99, Season 1.").includes("<img"));
+assert.equal(introductionBadgeHtml(undefined), "");
+const brandedHtml = buildFortniteItemShopReplicaHtml([], "2026-09-06", 300, "https://cdn.discordapp.com/avatars/test/logo.png?size=1024");
+assert(brandedHtml.includes('class="fs-bot-logo"'));
+assert(brandedHtml.includes("logo.png?size=1024"));
+assert(!buildFortniteItemShopReplicaHtml([], "2026-09-06").includes('class="fs-bot-logo"'));
+import { selectMissingPreview } from "../MissingCosmetics/MissingPreview";
+
+const previewFixture = { id: "fixture", name: "Fixture", type: "Outfit", daysMissing: 300, lastSeenLabel: "2024-01-01", imageUrl: "portrait", featuredImageUrl: "shop", featuredImageIsShopArtwork: true };
+assert.deepEqual(selectMissingPreview(previewFixture, false), { url: "portrait", kind: "portrait" });
+assert.deepEqual(selectMissingPreview(previewFixture, true), { url: "shop", kind: "composition" });
+assert.deepEqual(selectMissingPreview({ ...previewFixture, imageUrl: null }, false), { url: "shop", kind: "composition" });
+assert.deepEqual(selectMissingPreview({ ...previewFixture, type: "Emote" }, false), { url: "shop", kind: "composition" });
+assert.deepEqual(selectMissingPreview({ ...previewFixture, type: "Emote", featuredImageIsShopArtwork: false }, false), { url: "portrait", kind: "silhouette" });
+assert.equal(selectMissingPreview({ ...previewFixture, type: "Jam Track" }, true).url, "portrait");
 
 assert(validReportDate("2024-02-29"));
 for (const invalid of ["2023-02-29", "2024-13-01", "2024-04-31", "24-01-01", "../2024-01-01", "2099-01-01"]) assert(!validReportDate(invalid), invalid);

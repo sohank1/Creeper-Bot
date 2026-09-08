@@ -2,6 +2,7 @@ import { Client, MessageActionRow, MessageAttachment, MessageButton, MessageEmbe
 import { todayUTC, validReportDate, validMinimumDays, reportDescription } from "./MissingReport";
 import { MissingHistoryService } from "./MissingHistory";
 import { renderMissingCosmeticsImage } from "./MissingCosmeticsImage";
+import { fetchMissingBotLogo } from "./MissingBranding";
 import { performance } from "perf_hooks";
 import { MissingTelemetry, MissingTiming, timingLabel } from "./MissingTelemetry";
 
@@ -145,7 +146,7 @@ export function registerMissingReportBrowser(client: Client) {
                     try {
                         const renderStarted = performance.now();
                         try {
-                        render = await renderMissingCosmeticsImage(items, date, "item-shop", minimum);
+                        render = await renderMissingCosmeticsImage(items, date, "item-shop", minimum, await fetchMissingBotLogo(client));
                         timing.imageBytes = render.image.length;
                         } finally { timing.renderMs = performance.now() - renderStarted; }
                     } catch (error) { timing.outcome = "image-fallback"; console.error("Missing report image failed:", error); embed.setDescription(reportDescription(items).slice(0, 4096)); embed.addField("Artwork unavailable", "Choose the date again to retry the image."); }

@@ -1,4 +1,5 @@
 import { selectBRShopArtwork } from "./MissingPreview";
+import { fetchMissingBotLogo } from "./MissingBranding";
 // import { Client, Message, MessageEmbed, TextChannel } from "discord.js";
 // import axios from "axios";
 // import { scheduleJob } from "node-schedule";
@@ -372,7 +373,7 @@ export class MissingCosmetics {
 
         let render: Awaited<ReturnType<typeof renderMissingCosmeticsImage>> | null = null;
         try {
-            render = await renderMissingCosmeticsImage(missingImageItems, shopDateLabel, "item-shop");
+            render = await renderMissingCosmeticsImage(missingImageItems, shopDateLabel, "item-shop", 300, await fetchMissingBotLogo(this.client));
             for (const s of Object.values(itemShopChannels)) {
                 const channel = this.client.channels.cache.get(s.channel) as TextChannel;
                 if (!channel) continue;

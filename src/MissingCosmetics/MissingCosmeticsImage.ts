@@ -2,6 +2,7 @@ import fs from "fs";
 import type { Browser } from "puppeteer";
 import { applyMissingPalettes, fallbackPalette } from "./MissingPalette";
 import { selectMissingPreview, prepareMissingPreviews } from "./MissingPreview";
+import { getFortniteSeasonEmoji, getFortniteSeasonEmojiAssetUrl } from "../Fortnite/fortniteSeasonEmoji";
 
 export interface MissingCosmeticImageItem {
     id: string;
@@ -88,6 +89,19 @@ const introductionBadge = (value: string | undefined): string | null => {
     const season = value.match(/season\s+([^.!]+)/i);
     return season ? `SEASON ${season[1].trim()}` : null;
 };
+
+export function introductionBadgeHtml(value: string | undefined): string {
+    const label = introductionBadge(value);
+    if (!label) return "";
+    const chapter = label.match(/CHAPTER\s+(\d+)/)?.[1];
+    const season = label.match(/SEASON\s+(\d+|X)\b/i)?.[1];
+    const emoji = season ? getFortniteSeasonEmoji(Number(chapter || 1), season.toUpperCase() === "X" ? 10 : Number(season)) : undefined;
+    // Twemoji omits variation selectors for standalone glyphs. The shared map
+    // also has legacy gender sequences without a joiner; use the base glyph
+    // as a fallback when that exact shared asset is unavailable.
+    const fallbackEmoji = emoji?.replace(/[\ufe0f\u200d♂♀]/g, "");
+    return `<span class="fs-season-label fs-fit" data-min-size="4">${escapeHtml(label)}</span>${emoji ? ` <img class="fs-season-emoji" src="${escapeHtml(getFortniteSeasonEmojiAssetUrl(emoji))}" data-fallback="${escapeHtml(getFortniteSeasonEmojiAssetUrl(fallbackEmoji!))}" alt="" onerror="if(this.dataset.fallback){const url=this.dataset.fallback;delete this.dataset.fallback;this.src=url}else{this.style.display='none'}" />` : ""}`;
+}
 
 function getChromiumExecutablePath(): string | undefined {
     const configuredPath = process.env.GOOGLE_CHROME_BIN || process.env.PUPPETEER_EXECUTABLE_PATH;
@@ -275,7 +289,7 @@ function buildLegacyFortniteItemShopReplicaHtml(items: MissingCosmeticImageItem[
 </style></head><body><nav class="fn-top"><div class="fn-left"><div class="fn-menu"><i></i><i></i><i></i><em>!</em></div><div class="fn-party"><i class="fn-person"></i>19</div></div><span>PLAY</span><span>BATTLE PASS</span><span>QUESTS</span><span>COMPETE</span><span>LOCKER</span><b>ITEM SHOP</b><span>CAREER</span><span>V-BUCKS</span><div class="fn-counter">${coin}<span>400</span></div></nav><div class="fn-previous-strip">${previousTiles}<b>↑ PREVIOUS</b></div><header class="fn-section"><h1>DAILY</h1></header><div class="fn-left-arrow">‹</div><div class="fn-right-arrow">›</div><main class="fn-grid">${tiles}</main><footer class="fn-bottom"><div class="fn-refresh">◷ SHOP REFRESHES IN<b>23:59:30</b></div><div class="fn-actions"><span>SUPPORT-A-CREATOR: NONE</span><span>BACK TO TOP</span></div></footer></body></html>`;
 }
 
-export function buildFortniteItemShopReplicaHtml(items: MissingCosmeticImageItem[], shopDateLabel: string, minimumDays = 300): string {
+export function buildFortniteItemShopReplicaHtml(items: MissingCosmeticImageItem[], shopDateLabel: string, minimumDays = 300, logoUrl?: string): string {
     const useFeaturedMosaic = items.length <= 10;
     const isFlatMedia = (item: MissingCosmeticImageItem) =>
         /jam track|music|loading screen|emoticon|emoji|spray|banner|backpack|back bling/i.test(item.type);
@@ -350,7 +364,7 @@ export function buildFortniteItemShopReplicaHtml(items: MissingCosmeticImageItem
         const displayName = trackSeparator >= 0
             ? rawDisplayName.replace(/\s*\([^)]*(?:\.{3}|…)[^)]*\)\s*$/, "").trim()
             : rawDisplayName;
-        return `<article class="fs-offer${featured ? " fs-featured" : " fs-compact"}" style="--fs-c1:${primary};--fs-c2:${secondary};--fs-c3:${tertiary};--fs-text-bg:${textBackground};background:radial-gradient(ellipse at 50% 42%,var(--fs-c1) 0%,var(--fs-c2) 62%,var(--fs-c3) 100%)"><div class="fs-days">${item.daysMissing.toLocaleString("en-US")} DAYS</div><div class="fs-art${character ? " fs-character" : " fs-object"}${artworkClass}">${imageUrl ? `<img src="${escapeHtml(imageUrl)}" alt="" />` : `<div class="fs-placeholder">?</div>`}${introduced ? `<div class="fs-intro fs-fit" data-min-size="${smallText ? 5 : 6}">${escapeHtml(introduced)}</div>` : ""}${item.previousAppearances !== undefined ? `<div class="fs-appearances" title="Shop appearances including today"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5v6h6M3 11a9 9 0 1 1 2 7M12 7v5l3 2"/></svg>${(item.previousAppearances + 1).toLocaleString("en-US")}×</div>` : ""}</div><div class="fs-accent" style="background:${accent}"></div><div class="fs-label"><h2 class="fs-fit" data-min-size="${smallText ? 7 : 10}">${escapeHtml(displayName)}</h2><div class="fs-price"><b>${item.price !== undefined ? `${item.price.toLocaleString("en-US")}${item.priceIsCurrent ? "*" : ""} ${coin}` : ""}</b></div></div></article>`;
+        return `<article class="fs-offer${featured ? " fs-featured" : " fs-compact"}" style="--fs-c1:${primary};--fs-c2:${secondary};--fs-c3:${tertiary};--fs-text-bg:${textBackground};background:radial-gradient(ellipse at 50% 42%,var(--fs-c1) 0%,var(--fs-c2) 62%,var(--fs-c3) 100%)"><div class="fs-days">${item.daysMissing.toLocaleString("en-US")} DAYS</div><div class="fs-art${character ? " fs-character" : " fs-object"}${artworkClass}">${imageUrl ? `<img src="${escapeHtml(imageUrl)}" alt="" />` : `<div class="fs-placeholder">?</div>`}<div class="fs-meta">${introduced ? `<div class="fs-intro" data-min-size="${smallText ? 5 : 6}">${introductionBadgeHtml(item.introduced)}</div>` : ""}${item.previousAppearances !== undefined ? `<div class="fs-appearances" title="Shop appearances including today"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5v6h6M3 11a9 9 0 1 1 2 7M12 7v5l3 2"/></svg>${(item.previousAppearances + 1).toLocaleString("en-US")}×</div>` : ""}</div></div><div class="fs-accent" style="background:${accent}"></div><div class="fs-label"><h2 class="fs-fit" data-min-size="${smallText ? 7 : 10}">${escapeHtml(displayName)}</h2><div class="fs-price"><b>${item.price !== undefined ? `${item.price.toLocaleString("en-US")}${item.priceIsCurrent ? "*" : ""} ${coin}` : ""}</b></div></div></article>`;
     }).join("");
 
     const nextTiles = displayItems.slice(0, 4).map(item => {
@@ -388,6 +402,13 @@ export function buildFortniteItemShopReplicaHtml(items: MissingCosmeticImageItem
 .fs-appearances{position:absolute;right:7px;bottom:10px;z-index:4;display:flex;align-items:center;gap:4px;padding:4px 6px;background:#10245de6;color:#ecfaff;font-family:"Fortnite Display",sans-serif;font-size:${smallText ? 12 : 15}px;line-height:1;white-space:nowrap;clip-path:polygon(4px 0,100% 0,100% 100%,0 100%)}
 .fs-appearances svg{width:12px;height:12px;stroke:#8de6ff;fill:none;stroke-width:2;flex:none}
 .fs-intro{max-width:calc(100% - 75px)}
+.fs-meta{position:absolute;z-index:4;left:7px;right:7px;bottom:9px;display:flex;align-items:center;justify-content:space-between;gap:6px;background:transparent}
+.fs-art:after{display:none}
+.fs-meta .fs-intro{position:relative;isolation:isolate;left:auto;bottom:auto;max-width:calc(100% - 55px);display:inline-flex;align-items:center;gap:3px;line-height:1.2;padding:3px 13px 3px 6px;clip-path:none;background:transparent;overflow:visible}
+.fs-meta .fs-intro:before{content:"";position:absolute;inset:0;z-index:-1;background:#10245dd9;clip-path:polygon(0 0,100% 0,calc(100% - 7px) 100%,0 100%);pointer-events:none}
+.fs-meta .fs-appearances{position:relative;right:auto;bottom:auto;margin-left:auto;flex:none}
+.fs-offer .fs-art .fs-meta img.fs-season-emoji{display:block;width:1.3em;height:1.3em;flex:none;margin:0;object-fit:contain;object-position:center;padding:0;filter:none;transform:none}
+.fs-season-label{display:block;min-width:0;flex:1 1 auto;white-space:nowrap}
 .fs-offer{box-shadow:none}
 .fs-next{margin-top:32px;height:80px}.fs-next-grid{height:80px}
 .fs-next-grid img{object-fit:contain;transform:none}
@@ -400,8 +421,9 @@ body.fs-mosaic,body.fs-dense{height:auto;min-height:0;padding:42px 64px 26px}
 .fs-section{margin:0 22px 30px;display:flex;align-items:center;justify-content:space-between;gap:24px}
 .fs-report-date{flex:none;text-align:right;font-family:"Fortnite Display",sans-serif;font-size:25px;font-style:normal;line-height:1;color:#eaf8ff;letter-spacing:.4px}
 .fs-report-date small{display:block;margin-bottom:5px;font-family:"Fortnite UI",sans-serif;font-size:10px;letter-spacing:1.4px;color:#a9dcff}
-.fs-report-footer{margin:24px 0 0 22px;color:#a9dcff;font-size:10px;letter-spacing:.5px}
-</style></head><body class="${useFeaturedMosaic ? "fs-mosaic" : "fs-dense"}"><header class="fs-section"><h1>BACK FROM THE VAULT</h1><div class="fs-report-date"><small>SHOP DATE · UTC</small>${escapeHtml(shopDateLabel)}</div></header><main class="fs-grid">${tiles}</main><footer class="fs-report-footer">${items.length} RETURNING ITEMS · ${minimumDays}+ DAYS AWAY${items.some(item => item.priceIsCurrent) ? " · * CURRENT KNOWN PRICE" : ""}</footer><script>window.fitFortniteText=()=>{document.querySelectorAll(".fs-fit").forEach(node=>{const element=node;const minimum=Number(element.dataset.minSize||7);let size=parseFloat(getComputedStyle(element).fontSize);while(element.scrollWidth>element.clientWidth&&size>minimum){size=Math.max(minimum,size-.5);element.style.fontSize=size+"px"}})};document.fonts.ready.then(window.fitFortniteText);</script></body></html>`;
+.fs-report-footer{margin:24px 0 0 22px;color:#a9dcff;font-size:10px;letter-spacing:.5px;min-height:48px;display:flex;align-items:center;justify-content:space-between;gap:20px}
+.fs-bot-logo{display:block;width:48px;height:48px;object-fit:contain;flex:none;border-radius:8px}
+</style></head><body class="${useFeaturedMosaic ? "fs-mosaic" : "fs-dense"}"><header class="fs-section"><h1>BACK FROM THE VAULT</h1><div class="fs-report-date"><small>SHOP DATE · UTC</small>${escapeHtml(shopDateLabel)}</div></header><main class="fs-grid">${tiles}</main><footer class="fs-report-footer">${items.length} RETURNING ITEMS · ${minimumDays}+ DAYS AWAY${items.some(item => item.priceIsCurrent) ? " · * CURRENT KNOWN PRICE" : ""}${logoUrl ? `<img class="fs-bot-logo" src="${escapeHtml(logoUrl)}" alt="Creeper Bot" onerror="this.style.display=\'none\'" />` : ""}</footer><script>window.fitFortniteText=()=>{document.querySelectorAll(".fs-fit").forEach(node=>{const element=node;const minimum=Number(element.dataset.minSize||7);let size=parseFloat(getComputedStyle(element).fontSize);while(element.scrollWidth>element.clientWidth&&size>minimum){size=Math.max(minimum,size-.5);element.style.fontSize=size+"px"}})};document.fonts.ready.then(window.fitFortniteText);</script></body></html>`;
 }
 
 function buildSupplyDropHtml(items: MissingCosmeticImageItem[], shopDateLabel: string, minimumDays = 300): string {
@@ -419,6 +441,7 @@ export async function renderMissingCosmeticsImage(
     shopDateLabel: string,
     variant: MissingCosmeticsImageVariant = "vault-grid",
     minimumDays = 300,
+    logoUrl?: string,
 ): Promise<MissingCosmeticsRender> {
     if (variant === "item-shop") items = await prepareMissingPreviews(await applyMissingPalettes(items));
     const { default: puppeteer } = await Function('return import("puppeteer")')();
@@ -442,7 +465,7 @@ export async function renderMissingCosmeticsImage(
                     : variant === "bus-arrivals"
                         ? buildBusArrivalsHtml(items, shopDateLabel, minimumDays)
                         : variant === "item-shop"
-                            ? buildFortniteItemShopReplicaHtml(items, shopDateLabel, minimumDays)
+                            ? buildFortniteItemShopReplicaHtml(items, shopDateLabel, minimumDays, logoUrl)
                         : variant === "supply-drop"
                             ? buildSupplyDropHtml(items, shopDateLabel, minimumDays)
                             : variant === "island-broadcast"
