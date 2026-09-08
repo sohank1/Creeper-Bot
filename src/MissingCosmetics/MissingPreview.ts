@@ -3,11 +3,12 @@ import axios from "axios";
 import { createCanvas, loadImage } from "@napi-rs/canvas";
 
 const trimmed = new Map<string, Promise<string>>();
-async function trimTransparentMargin(url: string): Promise<string> {
+async function trimTransparentMargin(url: string, alphaThreshold = 128): Promise<string> {
     if (!/^https:\/\//.test(url)) return url;
-    if (!trimmed.has(url)) {
+    const cacheKey = `${alphaThreshold}:${url}`;
+    if (!trimmed.has(cacheKey)) {
         if (trimmed.size >= 64) trimmed.delete(trimmed.keys().next().value);
-        trimmed.set(url, (async () => {
+        trimmed.set(cacheKey, (async () => {
             try {
                 const response = await axios.get(url, { responseType: "arraybuffer", timeout: 6000, maxContentLength: 8 * 1024 * 1024 });
                 const source = await loadImage(Buffer.from(response.data));
@@ -20,7 +21,7 @@ async function trimTransparentMargin(url: string): Promise<string> {
                 for (let y = 0; y < canvas.height; y++) for (let x = 0; x < canvas.width; x++) {
                     // Ground shadows and near-transparent effects can extend to
                     // the canvas edge (e.g. Jar Jar), shifting/scaling the body.
-                    if (pixels[(y * canvas.width + x) * 4 + 3] >= 128) {
+                    if (pixels[(y * canvas.width + x) * 4 + 3] >= alphaThreshold) {
                         left = Math.min(left, x); right = Math.max(right, x);
                         top = Math.min(top, y); bottom = Math.max(bottom, y);
                     }
@@ -35,7 +36,7 @@ async function trimTransparentMargin(url: string): Promise<string> {
             } catch { return url; }
         })());
     }
-    return trimmed.get(url)!;
+    return trimmed.get(cacheKey)!;
 }
 
 export async function prepareMissingPreviews(items: MissingCosmeticImageItem[]): Promise<MissingCosmeticImageItem[]> {
@@ -44,9 +45,14 @@ export async function prepareMissingPreviews(items: MissingCosmeticImageItem[]):
     await Promise.all(Array.from({ length: Math.min(4, result.length) }, async () => {
         while (cursor < result.length) {
             const item = result[cursor++];
-            if (!/outfit|character|skin/i.test(item.type)) continue;
-            if (item.imageUrl) item.imageUrl = await trimTransparentMargin(item.imageUrl);
-            if (item.featuredImageUrl) item.featuredImageUrl = await trimTransparentMargin(item.featuredImageUrl);
+            const outfit = /outfit|character|skin/i.test(item.type);
+            const equipment = /pickaxe|harvesting|glider|wrap|back bling|backpack|kicks|shoe|instrument/i.test(item.type);
+            if (!outfit && !equipment) continue;
+            // Preserve translucent equipment effects; only outfits need shadow
+            // rejection. Album covers and multi-item compositions stay intact.
+            const threshold = outfit ? 128 : 8;
+            if (item.imageUrl) item.imageUrl = await trimTransparentMargin(item.imageUrl, threshold);
+            if (item.featuredImageUrl) item.featuredImageUrl = await trimTransparentMargin(item.featuredImageUrl, threshold);
         }
     }));
     return result;

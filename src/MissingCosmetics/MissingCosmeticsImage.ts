@@ -392,8 +392,8 @@ export function buildFortniteItemShopReplicaHtml(items: MissingCosmeticImageItem
 .fs-compact .fs-art.fs-character img{display:block;object-fit:contain;object-position:center bottom;padding:6px 5px 0;transform:none}
 .fs-featured .fs-art.fs-preview-composition img,.fs-compact .fs-art.fs-preview-composition img{object-fit:contain;object-position:center center;padding:0;transform:none;filter:none}
 .fs-featured .fs-art.fs-preview-portrait img{object-fit:contain;object-position:center bottom;padding:3% 2% 0;transform:none}
-.fs-compact .fs-art.fs-preview-portrait img{object-fit:contain;object-position:center bottom;padding:6px 7px 0;transform:none}
-.fs-art.fs-preview-equipment img{object-fit:contain;object-position:center center;padding:7% 7% 12%;transform:none}
+.fs-compact .fs-art.fs-preview-portrait img{object-fit:contain;object-position:center bottom;padding:4px 3px 0;transform:none}
+.fs-art.fs-preview-equipment img{object-fit:contain;object-position:center center;padding:4% 4% 7%;transform:none}
 .fs-art.fs-preview-silhouette img{object-fit:contain;object-position:center center;padding:7% 9% 12%;transform:none;filter:none}
 .fs-art.fs-preview-album img{object-fit:contain;object-position:center center;padding:5% 5% 12%;transform:none;filter:none}
 .fs-label{position:relative;padding-left:8px;padding-right:8px;box-shadow:none}
