@@ -26,11 +26,13 @@ export const fortniteCommand = new SlashCommandBuilder()
         .setName('cosmetic').setDescription('Fortnite cosmetic commands')
         .addSubcommand(subcommand => subcommand
             .setName('search').setDescription('Search for a Fortnite cosmetic')
-            .addStringOption(o => o.setName('query').setDescription('The cosmetic you are searching for').setAutocomplete(true).setRequired(true)))
+            .addStringOption(o => o.setName('query').setDescription('Name, theme, artist or season—try pink bear skin, Metallica song, or C1S9 outfit').setAutocomplete(true).setRequired(true)))
         .addSubcommand(subcommand => subcommand
             .setName('missing').setDescription('View cosmetics returning after time away from the shop')
             .addStringOption(o => o.setName('date').setDescription('Shop date in UTC (YYYY-MM-DD); defaults to today'))
-            .addIntegerOption(o => o.setName('days').setDescription('Minimum days away from the shop; defaults to 300').setMinValue(1).setMaxValue(100000))))
+            .addIntegerOption(o => o.setName('days').setDescription('Minimum days away from the shop; defaults to 300').setMinValue(1).setMaxValue(100000)))
+        .addSubcommand(subcommand => subcommand.setName('alerts').setDescription('Manage your alerts or view someone else’s watchlist')
+            .addUserOption(option => option.setName('user').setDescription('Whose cosmetic alerts to view; defaults to yours'))))
 
     .addSubcommand(subcommand =>
         subcommand

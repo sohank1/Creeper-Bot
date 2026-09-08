@@ -1,11 +1,13 @@
 import axios from "axios";
-import Fuse from 'fuse.js'
-import { ApplicationCommandOptionChoice, AutocompleteInteraction, BaseCommandInteraction, CacheType, Client, MessageAttachment, MessageEmbed, TextChannel } from "discord.js";
-import { Cosmetic, Cosmetics, CosmeticsResponse } from "./FortniteCosmetics.type"
-import { rarityColorTable, rarityEmojisTable } from "./rarityEmojisTable";
+import { ApplicationCommandOptionChoice, AutocompleteInteraction, BaseCommandInteraction, CacheType, Client } from "discord.js";
 import { scheduleJob } from "node-schedule";
 import { createTrackedJob, registerComponent } from "../../runtimeDiagnostics";
-import { getFortniteSeasonEmoji } from "../fortniteSeasonEmoji";
+import { buildCosmeticEmbed, CatalogCosmetic, cosmeticTypeEmoji, normalizeCosmeticCatalog } from "./CosmeticEmbed";
+import { mergeCurrentShop } from "../../MissingCosmetics/MissingHistory";
+import { fortnitePriceService, mergeFortnitePrices } from "./FortnitePriceService";
+import { cosmeticWatchControls } from "./CosmeticAlertsUI";
+import { CosmeticSearchIndex } from "./CosmeticSearch";
+import { CosmeticSearchBrowser } from "./CosmeticSearchBrowser";
 // const cosmeticsData = <CosmeticsResponse>require("./cosmetics.json");
 
 export const sortingPriorities = {
@@ -32,210 +34,104 @@ export const sortingPriorities = {
 const LOADING_STRING = "Currently loading all cosmetics... Please wait.";
 
 export class FortniteCosmetics {
-    private _data: Cosmetics;
-    private _cachedQueries: Map<string, ApplicationCommandOptionChoice[]> = new Map();
+    private _data: CatalogCosmetic[];
+    private searchIndex: CosmeticSearchIndex;
+    private searchBrowser = new CosmeticSearchBrowser();
 
     constructor(private client: Client) {
         registerComponent("fortniteCosmetics", this);
-        this.fetchCosmetics().then(d => this._data = d);
+        this.fetchCosmetics().then(d => this.installCatalog(d));
 
         scheduleJob({ minute: 10, second: 0 }, createTrackedJob("fortnite-cosmetics-refresh", "Fortnite Cosmetics Refresh", "Hourly at mm:10", async () => {
             // const c = (<TextChannel>client.channels.cache.get('1045086199053820004')) || (<TextChannel>client.channels.cache.get("725143127723212830"))
             console.log("fetching cosmetics...");
-            this._data = await this.fetchCosmetics();
-            this._cachedQueries.clear();
+            this.installCatalog(await this.fetchCosmetics());
 
         }))
 
-        this.client.on("interactionCreate", (i) => {
-            console.log(i.type)
-
+        this.client.on("interactionCreate", async (i) => {
+            try {
+            if (await this.searchBrowser.handle(i)) return;
             if (!i.isCommand() && !i.isAutocomplete()) return;
             if (i.commandName !== "fortnite" || i.options.getSubcommandGroup(false) !== "cosmetic" || i.options.getSubcommand(false) !== "search") return;
-            if (i.isAutocomplete()) return void this.resolveSearchQuery(i);
-            return this.replyEmbed(i);
+            if (i.isAutocomplete()) return await this.resolveSearchQuery(i);
+            return await this.replyEmbed(i);
+            } catch (error) {
+                console.warn("Cosmetic search failed:", error.code || error.name);
+                if (i.isAutocomplete()) { if (!i.responded) await i.respond([]).catch(() => {}); }
+                else if (i.isCommand() || i.isButton() || i.isSelectMenu()) {
+                    const payload = { content: "Couldn't load these cosmetics. Please try again shortly.", allowedMentions: { parse: [] as any[] } };
+                    if (i.deferred || i.replied) await i.editReply(payload).catch(() => {});
+                    else await i.reply(payload).catch(() => {});
+                }
+            }
         })
     }
 
+    private installCatalog(items: CatalogCosmetic[]) {
+        if (!items.length) return;
+        const index = new CosmeticSearchIndex(items);
+        this._data = items;
+        this.searchIndex = index;
+    }
     public getDiagnostics() {
-        return {
-            cosmeticsLoaded: this._data?.length || 0,
-            cachedQueries: this._cachedQueries.size,
-        };
+        return { cosmeticsLoaded: this._data?.length || 0, search: this.searchIndex?.diagnostics, activeSearches: this.searchBrowser.size };
     }
-
     private async resolveSearchQuery(i: AutocompleteInteraction<CacheType>): Promise<void> {
-        const t0 = performance.now();
-        if (!this._data) return i.respond([{ name: "Loading...", value: LOADING_STRING }]);
-
-        const query = <string>i.options.getFocused(true).value;
-        if (query === "") return this.respondWithNewCosmetics(i);
-        if (this._cachedQueries.has(query.toLowerCase())) {
-            i.respond(this._cachedQueries.get(query.toLowerCase()));
-            return void i.channel.send(`returned: "${query}" from the cache. there are currently ${this._cachedQueries.size} cached queries`);
-        }
-
-        // const fuse = new Fuse(this._data, {
-        //     ignoreLocation: true, ignoreFieldNorm: true,
-        //     keys: [
-        //         { name: "name", weight: 0.5 },
-        //         { name: "description", weight: 0.3 },
-        //         // { name: "introduction.text", weight: 0.3 },
-        //         // { name: "rarity.displayValue", weight: 0.3 },
-        //         // { name: "type.displayValue", weight: 0.3 },
-        //         { name: "set.text", weight: 0.3 },
-        //         { name: "id", weight: 0.3 },
-        //     ]
-        // });
-
-        // const fuse = new Fuse(this._data, { keys: ["name", "description", "set.text", "id"] });
-        // let count = 0;
-        const results = this._data.filter(
-            (c) =>
-                // count++ <= 25 &&
-                c.name?.toLowerCase().includes(query.toLowerCase()) || c.description?.toLowerCase().includes(query.toLowerCase()) || c.set?.text?.toLowerCase().includes(query.toLowerCase()) || c.id.toLowerCase().includes(query.toLowerCase()) || c.introduction?.text?.toLowerCase().includes(query.toLowerCase()) || c.rarity?.displayValue?.toLowerCase().includes(query.toLowerCase()) || c.type?.displayValue?.toLowerCase().includes(query.toLowerCase())
-        )
-            .slice(0, 25)
-
-        // let results = fuse.search(query)
-        const t1 = performance.now();
-
-
-
-        // .map(r => ({ name: `${rarityEmojisTable[r.item.rarity.value] || ""} ${r.item.name || r.item.id || ""} (${r.item.introduction?.text}) (${r.item.type.displayValue})`, value: r.item.id }))
-        const formattedResults = results.map(r => this.formatAutoCompleteResponse(r))
-        // .slice(0, 25);
-
-        const t2 = performance.now();
-
-        // i.channel.send(`searched for: "${query}" took ${t1 - t0} ms to search cosmetics. took ${t2 - t1} ms to format ${results.length} results.`)
-
-        try {
-            i.respond(formattedResults);
-            return void this._cachedQueries.set(query.toLowerCase(), formattedResults);
-        } catch (e) {
-            console.log("there was an error responding to autocomplete cosmetic search", e)
-        }
+        if (!this.searchIndex) return i.respond([{ name: "Loading cosmetics…", value: LOADING_STRING }]);
+        const hits = this.searchIndex.search(String(i.options.getFocused(true).value));
+        return i.respond(hits.map(hit => this.formatAutoCompleteResponse(hit.item)));
     }
-
-    public respondWithNewCosmetics(i: AutocompleteInteraction<CacheType>): void | Promise<void> {
-        const newItems = [...this._data].sort((a, b) => {
-            // if (new Date(a.added) > new Date(b.added)) return -1
-            // if (new Date(a.added) < new Date(b.added)) return 1
-
-            // return sortingPriorities[a.type.value] - sortingPriorities[b.type.value];
-
-            const s = 0;
-            if (new Date(a.added) > new Date(b.added)) return -1
-            if (new Date(a.added) < new Date(b.added)) return 1
-            // if (a.type.value === "outfit" && b.type.value !== "outfit") return -1
-            // if (a.type.value === "backpack" && b.type.value !== "backpack") return -2
-            return sortingPriorities[a.type.value] - sortingPriorities[b.type.value];
-            if (!sortingPriorities[a.type.value] || !sortingPriorities[b.type.value]) console.log(a.type.value, b.type.value)
-            console.log(s)
-            return s
-        })
-            .map(c => this.formatAutoCompleteResponse(c))
-            .slice(0, 25)
-        // console.log(newItems)
-        return i.respond(newItems)
+    public respondWithNewCosmetics(i: AutocompleteInteraction<CacheType>): Promise<void> {
+        return i.respond((this.searchIndex?.search("") || []).map(hit => this.formatAutoCompleteResponse(hit.item)));
     }
-
-    private formatAutoCompleteResponse(c: Cosmetic): ApplicationCommandOptionChoice {
-        return { name: `${rarityEmojisTable[c.rarity.value] || ""} ${c.name} ${rarityEmojisTable[c.type.value] || ""}`, value: c.id }
+    private formatAutoCompleteResponse(item: CatalogCosmetic): ApplicationCommandOptionChoice {
+        const detail = item.artist ? item.artist : item.type?.displayValue || "Cosmetic";
+        return { name: (cosmeticTypeEmoji(item) + " " + (item.name || item.id).slice(0, 65) + " · " + detail).slice(0, 100), value: item.id };
     }
-
-    private getSeasonLabel(introduction: Cosmetic["introduction"]): string {
-        if (!introduction) return "";
-
-        const emoji = getFortniteSeasonEmoji(Number(introduction.chapter), Number(introduction.season));
-        return `Chapter ${introduction.chapter}, Season ${introduction.season}${emoji ? ` ${emoji}` : ""}`;
-    }
-
-    private formatIntroductionText(introduction: Cosmetic["introduction"]): string | null {
-        if (!introduction?.text) return null;
-
-        const emoji = getFortniteSeasonEmoji(Number(introduction.chapter), Number(introduction.season));
-        if (!emoji) return introduction.text;
-
-        return introduction.text.replace(/(Season\s+[^.?!]+)([.?!]?)(\s*)$/, `$1 ${emoji}$2$3`);
-    }
-
-
     private async replyEmbed(i: BaseCommandInteraction<CacheType>): Promise<void> {
-        const query = i.options.get("query").value;
-        if (!this._data || query === LOADING_STRING) return i.reply({ content: LOADING_STRING, ephemeral: true });
-
-        const cosmetic = this._data.find(c => c.id === query)
-        if (!cosmetic) return i.reply({ content: `Could not find: \`${query}\` `, ephemeral: true });
-
-        const image = new MessageAttachment(cosmetic.images.featured || cosmetic.images.icon || cosmetic.images.smallIcon).setName(`${cosmetic.id}.png`);
-
-        const e = new MessageEmbed()
-        e.setTitle(cosmetic.name)
-        cosmetic.description && e.addField("Description", cosmetic.description)
-        e.setImage(`attachment://${cosmetic.id}.png`)
-        e.addField("Type", cosmetic.type.displayValue, true)
-        e.addField("Rarity", cosmetic.rarity.displayValue, true)
-        cosmetic.set?.text && e.addField("Set", cosmetic.set.text)
-        const introductionText = this.formatIntroductionText(cosmetic.introduction);
-        introductionText && e.addField("Introduction", introductionText);
-
-        const features = [];
-        cosmetic.gameplayTags?.join().includes("Emote.Traversal") && features.push("Traversal")
-        cosmetic.gameplayTags?.join().includes("BuiltIn") && features.push("Built In")
-        cosmetic.gameplayTags?.join().includes("Cosmetics.UserFacingFlags.Synced") && features.push("Synced")
-        cosmetic.gameplayTags?.join().includes("Reactive") && features.push("Reactive")
-
-        features.length && e.addField("Features", features.join(", "))
-        e.addField("Added to Files On", new Date(cosmetic.added).toLocaleDateString(), true)
-
-        cosmetic.gameplayTags?.join().includes("BattlePass.Free") && e.addField("Battle Pass", cosmetic.introduction ? `Obtained in the ${this.getSeasonLabel(cosmetic.introduction)} Battle Pass for free.` : `Obtained in the Battle Pass for free.`);
-        cosmetic.gameplayTags?.join().includes("BattlePass.Paid") && e.addField("Battle Pass", cosmetic.introduction ? `Obtained in the paid ${this.getSeasonLabel(cosmetic.introduction)} Battle Pass.` : `Obtained in the paid Battle Pass.`)
-
-
-        // e.setColor("#2186DB")
-        //@ts-ignore
-
-        e.setColor(`#${cosmetic.series?.colors[(cosmetic.series.value === "Frozen Series") ? 2 : 1].slice(0, -2) || rarityColorTable[cosmetic.rarity.value] || "FFFFFF"}`)
-
-        if (cosmetic.shopHistory) {
-            const lastSeenAt = new Date(cosmetic.shopHistory[cosmetic.shopHistory.length - 1])
-            const differenceInDays = Math.round((Date.now() - lastSeenAt.getTime()) / (1000 * 3600 * 24));
-            // e.addField("Last Seen", `${differenceInDays} day${differenceInDays > 1 ? 's' : ''} ago (${lastSeenAt.toLocaleDateString()})`)
-            e.addField("Recent Shop History", cosmetic.shopHistory.map(d => `${new Date(d).toLocaleDateString()} (${Math.round((Date.now() - new Date(d).getTime()) / (1000 * 3600 * 24))} days ago)`).reverse().slice(0, 5).join("\n"))
-            e.addField("Occurrences", cosmetic.shopHistory.length.toString())
+        const query = String(i.options.get("query").value);
+        await i.deferReply();
+        if (!this.searchIndex || query === LOADING_STRING) { await i.editReply({ content: LOADING_STRING }); return; }
+        const hits = this.searchIndex.search(query, 100);
+        const exact = hits.filter(hit => hit.exact);
+        if (exact.length === 1) {
+            const cosmetic = exact[0].item;
+            await i.editReply({ embeds: [buildCosmeticEmbed(cosmetic)], components: [cosmeticWatchControls(i.user.id, cosmetic.id)] });
+        } else if (hits.length) {
+            await i.editReply(this.searchBrowser.create(i.user.id, query, hits));
+        } else {
+            await i.editReply({ content: "No matching cosmetics found. Try a shorter name, an artist, a set, or an item type—for example: \u0060renegade\u0060, \u0060Metallica song\u0060, or \u0060C1S9 outfit\u0060. Colour/theme searches only work when the catalog describes them.", allowedMentions: { parse: [] } });
         }
-
-        i.reply({ embeds: [e], ...(image.attachment && { files: [image] }) });
     }
 
-    private async fetchCosmetics(): Promise<Cosmetics> {
+    private async fetchCosmetics(): Promise<CatalogCosmetic[]> {
         let data;
         try {
-            const resp = await axios.get("https://fortnite-api.com/v2/cosmetics/br?responseFlags=7");
+            const resp = await axios.get("https://fortnite-api.com/v2/cosmetics?responseFlags=7", { timeout: 30000 });
             data = resp.data?.data;
+            if (!data || typeof data !== "object" || Array.isArray(data)) throw new Error("Invalid cosmetic catalog response");
+            // Prices only come from verified standalone offers; catalog failure must
+            // not erase the working search cache, and shop failure is non-fatal.
+            const shop = await axios.get("https://fortnite-api.com/v2/shop?responseFlags=7", { timeout: 10000 }).catch(() => null);
+            data = mergeCurrentShop(data, shop?.data?.data);
+            try {
+                data = mergeFortnitePrices(data, await fortnitePriceService.get());
+            } catch (priceError: any) {
+                console.warn("Fortnite price fallback unavailable:", priceError?.message ?? priceError);
+            }
         } catch (err: any) {
             if (err?.response?.status === 410) {
                 console.warn("Fortnite cosmetics endpoint deprecated (410). Returning empty cosmetics list.");
-                return [] as Cosmetics;
+                return this._data || [];
             }
             console.error("Error fetching cosmetics:", err?.message ?? err);
-            return [] as Cosmetics;
+            return this._data || [];
         }
 
-        return this.formatCosmetics(data || []);
+        return normalizeCosmeticCatalog(data || {}).filter(item => item.id.length <= 100);
     }
 
-    private formatCosmetics(cosmetics: Cosmetics): Cosmetics {
-        return cosmetics.map(c => {
-            const newC = { ...c };
-            if (c.name === "null" || c.name === "Banner") newC.name = c.id || "No name";
-            if (c.description === "null") newC.description = null;
-
-            return newC;
-        })
-    }
 
 
 }

@@ -5734,7 +5734,11 @@ export class FortniteSprites {
             sonic: "🦔",
             crown: "👑",
             "8-bit": "👾",
-            "storm-scout": "⛈️"
+            "storm-scout": "⛈️",
+            overshield: "🛡️",
+            "mega-man": "🤖",
+            "x-ray": "🥽",
+            onigiri: "🍙"
         };
         return familyKey ? emojis[familyKey] || "🧚" : "🧚";
     }

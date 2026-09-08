@@ -108,6 +108,7 @@ import { createTrackedJob, registerComponent } from "../runtimeDiagnostics";
 import { MissingCosmeticImageItem, renderMissingCosmeticsImage } from "./MissingCosmeticsImage";
 import { MissingReport, validReportDate } from "./MissingReport";
 import { registerMissingReportBrowser } from "./MissingReportBrowser";
+import { fortnitePriceService, registryPriceFields } from "../Fortnite/FortniteCosmetics/FortnitePriceService";
 
 // --- NEW INTERFACES BASED ON V2 API ---
 interface NewShopResponse {
@@ -126,6 +127,7 @@ interface ShopEntry {
     tracks?: TrackItem[];
     cars?: BaseItem[];
     instruments?: BaseItem[];
+    legoKits?: BaseItem[];
     newDisplayAsset?: { renderImages?: Array<{ productTag?: string; image?: string }> };
     colors?: { color1?: string; color2?: string; color3?: string; textBackgroundColor?: string };
     tileSize?: string;
@@ -146,6 +148,8 @@ interface NormalizedItem {
     rarity?: { displayValue: string };
     introduction?: { text: string };
     price?: number;
+    priceIsCurrent?: boolean;
+    priceObservedAt?: string;
     backgroundColors?: string[];
     textBackgroundColor?: string;
     standaloneOffer?: boolean;
@@ -220,12 +224,12 @@ export class MissingCosmetics {
         let allItems: NormalizedItem[] = [];
         const standalonePrices = new Map<string, number>();
         for (const entry of shopData.entries) {
-            const entryItems = [...(entry.brItems || []), ...(entry.cars || []), ...(entry.instruments || []), ...(entry.tracks || [])];
+            const entryItems = [...(entry.brItems || []), ...(entry.cars || []), ...(entry.instruments || []), ...(entry.tracks || []), ...(entry.legoKits || [])];
             if (entryItems.length === 1) standalonePrices.set(entryItems[0].id, entry.finalPrice);
         }
 
         for (const entry of shopData.entries) {
-            const entryItems = [...(entry.brItems || []), ...(entry.cars || []), ...(entry.instruments || []), ...(entry.tracks || [])];
+            const entryItems = [...(entry.brItems || []), ...(entry.cars || []), ...(entry.instruments || []), ...(entry.tracks || []), ...(entry.legoKits || [])];
             const shopArtwork = entryItems.length === 1
                 ? selectBRShopArtwork(entry.newDisplayAsset?.renderImages)
                 : undefined;
@@ -259,6 +263,17 @@ export class MissingCosmetics {
                 }));
                 allItems.push(...mappedTracks);
             }
+        }
+
+        // The live shop only provides an item price for standalone offers. Fill
+        // the remaining cards with a known numeric V-Bucks price from the
+        // no-key Fortnite-Datamining registry when matched unambiguously.
+        try {
+            const priceLookup = await fortnitePriceService.get();
+            allItems = allItems.map(item => item.price !== undefined
+                ? item : { ...item, ...registryPriceFields(priceLookup, item) });
+        } catch (priceError: any) {
+            console.warn("Fortnite price fallback unavailable for daily report:", priceError?.message ?? priceError);
         }
 
         // Prefer the standalone offer when an item is also present in a bundle. It carries
@@ -338,6 +353,7 @@ export class MissingCosmetics {
                         lastSeenLabel,
                         rarity: i.rarity?.displayValue,
                         price: i.price,
+                        priceIsCurrent: i.priceIsCurrent, priceObservedAt: i.priceObservedAt,
                         previousAppearances: i.shopHistory.length - 1,
                         introduced: i.introduction?.text,
                         backgroundColors: i.backgroundColors,

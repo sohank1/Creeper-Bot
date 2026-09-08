@@ -15,13 +15,13 @@ import { DeletedClient } from "./DeletedClient/";
 import { ShopSectionsTracker } from "./ShopSections/ShopSectionsTracker";
 import express from "express";
 import mongoose from "mongoose";
+import { CosmeticAlerts } from "./Fortnite/FortniteCosmetics/CosmeticAlerts";
 import { MissingCosmetics } from "./MissingCosmetics/MissingCosmetics";
 import { sendPerformanceStats } from "./performanceStats";
 import { createTrackedJob } from "./runtimeDiagnostics";
 // import { ProcessCodes } from "./InstanceManager";
 
 export const version = `v${require("../package.json").version}`;
-export const TEST_SERVER = "640262033329356822";
 
 const serverStartedAt = new Date().toISOString();
 
@@ -115,20 +115,9 @@ app.listen(port, () => {
         console.error('unhandledRejection at:', promise, 'reason:', reason);
       });
 
-      client.application.commands.fetch().then(console.log);
-
-      //  (await client.guilds.fetch(TEST_SERVER))?.commands.set([fortniteCommand]);
-
-      // Register Slash Commands
-      client.application.commands.set([countingCommand, fortniteCommand, avatarCommand])
-      client.application.commands.create(countingCommand)
-      client.application.commands.create(fortniteCommand)
-      client.application.commands.create(avatarCommand)
-
-      // client.application.commands.create({
-      //   options: [{}]
-      //  })
-
+      // Register exactly the current command set. `set` also removes commands
+      // from older versions instead of leaving stale global commands behind.
+      await client.application.commands.set([countingCommand, fortniteCommand, avatarCommand]);
 
       const instance = process.env.NODE_ENV === 'production' ? process.env.NODE_ENV : 'development';
 
@@ -147,6 +136,7 @@ app.listen(port, () => {
       new Avatar(client)
       new ShopSectionsTracker(client)
       new FortniteCosmetics(client)
+      new CosmeticAlerts(client)
       new FortniteMap(client)
       fortniteSprites = new FortniteSprites(client, loggedOnMessage)
       new FortniteSpriteCard(client)
@@ -156,8 +146,6 @@ app.listen(port, () => {
       // music = new Music(client);
       // new Teasers(client);
 
-
-      // client.guilds.cache.get("570349873337991203").commands.set([])
 
       // client.channels.fetch("725143134044160091").then(console.log).catch(console.log)
 

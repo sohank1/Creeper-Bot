@@ -29,9 +29,9 @@ for (const page of [0, 1, 2, 999, -1]) {
 }
 assert.equal((missingItemControls("123", "2024-12-01", 300, detailItems, 2)[0].toJSON().components[0] as any).options.length, 11);
 const detail = missingItemEmbed({ ...previewFixture, previousAppearances: 0, price: 0 }, "2024-12-01").toJSON();
-assert(detail.fields.some(field => field.name === "Earlier shop appearances" && field.value === "0"));
-assert(detail.fields.some(field => field.name === "Price" && field.value === "0 V-Bucks"));
-assert(missingItemEmbed(previewFixture, "2024-12-01").fields.some(field => field.name === "Price" && field.value === "Unavailable"));
+assert(detail.fields.some(field => field.name === "Return details" && field.value.includes("Earlier shop appearances: **0**")));
+assert(detail.fields.some(field => field.name === "Last known price" && field.value === "0 V-Bucks"));
+assert(!missingItemEmbed(previewFixture, "2024-12-01").fields.some(field => /price/i.test(field.name)));
 const wideFixture = { ...previewFixture, type: "Glider", featuredFraming: { aspect: 2, touchesBottom: false, emptyFraction: .8 } };
 assert.equal(missingArtworkShape(wideFixture, true), "wide");
 assert.equal(missingArtworkShape({ ...wideFixture, featuredFraming: { ...wideFixture.featuredFraming, aspect: .4 } }, true), "tall");
@@ -102,7 +102,7 @@ assert.equal(reportControls("123", todayUTC(), true, []).length, 1);
 assert(!fortniteCommand.options.some(option => option.name === "cosmetics"));
 const cosmetic: any = fortniteCommand.options.find(option => option.name === "cosmetic");
 assert.equal(cosmetic.type, 2);
-assert.deepEqual(cosmetic.options.map(option => option.name), ["search", "missing"]);
+assert.deepEqual(cosmetic.options.map(option => option.name), ["search", "missing", "alerts"]);
 const search = cosmetic.options[0];
 assert.equal(search.options.length, 1);
 assert.equal(search.options[0].name, "query");

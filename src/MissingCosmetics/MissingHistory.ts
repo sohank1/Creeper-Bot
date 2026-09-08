@@ -1,4 +1,6 @@
 import axios from "axios";
+import { normalizeCosmetic } from "../Fortnite/FortniteCosmetics/CosmeticEmbed";
+import { fortnitePriceService, mergeFortnitePrices } from "../Fortnite/FortniteCosmetics/FortnitePriceService";
 import { selectBRShopArtwork } from "./MissingPreview";
 import { performance } from "perf_hooks";
 import { MissingCosmeticImageItem } from "./MissingCosmeticsImage";
@@ -33,13 +35,16 @@ export class MissingHistoryIndex {
                     .filter(value => Number.isFinite(dateNumber(value))).sort();
                 if (!history.length) continue;
                 this.cosmeticsWithHistory++;
+                const normalized = normalizeCosmetic(cosmetic, category);
                 const item: MissingCosmeticImageItem = {
+                    cosmetic: normalized,
                     id: cosmetic.id, name: cosmetic.name || [cosmetic.artist, cosmetic.title].filter(Boolean).join(" - ") || cosmetic.id,
                     type: cosmetic.type?.displayValue || (category === "tracks" ? "Jam Track" : category === "legoKits" ? "LEGO Kit" : category),
                     imageUrl: cosmetic.images?.icon || cosmetic.images?.large || cosmetic.images?.small || cosmetic.images?.smallIcon || cosmetic.albumArt || cosmetic.images?.featured || null,
                     featuredImageUrl: cosmetic.images?.featured || cosmetic.images?.large || cosmetic.images?.icon || cosmetic.albumArt || null,
                     introduced: cosmetic.introduction?.text, rarity: cosmetic.rarity?.displayValue, daysMissing: 0, lastSeenLabel: "",
                     setKey: cosmetic.set?.value || cosmetic.set?.text,
+                    price: normalized.price, priceIsCurrent: normalized.priceIsCurrent, priceObservedAt: normalized.priceObservedAt,
                 };
                 let rotations = 1;
                 let longestGap = 0;
@@ -74,13 +79,15 @@ export class MissingHistoryIndex {
         for (const event of this.days.get(date) || []) {
             if (event.gap < minimum) break;
             const artwork = this.liveArtwork.get(event.item.id);
-            const currentPrice = artwork?.price;
+            const currentPrice = Number.isFinite(artwork?.price) && artwork.price >= 0 ? artwork.price : event.item.price;
+            const currentPriceIsCurrent = Number.isFinite(artwork?.price) && artwork.price >= 0 ? true : event.item.priceIsCurrent;
             // Artwork represents the cosmetic, not proof of a historical price
             // or layout. Reuse verified standalone art without altering history.
             const historicalArt = artwork?.featuredImageIsShopArtwork ? {
                 featuredImageUrl: artwork.featuredImageUrl, featuredImageIsShopArtwork: true,
             } : {};
-            items.push({ ...event.item, ...(date === this.asOf ? artwork : { ...historicalArt, price: currentPrice, priceIsCurrent: currentPrice !== undefined, backgroundColors: artwork?.backgroundColors }), daysMissing: event.gap, lastSeenLabel: event.previous,
+            items.push({ ...event.item, ...(date === this.asOf ? artwork : { ...historicalArt, backgroundColors: artwork?.backgroundColors }), price: currentPrice, priceIsCurrent: currentPriceIsCurrent,
+                priceObservedAt: Number.isFinite(artwork?.price) && artwork.price >= 0 ? undefined : event.item.priceObservedAt, daysMissing: event.gap, lastSeenLabel: event.previous,
                 previousAppearances: event.appearances, previousRotations: event.rotations, recordReturn: event.record });
         }
         return { date, items, description: reportDescription(items) };
@@ -127,7 +134,13 @@ async function fetchHistories() {
         axios.get("https://fortnite-api.com/v2/shop?responseFlags=7", { timeout: 30000 }),
     ]);
     if (!catalog.data?.data || !Array.isArray(catalog.data.data.br) || !Array.isArray(shop.data?.data?.entries)) throw new Error("Invalid cosmetics/shop API response");
-    return mergeCurrentShop(catalog.data.data, shop.data.data);
+    let data = mergeCurrentShop(catalog.data.data, shop.data.data);
+    try {
+        data = mergeFortnitePrices(data, await fortnitePriceService.get());
+    } catch (priceError: any) {
+        console.warn("Fortnite price fallback unavailable for missing history:", priceError?.message ?? priceError);
+    }
+    return data;
 }
 
 // Transient API/index cache only: no saved reports, files or database reads/writes.

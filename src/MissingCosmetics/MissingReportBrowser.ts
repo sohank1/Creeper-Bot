@@ -6,6 +6,7 @@ import { fetchMissingBotLogo } from "./MissingBranding";
 import { performance } from "perf_hooks";
 import { MissingTelemetry, MissingTiming, timingLabel } from "./MissingTelemetry";
 import { missingItemControls, missingItemEmbed } from "./MissingItemDetails";
+import { cosmeticWatchControls } from "../Fortnite/FortniteCosmetics/CosmeticAlertsUI";
 
 export interface AvailableReportDay { date: string; count: number }
 
@@ -59,10 +60,11 @@ export function registerMissingReportBrowser(client: Client) {
         let date = todayUTC();
         let action = "report";
         let minimum = 300;
+        let fork = false;
         if (interaction.isCommand()) { date = interaction.options.getString("date") || date; minimum = interaction.options.getInteger("days") ?? 300; }
         else {
             const [, owner, selected, operation, threshold] = interaction.customId.split(":");
-            if (owner !== interaction.user.id) { await interaction.reply({ content: "Open your own report with /fortnite cosmetic missing.", ephemeral: true }); return; }
+            fork = owner !== interaction.user.id;
             date = selected; action = operation;
             minimum = threshold === undefined ? 300 : Number(threshold);
         }
@@ -79,7 +81,7 @@ export function registerMissingReportBrowser(client: Client) {
             finally { timing.deliveryMs += performance.now() - start; }
         };
         try {
-            if (interaction.isCommand()) await interaction.deferReply({ ephemeral: false });
+            if (interaction.isCommand() || fork) await interaction.deferReply({ ephemeral: false });
             else await interaction.deferUpdate();
             if (action === "filter") {
                 const presets = [...new Set([30, 90, 180, 300, 365, 730, 1000, minimum])].sort((a, b) => a - b);
@@ -107,7 +109,8 @@ export function registerMissingReportBrowser(client: Client) {
                 timing.calculationMs = performance.now() - mathStart;
                 await deliver({ content: `**Items returned on ${date} · ${minimum}+ days away**\nChoose an item to see its return details. The report image stays below.`,
                     ...(selected >= 0 ? { embeds: [missingItemEmbed(report.items[selected], date)] } : {}),
-                    components: missingItemControls(interaction.user.id, date, minimum, report.items, page) });
+                    components: [...missingItemControls(interaction.user.id, date, minimum, report.items, page),
+                        ...(selected >= 0 ? [cosmeticWatchControls(interaction.user.id, report.items[selected].id)] : [])] });
                 return;
             }
             const available = history.available(minimum);
@@ -156,7 +159,7 @@ export function registerMissingReportBrowser(client: Client) {
             timing.items = items.length;
             const embed = new MessageEmbed().setColor("#2186DB").setTitle(`Back from the vault · ${date}`)
                 .setDescription(items.length ? `**${items.length} ${items.length === 1 ? "item" : "items"} returned after ${minimum}+ days away**\n${requestedDate !== date ? `No matching returns today; showing the closest earlier date: **${date}**.\n` : ""}Full report in the image below.` : `No ${minimum}+ day returns were found on ${date}. Choose another date or lower the days filter.`)
-                .setFooter({ text: `UTC · API history coverage${date !== todayUTC() ? " · Current artwork · * Current known price, not historical" : ""}` });
+                .setFooter({ text: `UTC · API history coverage${date !== todayUTC() ? " · Current artwork · Latest known prices, not historical" : ""}` });
             let render: Awaited<ReturnType<typeof renderMissingCosmeticsImage>>;
             try {
                 if (items.length) {
