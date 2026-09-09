@@ -22,6 +22,7 @@ import * as crypto from "crypto";
 import { fileURLToPath } from "url";
 import type { Browser, Page } from "puppeteer";
 import https from "https";
+import { performance } from "perf_hooks";
 import { createCanvas, loadImage } from "@napi-rs/canvas";
 import { applySpriteHistory, fetchSpriteData, mergeSpriteCatalog, mergeSpriteHistories, sanitizeSpriteHistory, SpriteDataFile, SpriteFamily, SpriteHistoryFile, SpriteRarity, SpriteVariant, SpriteVariantName, updateSpriteHistory, validateSpriteData } from "./spriteDataSource";
 import { FortniteSeasonContext } from "./fortniteSeason";
@@ -32,6 +33,7 @@ import { buildTrackedSpriteMessageEditPayload } from "./spriteMessage";
 import { SPRITE_STORAGE_NAMESPACE } from "./spriteStorage";
 import { syncSpriteCatalog } from "./spriteSyncService";
 import { createTrackedJob, registerComponent } from "../../runtimeDiagnostics";
+import { recordAutocompleteMetric } from "../../Autocomplete/AutocompleteMetrics";
 
 type SpriteSearchItem = {
     type: "family" | "variant";
@@ -2516,76 +2518,126 @@ export class FortniteSprites {
         return i.respond(Array.from(deduped.values()).slice(0, 25));
     }
 
-    private resolveAutocompleteLatest(i: AutocompleteInteraction<CacheType>) {
+    private async resolveAutocompleteLatest(i: AutocompleteInteraction<CacheType>) {
         const focused = i.options.getFocused(true);
         const query = String(focused.value || "").trim();
         if (focused.name === "season") return this.resolveSeasonAutocomplete(i, query);
-        if (!this._data || !this.fuse) return i.respond([]);
-
-        const choices: { name: string; value: string }[] = [];
-        if (!query) {
-            const newestVariants = this.searchItems
-                .filter(item => item.type === "variant")
-                .sort((a, b) => b.sortId - a.sortId);
-
-            for (const item of newestVariants) {
-                choices.push(this.formatAutocompleteChoice(item));
-                if (choices.length >= 23) break;
+        const startedAt = performance.now();
+        let resultCount = 0;
+        let outcome: "success" | "error" = "success";
+        try {
+            if (!this._data || !this.fuse) {
+                await i.respond([]);
+                return;
             }
 
-            choices.push(
-                { name: `${this.familyEmoji()} Browse current-season sprites`, value: "browse:all" }
-            );
+            const choices: { name: string; value: string }[] = [];
+            if (!query) {
+                const newestVariants = this.searchItems
+                    .filter(item => item.type === "variant")
+                    .sort((a, b) => b.sortId - a.sortId);
 
-            return i.respond(choices.slice(0, 25));
-        }
+                for (const item of newestVariants) {
+                    choices.push(this.formatAutocompleteChoice(item));
+                    if (choices.length >= 23) break;
+                }
 
-        const q = this.expandSearchQuery(query);
-        choices.push({ name: this.truncate(`Search results for "${query}"`, 100), value: `search:${this.truncate(query, 93)}` });
-
-        for (const rarity of RARITY_ORDER) {
-            if (rarity.includes(q) || q.includes(rarity)) {
-                choices.push({ name: `${this.rarityEmoji(rarity)} Show ${this.titleCase(rarity)} sprites`, value: `filter:rarity:${rarity}` });
+                choices.push(
+                    { name: `${this.familyEmoji()} Browse current-season sprites`, value: "browse:all" }
+                );
+                const results = choices.slice(0, 25);
+                resultCount = results.length;
+                await i.respond(results);
+                return;
             }
-        }
 
-        for (const variant of this.getVariantNames()) {
-            const label = this.variantLabel(variant);
-            if (variant.toLowerCase().includes(q) || label.toLowerCase().includes(q) || q.includes(variant.toLowerCase()) || q.includes(label.toLowerCase())) {
-                choices.push({ name: `${this.variantEmoji(variant)} Show ${label} variants`, value: `filter:variant:${variant}` });
+            const q = this.expandSearchQuery(query);
+            choices.push({ name: this.truncate(`Search results for "${query}"`, 100), value: `search:${this.truncate(query, 93)}` });
+
+            for (const rarity of RARITY_ORDER) {
+                if (rarity.includes(q) || q.includes(rarity)) {
+                    choices.push({ name: `${this.rarityEmoji(rarity)} Show ${this.titleCase(rarity)} sprites`, value: `filter:rarity:${rarity}` });
+                }
             }
+
+            for (const variant of this.getVariantNames()) {
+                const label = this.variantLabel(variant);
+                if (variant.toLowerCase().includes(q) || label.toLowerCase().includes(q) || q.includes(variant.toLowerCase()) || q.includes(label.toLowerCase())) {
+                    choices.push({ name: `${this.variantEmoji(variant)} Show ${label} variants`, value: `filter:variant:${variant}` });
+                }
+            }
+
+            const directIdMatches = this.getDirectVariantIdMatches(query);
+            const results = [...directIdMatches, ...this.fuse.search(q).map(result => result.item)];
+            const unique = new Map<string, SpriteSearchItem>();
+            for (const item of results) {
+                if (!unique.has(item.value)) unique.set(item.value, item);
+            }
+
+            const ranked = Array.from(unique.values())
+                .sort((a, b) => {
+                    const aDirect = directIdMatches.some(match => match.value === a.value) ? 0 : 1;
+                    const bDirect = directIdMatches.some(match => match.value === b.value) ? 0 : 1;
+                    return aDirect - bDirect || a.priority - b.priority || b.sortId - a.sortId || a.name.localeCompare(b.name);
+                })
+                .map(item => this.formatAutocompleteChoice(item));
+
+            const deduped = new Map<string, { name: string; value: string }>();
+            for (const choice of [...choices, ...ranked]) {
+                if (!deduped.has(choice.value)) deduped.set(choice.value, choice);
+            }
+
+            const response = Array.from(deduped.values()).slice(0, 25);
+            resultCount = response.length;
+            await i.respond(response);
+        } catch (error) {
+            outcome = "error";
+            throw error;
+        } finally {
+            recordAutocompleteMetric({
+                surface: "sprites",
+                command: "fortnite sprites",
+                option: "search",
+                query,
+                username: i.user.username,
+                resultCount,
+                durationMs: performance.now() - startedAt,
+                outcome,
+                dataReady: Boolean(this._data && this.fuse),
+                responseMode: query ? "search" : "browse",
+            });
         }
-
-        const directIdMatches = this.getDirectVariantIdMatches(query);
-        const results = [...directIdMatches, ...this.fuse.search(q).map(result => result.item)];
-        const unique = new Map<string, SpriteSearchItem>();
-        for (const item of results) {
-            if (!unique.has(item.value)) unique.set(item.value, item);
-        }
-
-        const ranked = Array.from(unique.values())
-            .sort((a, b) => {
-                const aDirect = directIdMatches.some(match => match.value === a.value) ? 0 : 1;
-                const bDirect = directIdMatches.some(match => match.value === b.value) ? 0 : 1;
-                return aDirect - bDirect || a.priority - b.priority || b.sortId - a.sortId || a.name.localeCompare(b.name);
-            })
-            .map(item => this.formatAutocompleteChoice(item));
-
-        const deduped = new Map<string, { name: string; value: string }>();
-        for (const choice of [...choices, ...ranked]) {
-            if (!deduped.has(choice.value)) deduped.set(choice.value, choice);
-        }
-
-        return i.respond(Array.from(deduped.values()).slice(0, 25));
     }
 
-    private resolveSeasonAutocomplete(i: AutocompleteInteraction<CacheType>, query: string) {
-        const q = query.toLowerCase();
-        const choices = [
-            { name: "🗃️ All recorded seasons", value: "all" },
-            ...this.getAvailableSeasonIds().map(id => ({ name: this.formatSeasonId(id), value: id }))
-        ].filter(choice => !q || choice.name.toLowerCase().includes(q) || choice.value.includes(q));
-        return i.respond(choices.slice(0, 25));
+    private async resolveSeasonAutocomplete(i: AutocompleteInteraction<CacheType>, query: string) {
+        const startedAt = performance.now();
+        let resultCount = 0;
+        let outcome: "success" | "error" = "success";
+        try {
+            const q = query.toLowerCase();
+            const choices = [
+                { name: "🗃️ All recorded seasons", value: "all" },
+                ...this.getAvailableSeasonIds().map(id => ({ name: this.formatSeasonId(id), value: id }))
+            ].filter(choice => !q || choice.name.toLowerCase().includes(q) || choice.value.includes(q)).slice(0, 25);
+            resultCount = choices.length;
+            await i.respond(choices);
+        } catch (error) {
+            outcome = "error";
+            throw error;
+        } finally {
+            recordAutocompleteMetric({
+                surface: "sprites",
+                command: "fortnite sprites",
+                option: "season",
+                query,
+                username: i.user.username,
+                resultCount,
+                durationMs: performance.now() - startedAt,
+                outcome,
+                dataReady: Boolean(this._data),
+                responseMode: query ? "search" : "browse",
+            });
+        }
     }
 
     private async replySprites(i: BaseCommandInteraction<CacheType>) {

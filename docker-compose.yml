@@ -7,7 +7,7 @@ services:
     init: true
     restart: unless-stopped
     # Persist sprite data baselines, downloaded artwork, rendered PNGs, and
-    # telemetry across redeploys.
+    # telemetry and autocomplete metrics across redeploys.
     volumes:
       - creeper-bot-cache:/app/.cache
       - creeper-bot-telemetry:/app/.telemetry

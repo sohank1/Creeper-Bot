@@ -74,7 +74,7 @@ export function registerMissingReportBrowser(client: Client) {
         if (busy.has(interaction.user.id)) { await interaction.reply({ content: "Your report is still loading. Please try again in a moment.", ephemeral: true }); return; }
         busy.add(interaction.user.id);
         const started = performance.now();
-        const timing: MissingTiming = { action, date, minimum, historyMs: 0, indexMs: 0, calculationMs: 0, renderMs: 0, deliveryMs: 0, cleanupMs: 0, totalMs: 0, cached: false, items: 0, imageBytes: 0, outcome: "success" };
+        const timing: MissingTiming = { action, date, minimum, username: interaction.user.username, historyMs: 0, indexMs: 0, calculationMs: 0, renderMs: 0, deliveryMs: 0, cleanupMs: 0, totalMs: 0, cached: false, items: 0, imageBytes: 0, outcome: "success" };
         const deliver = async (payload: any) => {
             const start = performance.now();
             try { return await interaction.editReply(payload); }
@@ -115,7 +115,7 @@ export function registerMissingReportBrowser(client: Client) {
             }
             const available = history.available(minimum);
             timing.calculationMs = performance.now() - mathStart;
-            const metrics = () => `Math ${(loaded.buildMs + performance.now() - mathStart).toFixed(1)} ms · History ${loaded.loadMs.toFixed(0)} ms (${loaded.cached ? "cached" : "load + index"})`;
+            const metrics = () => `Math ${(loaded.buildMs + performance.now() - mathStart).toFixed(1)} ms · History ${loaded.loadMs.toFixed(0)} ms`;
             if (action === "prev" || action === "next") {
                 const days = [...available];
                 const adjacent = action === "prev" ? days.find(day => day.date < date) : days.reverse().find(day => day.date > date);

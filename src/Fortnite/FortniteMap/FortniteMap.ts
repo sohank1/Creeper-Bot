@@ -5,9 +5,11 @@ import Fuse from "fuse.js";
 import * as fs from "fs";
 import * as path from "path";
 import https from "https";
+import { performance } from "perf_hooks";
 import { ensureMapImageHosted, getFortniteArchiveMapImageUrl, loadFortniteArchiveManifest, loadMapImageManifest, normalizeMapVersion, MapImageManifestEntry } from "./mapImageArchive";
 import { registerComponent } from "../../runtimeDiagnostics";
 import { getFortniteSeasonEmoji } from "../fortniteSeasonEmoji";
+import { recordAutocompleteMetric } from "../../Autocomplete/AutocompleteMetrics";
 
 type Poi = {
     name: string;
@@ -484,78 +486,99 @@ export class FortniteMap {
         return label;
     }
 
-    private resolveAutocomplete(i: AutocompleteInteraction<CacheType>) {
-        const query = i.options.getFocused(true).value as string;
-        if (!query) {
-            const top3 = this._data.slice(0, 3);
-            const majorVersions = this._data.filter(d => (d.parsedVersion || this.parseVersion(d.version)).isMajor && !top3.includes(d));
-            const recent = [...top3, ...majorVersions].slice(0, 25).map(item => ({
-                name: this.formatLabel(item),
-                value: `v${item.version.replace("_", ".")}`
-            }));
-            return i.respond(recent);
-        }
+    private async resolveAutocomplete(i: AutocompleteInteraction<CacheType>) {
+        const startedAt = performance.now();
+        const query = String(i.options.getFocused(true).value || "").trim();
+        let resultCount = 0;
+        let outcome: "success" | "error" = "success";
+        try {
+            let results: { name: string; value: string }[];
+            if (!query) {
+                const top3 = this._data.slice(0, 3);
+                const majorVersions = this._data.filter(d => (d.parsedVersion || this.parseVersion(d.version)).isMajor && !top3.includes(d));
+                results = [...top3, ...majorVersions].slice(0, 25).map(item => ({
+                    name: this.formatLabel(item),
+                    value: `v${item.version.replace("_", ".")}`
+                }));
+            } else {
+                const fuseResults = this.fuse.search(query);
+                let rawResults = fuseResults.map(r => {
+                    let matchedPoi: string | undefined = undefined;
+                    if (r.matches) {
+                        const poiMatch = r.matches.find(m => m.key === "pois.name");
+                        if (poiMatch && poiMatch.value) {
+                            matchedPoi = poiMatch.value;
+                        }
+                    }
+                    return { item: r.item, matchedPoi };
+                });
 
-        const fuseResults = this.fuse.search(query);
-        let rawResults = fuseResults.map(r => {
-            let matchedPoi: string | undefined = undefined;
-            if (r.matches) {
-                const poiMatch = r.matches.find(m => m.key === "pois.name");
-                if (poiMatch && poiMatch.value) {
-                    matchedPoi = poiMatch.value;
+                const qLower = query.toLowerCase();
+                const isMajorIntent = qLower.includes("chapter") || qLower.includes("season") || qLower.includes("00");
+                const isCodenameIntent = qLower.includes("water") || qLower.includes("week") || qLower.includes("stage");
+
+                const chapterMatch = qLower.match(/chapter\s*(\d+)/);
+                const seasonMatch = qLower.match(/season\s*(\d+)/);
+
+                if (chapterMatch) {
+                    const targetChapter = parseInt(chapterMatch[1]);
+                    rawResults = rawResults.filter(r => r.item.chapter === targetChapter);
                 }
+                if (seasonMatch) {
+                    const targetSeason = parseInt(seasonMatch[1]);
+                    rawResults = rawResults.filter(r => r.item.season === targetSeason);
+                }
+
+                if (isMajorIntent && !isCodenameIntent) {
+                    rawResults = rawResults.filter(r => (r.item.parsedVersion || this.parseVersion(r.item.version)).isMajor);
+                } else if (!isMajorIntent && !isCodenameIntent) {
+                    rawResults = rawResults.filter(r => !(r.item.parsedVersion || this.parseVersion(r.item.version)).isMajor);
+                }
+
+                let sorted = [...rawResults];
+
+                if (isCodenameIntent) {
+                    sorted.sort((a, b) => {
+                        const aP = a.item.parsedVersion || this.parseVersion(a.item.version);
+                        const bP = b.item.parsedVersion || this.parseVersion(b.item.version);
+                        if (aP.codename && !bP.codename) return -1;
+                        if (!aP.codename && bP.codename) return 1;
+                        return 0;
+                    });
+                } else if (isMajorIntent) {
+                    sorted.sort((a, b) => {
+                        const aP = a.item.parsedVersion || this.parseVersion(a.item.version);
+                        const bP = b.item.parsedVersion || this.parseVersion(b.item.version);
+                        if (aP.isMajor && !bP.isMajor) return -1;
+                        if (!aP.isMajor && bP.isMajor) return 1;
+                        return 0;
+                    });
+                }
+
+                results = sorted.slice(0, 25).map(r => ({
+                    name: this.formatLabel(r.item, r.matchedPoi),
+                    value: `v${r.item.version.replace("_", ".")}`
+                }));
             }
-            return { item: r.item, matchedPoi };
-        });
-
-        const qLower = query.toLowerCase();
-        const isMajorIntent = qLower.includes("chapter") || qLower.includes("season") || qLower.includes("00");
-        const isCodenameIntent = qLower.includes("water") || qLower.includes("week") || qLower.includes("stage");
-
-        const chapterMatch = qLower.match(/chapter\s*(\d+)/);
-        const seasonMatch = qLower.match(/season\s*(\d+)/);
-
-        if (chapterMatch) {
-            const targetChapter = parseInt(chapterMatch[1]);
-            rawResults = rawResults.filter(r => r.item.chapter === targetChapter);
-        }
-        if (seasonMatch) {
-            const targetSeason = parseInt(seasonMatch[1]);
-            rawResults = rawResults.filter(r => r.item.season === targetSeason);
-        }
-
-        if (isMajorIntent && !isCodenameIntent) {
-            rawResults = rawResults.filter(r => (r.item.parsedVersion || this.parseVersion(r.item.version)).isMajor);
-        } else if (!isMajorIntent && !isCodenameIntent) {
-            rawResults = rawResults.filter(r => !(r.item.parsedVersion || this.parseVersion(r.item.version)).isMajor);
-        }
-
-        let sorted = [...rawResults];
-
-        if (isCodenameIntent) {
-            sorted.sort((a, b) => {
-                const aP = a.item.parsedVersion || this.parseVersion(a.item.version);
-                const bP = b.item.parsedVersion || this.parseVersion(b.item.version);
-                if (aP.codename && !bP.codename) return -1;
-                if (!aP.codename && bP.codename) return 1;
-                return 0;
-            });
-        } else if (isMajorIntent) {
-            sorted.sort((a, b) => {
-                const aP = a.item.parsedVersion || this.parseVersion(a.item.version);
-                const bP = b.item.parsedVersion || this.parseVersion(b.item.version);
-                if (aP.isMajor && !bP.isMajor) return -1;
-                if (!aP.isMajor && bP.isMajor) return 1;
-                return 0;
+            resultCount = results.length;
+            await i.respond(results);
+        } catch (error) {
+            outcome = "error";
+            throw error;
+        } finally {
+            recordAutocompleteMetric({
+                surface: "map",
+                command: "fortnite map view",
+                option: "version",
+                query,
+                username: i.user.username,
+                resultCount,
+                durationMs: performance.now() - startedAt,
+                outcome,
+                dataReady: this._data.length > 0 && Boolean(this.fuse),
+                responseMode: query ? "search" : "browse",
             });
         }
-
-        const results = sorted.slice(0, 25).map(r => ({
-            name: this.formatLabel(r.item, r.matchedPoi),
-            value: `v${r.item.version.replace("_", ".")}`
-        }));
-
-        i.respond(results);
     }
 
     private async fetchMapImage(version: string) {

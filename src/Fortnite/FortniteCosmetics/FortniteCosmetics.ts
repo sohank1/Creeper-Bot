@@ -1,4 +1,5 @@
 import axios from "axios";
+import { performance } from "perf_hooks";
 import { ApplicationCommandOptionChoice, AutocompleteInteraction, BaseCommandInteraction, CacheType, Client } from "discord.js";
 import { scheduleJob } from "node-schedule";
 import { createTrackedJob, registerComponent } from "../../runtimeDiagnostics";
@@ -8,6 +9,7 @@ import { fortnitePriceService, mergeFortnitePrices } from "./FortnitePriceServic
 import { cosmeticWatchControlsFor } from "./CosmeticAlertsUI";
 import { CosmeticSearchIndex } from "./CosmeticSearch";
 import { CosmeticSearchBrowser } from "./CosmeticSearchBrowser";
+import { recordAutocompleteMetric } from "../../Autocomplete/AutocompleteMetrics";
 // const cosmeticsData = <CosmeticsResponse>require("./cosmetics.json");
 
 export const sortingPriorities = {
@@ -78,12 +80,62 @@ export class FortniteCosmetics {
         return { cosmeticsLoaded: this._data?.length || 0, search: this.searchIndex?.diagnostics, activeSearches: this.searchBrowser.size };
     }
     private async resolveSearchQuery(i: AutocompleteInteraction<CacheType>): Promise<void> {
-        if (!this.searchIndex) return i.respond([{ name: "Loading cosmetics…", value: LOADING_STRING }]);
-        const hits = this.searchIndex.search(String(i.options.getFocused(true).value));
-        return i.respond(hits.map(hit => this.formatAutoCompleteResponse(hit.item)));
+        const startedAt = performance.now();
+        const query = String(i.options.getFocused(true).value || "").trim();
+        let resultCount = 0;
+        let outcome: "success" | "error" = "success";
+        const dataReady = Boolean(this.searchIndex);
+        try {
+            const choices = !this.searchIndex
+                ? [{ name: "Loading cosmetics…", value: LOADING_STRING }]
+                : this.searchIndex.search(query).map(hit => this.formatAutoCompleteResponse(hit.item));
+            resultCount = choices.length;
+            await i.respond(choices);
+        } catch (error) {
+            outcome = "error";
+            throw error;
+        } finally {
+            recordAutocompleteMetric({
+                surface: "cosmetics",
+                command: "fortnite cosmetic search",
+                option: "query",
+                query,
+                username: i.user.username,
+                resultCount,
+                durationMs: performance.now() - startedAt,
+                outcome,
+                dataReady,
+                loadingResponse: !dataReady,
+                responseMode: dataReady ? (query ? "search" : "browse") : "loading",
+            });
+        }
     }
-    public respondWithNewCosmetics(i: AutocompleteInteraction<CacheType>): Promise<void> {
-        return i.respond((this.searchIndex?.search("") || []).map(hit => this.formatAutoCompleteResponse(hit.item)));
+    public async respondWithNewCosmetics(i: AutocompleteInteraction<CacheType>): Promise<void> {
+        const startedAt = performance.now();
+        let resultCount = 0;
+        let outcome: "success" | "error" = "success";
+        const dataReady = Boolean(this.searchIndex);
+        try {
+            const choices = (this.searchIndex?.search("") || []).map(hit => this.formatAutoCompleteResponse(hit.item));
+            resultCount = choices.length;
+            await i.respond(choices);
+        } catch (error) {
+            outcome = "error";
+            throw error;
+        } finally {
+            recordAutocompleteMetric({
+                surface: "cosmetics",
+                command: "fortnite cosmetic search",
+                option: "query",
+                query: "",
+                username: i.user.username,
+                resultCount,
+                durationMs: performance.now() - startedAt,
+                outcome,
+                dataReady,
+                responseMode: "browse",
+            });
+        }
     }
     private formatAutoCompleteResponse(item: CatalogCosmetic): ApplicationCommandOptionChoice {
         const detail = item.artist ? item.artist : item.type?.displayValue || "Cosmetic";

@@ -59,6 +59,26 @@ async function main() {
     // Exercise UI builders without starting jobs or connecting to a database.
     const service: any = Object.create(CosmeticAlerts.prototype);
     service.client = { user: { id: "bot" } };
+    service.ready = Promise.resolve();
+    service.busyUsers = new Set();
+    service.watchlistRenders = new Map();
+    service.loadCatalog = async () => [offers.get("a").item];
+    let detailResponse: any;
+    const detailsInteraction = (viewer: string) => ({
+        isCommand: () => false, isButton: () => true, isSelectMenu: () => false,
+        customId: `cosmetic-alert:owner:details:${cosmeticAlertKey(offers.get("a").item.id)}`,
+        user: { id: viewer },
+        deferUpdate: async () => { assert.equal(viewer, "owner"); },
+        deferReply: async () => { assert.notEqual(viewer, "owner"); },
+        editReply: async (payload: any) => { detailResponse = payload; },
+    });
+    for (const viewer of ["owner", "visitor"]) {
+        await service.handle(detailsInteraction(viewer));
+        assert.equal(detailResponse.embeds[0].title, offers.get("a").item.name);
+        assert(detailResponse.components[0].components[0].customId.startsWith(`cosmetic-alert:${viewer}:`));
+        assert.equal(detailResponse.components[1].components[0].label, "Back to alert");
+        assert.equal(service.busyUsers.size, 0);
+    }
     const delivery: any = { _id: "d".repeat(24), user: "12345678901234567890", items: Array.from({ length: 100 }, (_, index) => ({
         key: cosmeticAlertKey(String(index)), offer: offers.get("a"), date: "2024-01-01",
     })) };

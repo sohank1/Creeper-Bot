@@ -5,7 +5,7 @@ import { scheduleJob } from "node-schedule";
 import { createTrackedJob, registerComponent } from "../../runtimeDiagnostics";
 import { buildCosmeticEmbed, CatalogCosmetic, cosmeticTypeEmoji, normalizeCosmetic, normalizeCosmeticCatalog } from "./CosmeticEmbed";
 import { CosmeticWatch, CosmeticDelivery, CosmeticAlertLease } from "./CosmeticAlerts.model";
-import { alertButton, cosmeticAlertKey } from "./CosmeticAlertsUI";
+import { alertButton, cosmeticAlertKey, cosmeticWatchControlsFor } from "./CosmeticAlertsUI";
 import { fortnitePriceService, FortnitePriceLookup, registryPriceFields, validCosmeticPrice } from "./FortnitePriceService";
 import { MissingCosmeticsRender, renderMissingCosmeticsImage } from "../../MissingCosmetics/MissingCosmeticsImage";
 
@@ -99,7 +99,7 @@ export class CosmeticAlerts {
         return enrichAlertOfferPrices(offers, lookup);
     }
     private query(user: string, key?: string) { return { bot: this.client.user.id, user, ...(key ? { key } : {}) }; }
-    private async watchlistImage(viewer: string, watches: any[], payload: any, page: number, total: number) {
+    private async watchlistImage(viewer: string, watches: any[], payload: any, page: number, total: number, pageSize = 25) {
         if (!watches.length) return payload;
         try {
             const profile = await this.client.users.fetch(watches[0].user || viewer).catch(() => null);
@@ -110,8 +110,8 @@ export class CosmeticAlerts {
                     rarity: item.rarity?.value, introduced: item.introduction?.text,
                     daysMissing: 0, lastSeenLabel: "", badgeLabel: watch.paused ? "PAUSED" : watch.mode === "once" ? "NEXT RETURN" : "EVERY RETURN" };
             }), `PAGE ${page + 1}`, "item-shop", 300, undefined,
-            { title: "SHOP ALERTS", subtitle: "WATCHLIST", footer: `${total} SAVED ALERTS · PAUSED ALERTS SKIP RETURNS`,
-                profileName: profile ? (profile as any).globalName || profile.username : "Fortnite player",
+            { title: "SHOP ALERTS", subtitle: "WATCHLIST", footer: `${total} SAVED ALERTS · PAUSED ALERTS SKIP RETURNS`, pageCount: Math.ceil(total / pageSize),
+                profileName: profile ? profile.username : "Fortnite player",
                 profileAvatar: profile?.displayAvatarURL({ format: "png", size: 256 }) });
             this.watchlistRenders.set(viewer, rendered);
             return { ...payload, files: [{ attachment: rendered.image, name: "cosmetic-alerts.png" }] };
@@ -125,7 +125,7 @@ export class CosmeticAlerts {
         const watches: any[] = await CosmeticWatch.find(this.query(user)).sort({ createdAt: 1 }).lean();
         page = Math.max(0, Math.min(Math.ceil(watches.length / 25) - 1, page)) || 0;
         const slice = watches.slice(page * 25, page * 25 + 25);
-        const embed = new MessageEmbed().setColor("#2186DB").setTitle("Your shop alerts")
+        const embed = new MessageEmbed().setColor("#2186DB").setTitle("🔔 Your shop alerts")
             .setDescription(watches.length ? `${watches.length} saved ${watches.length === 1 ? "alert" : "alerts"} · Choose an item to manage it.\n\n${slice.map(w => `**${w.item.name.slice(0, 60)}** · ${w.paused ? "Paused" : w.status}\n${w.mode === "once" ? "Next return" : "Every return"} → <#${w.channel}>`).join("\n\n")}` : "Your watchlist is empty.\nSearch for a cosmetic, then choose **Notify me**.")
             .setFooter({ text: "Alerts reply where you saved them, then try the channel, then DMs. Only you can change this list." });
         const rows: MessageActionRow[] = [];
@@ -133,16 +133,16 @@ export class CosmeticAlerts {
             emoji: cosmeticTypeEmoji(w.item), description: `${w.paused ? "Paused" : "Watching"} · ${w.mode === "once" ? "Next return" : "Every return"}` })))));
         if (watches.length > 25) rows.push(new MessageActionRow().addComponents(alertButton(user, "list", String(page - 1), "←").setDisabled(page === 0),
             alertButton(user, "list", String(page + 1), "→").setDisabled((page + 1) * 25 >= watches.length)));
-        if (slice.length) embed.setDescription(`${watches.length} saved ${watches.length === 1 ? "alert" : "alerts"} · Choose an item below to manage it.\nPause, change return mode, move the destination, or remove an alert.`);
+        if (slice.length) embed.setDescription(`**${watches.length} saved ${watches.length === 1 ? "alert" : "alerts"}**\n🔔 ${watches.filter(w => !w.paused && w.mode === "once").length} next return · 🔁 ${watches.filter(w => !w.paused && w.mode === "every").length} every return · ⏸️ ${watches.filter(w => w.paused).length} paused\n\nChoose an item below to manage it or open its details.`);
         return this.watchlistImage(user, slice, { content: null, embeds: [embed], components: rows, attachments: [] }, page, watches.length);
     }
     private async publicWatchlist(viewer: string, user: string, page = 0) {
         const watches: any[] = await CosmeticWatch.find(this.query(user)).sort({ createdAt: 1 }).lean();
         page = Math.max(0, Math.min(Math.ceil(watches.length / 20) - 1, page)) || 0;
         const escape = (value: string) => value.slice(0, 80).replace(/([\\`*_~|>])/g, "\\$1");
-        const embed = new MessageEmbed().setColor("#2186DB").setTitle("Cosmetic watchlist")
+        const embed = new MessageEmbed().setColor("#2186DB").setTitle("🔔 Cosmetic watchlist")
             .setDescription(`<@${user}> · **${watches.length} ${watches.length === 1 ? "alert" : "alerts"}**\n\n${watches.length
-                ? watches.slice(page * 20, page * 20 + 20).map(w => `**${escape(w.item.name)}** · ${w.paused ? "Paused" : w.mode === "once" ? "Next return" : "Every return"}`).join("\n")
+                ? watches.slice(page * 20, page * 20 + 20).map(w => `**${escape(w.item.name)}** · ${w.paused ? "⏸️ Paused" : w.mode === "once" ? "🔔 Next return" : "🔁 Every return"}`).join("\n")
                 : "No saved alerts."}`)
             .setFooter({ text: `Page ${page + 1} of ${Math.max(1, Math.ceil(watches.length / 20))} · Read-only · Only the owner can change these alerts` });
         const slice = watches.slice(page * 20, page * 20 + 20);
@@ -156,7 +156,7 @@ export class CosmeticAlerts {
             alertButton(viewer, "view", user, "→").setCustomId(`cosmetic-alert:${viewer}:view:${user}:${page + 1}`).setDisabled((page + 1) * 20 >= watches.length));
         navigation.addComponents(alertButton(viewer, "list", "0", "My alerts", "PRIMARY"));
         rows.push(navigation);
-        return this.watchlistImage(viewer, slice, { content: null, embeds: [embed], allowedMentions: { parse: [] }, attachments: [], components: rows }, page, watches.length);
+        return this.watchlistImage(viewer, slice, { content: null, embeds: [embed], allowedMentions: { parse: [] }, attachments: [], components: rows }, page, watches.length, 20);
     }
     private async handle(i: any) {
         const command = i.isCommand() && i.commandName === "fortnite" && i.options.getSubcommandGroup(false) === "cosmetic" && i.options.getSubcommand(false) === "alerts";
@@ -169,7 +169,7 @@ export class CosmeticAlerts {
             owner = i.user.id;
             // Never replay another person's destructive or delivery action.
             // Item setup is shareable; management always opens the clicker's list.
-            operation = operation === "view" ? "view" : ["setup", "once", "every"].includes(operation) ? "setup" : "list";
+            operation = ["view", "details"].includes(operation) ? operation : ["setup", "once", "every"].includes(operation) ? "setup" : "list";
             if (operation === "list") token = "0";
         }
         if (this.busyUsers.has(owner)) return i.reply({ content: "Your last change is still saving. Please try again in a moment.", allowedMentions: { parse: [] } });
@@ -180,6 +180,13 @@ export class CosmeticAlerts {
             await this.ready;
             if (operation === "view") return await i.editReply(await this.publicWatchlist(owner, token, Number(anchor) || 0));
             const key = i.isSelectMenu() && ["manage", "setup"].includes(operation) ? i.values[0] : token;
+            if (operation === "details") {
+                const item = (await this.loadCatalog()).find(item => cosmeticAlertKey(item.id) === key);
+                if (!item) throw new AlertInputError("This cosmetic is no longer available in the catalog. Try searching for it again.");
+                return await i.editReply({ content: null, attachments: [], embeds: [buildCosmeticEmbed(item)], components: [
+                    await cosmeticWatchControlsFor(this.client.user?.id, owner, item.id),
+                    new MessageActionRow().addComponents(alertButton(owner, "manage", key, "Back to alert").setEmoji("↩️"))] });
+            }
             if (operation === "list") return await i.editReply(await this.manager(owner, Number(token) || 0));
             if (["setup", "once", "every"].includes(operation)) {
                 const item = (await this.loadCatalog()).find(item => cosmeticAlertKey(item.id) === key);
@@ -189,7 +196,7 @@ export class CosmeticAlerts {
                 if (existing) return await i.editReply(await this.manage(owner, existing));
                 const shop = await this.shop();
                 if (operation === "setup") return await i.editReply({ embeds: [new MessageEmbed().setColor("#2186DB").setTitle(`Watch ${item.name}`.slice(0, 256))
-                    .setDescription(`${shop.has(item.id) ? "**Available now.** This alert will wait for it to leave and return.\n\n" : ""}**Next return** — notify once, then remove the alert.\n**Every return** — keep watching; no daily repeats.\n\nDelivery: reply here → this channel → DM if needed.`)],
+                    .setDescription(`${shop.has(item.id) ? "**Available now.** This alert will wait for it to leave and return.\n\n" : ""}🔔 **Next return** — notify once, then remove the alert.\n🔁 **Every return** — keep watching; no daily repeats.\n\n📍 Delivery: reply here → this channel → DM if needed.`)],
                     components: [new MessageActionRow().addComponents(
                         alertButton(owner, "once", key, "Next return", "PRIMARY").setCustomId(`cosmetic-alert:${owner}:once:${key}:${i.message.id}`),
                         alertButton(owner, "every", key, "Every return", "SUCCESS").setCustomId(`cosmetic-alert:${owner}:every:${key}:${i.message.id}`),
@@ -239,7 +246,8 @@ export class CosmeticAlerts {
             alertButton(user, watch.paused ? "resume" : "pause", watch.key, watch.paused ? "Resume" : "Pause", watch.paused ? "SUCCESS" : "SECONDARY"),
             alertButton(user, "mode", watch.key, watch.mode === "once" ? "Watch every return" : "Watch next return"),
             alertButton(user, "move", watch.key, "Send here"), alertButton(user, "remove", watch.key, "Remove", "DANGER"), alertButton(user, "list", "0", "My alerts", "PRIMARY")),
-            ...(watch.pending?.delivery ? [new MessageActionRow().addComponents(alertButton(user, "retry", watch.pending.delivery, "Retry delivery"))] : [])] };
+            new MessageActionRow().addComponents(alertButton(user, "details", watch.key, "Item details", "PRIMARY").setEmoji("🔍"),
+                ...(watch.pending?.delivery ? [alertButton(user, "retry", watch.pending.delivery, "Retry delivery")] : []))] };
     }
 
     public async poll() {

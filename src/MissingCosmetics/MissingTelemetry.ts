@@ -4,6 +4,7 @@ import { registerComponent } from "../runtimeDiagnostics";
 
 export interface MissingTiming {
     action: string; date: string; minimum: number;
+    username?: string;
     historyMs: number; indexMs: number; calculationMs: number; renderMs: number;
     deliveryMs: number; cleanupMs: number; totalMs: number;
     cached: boolean; items: number; imageBytes: number;
@@ -33,5 +34,5 @@ export class MissingTelemetry {
 }
 
 export function timingLabel(timing: MissingTiming) {
-    return `Calculation ${(timing.indexMs + timing.calculationMs).toFixed(1)} ms (index ${timing.indexMs.toFixed(1)} + query ${timing.calculationMs.toFixed(1)})\nHistory ${timing.historyMs.toFixed(0)} ms (${timing.cached ? "cached" : "load + index"}) · Render ${timing.renderMs.toFixed(0)} ms\nDelivery ${timing.deliveryMs.toFixed(0)} ms · Total to report ${timing.totalMs.toFixed(0)} ms`;
+    return `Calculation ${(timing.indexMs + timing.calculationMs).toFixed(1)} ms (index ${timing.indexMs.toFixed(1)} + query ${timing.calculationMs.toFixed(1)})\nHistory ${timing.historyMs.toFixed(0)} ms · Render ${timing.renderMs.toFixed(0)} ms\nDelivery ${timing.deliveryMs.toFixed(0)} ms · Total to report ${timing.totalMs.toFixed(0)} ms`;
 }

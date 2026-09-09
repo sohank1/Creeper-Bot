@@ -19,6 +19,9 @@ import { CosmeticAlerts } from "./Fortnite/FortniteCosmetics/CosmeticAlerts";
 import { MissingCosmetics } from "./MissingCosmetics/MissingCosmetics";
 import { sendPerformanceStats } from "./performanceStats";
 import { createTrackedJob } from "./runtimeDiagnostics";
+import { flushAutocompleteMetrics } from "./Autocomplete/AutocompleteMetrics";
+import { registerAutocompleteMetricsRoutes } from "./Autocomplete/AutocompleteMetricsPage";
+import { registerFileCacheMetricsRoutes } from "./Autocomplete/FileCacheMetricsPage";
 // import { ProcessCodes } from "./InstanceManager";
 
 export const version = `v${require("../package.json").version}`;
@@ -30,6 +33,8 @@ const port = process.env.PORT || 3001;
 app.get("/", (_, res) => {
   res.status(200).json({ serverStartedAt, version })
 });
+registerAutocompleteMetricsRoutes(app);
+registerFileCacheMetricsRoutes(app);
 app.listen(port, () => {
   console.log(`Example app listening on port ${port}!`)
 
@@ -65,6 +70,7 @@ app.listen(port, () => {
         await fortniteSprites?.shutdown().catch((error) => {
           console.warn("[Shutdown] Failed to clean up Fortnite sprite renderer:", error?.message || error);
         });
+        await flushAutocompleteMetrics();
         client.destroy();
       })();
     }

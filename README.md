@@ -1,7 +1,7 @@
 # Creeper-Bot
 
 - [Creeper Bot Roadmap](https://github.com/users/CreeperPlanet26/projects/2)
-- Current package version: `4.0.40`
+- Current package version: `4.0.55`
 
 ## Overview
 
@@ -28,6 +28,8 @@ Copy `.env.example` to `.env` and fill in the values you need:
 - `BOT_TOKEN`
 - `DEV_BOT_TOKEN`
 - `MONGO_URI`
+- `AUTOCOMPLETE_METRICS_NAMESPACE` (optional; separates metrics from the sprite namespace)
+- `AUTOCOMPLETE_METRICS_PATH` (optional; overrides the autocomplete metrics JSON path)
 
 Optional variables are only required for features that use them:
 
@@ -250,11 +252,90 @@ Response:
 ```json
 {
   "serverStartedAt": "...",
-  "version": "v4.0.40"
+  "version": "v4.0.55"
 }
 ```
 
 Inside the container, the app listens on port `3001`.
+
+## Autocomplete Metrics
+
+The bot records autocomplete activity for every active autocomplete option:
+
+- cosmetic search (`/fortnite cosmetic search`)
+- sprite search and sprite season selection (`/fortnite sprites`)
+- map version search (`/fortnite map view`)
+
+It stores aggregated counters in a durable JSON file, not in MongoDB, `.cache`,
+or the Docker image. By default the file is
+`.telemetry/autocomplete/<namespace>.json`; set `AUTOCOMPLETE_METRICS_PATH` to
+override it. The file is the source of truth returned by the JSON endpoint and
+read by the web page.
+
+Each row keeps the typed search text (trimmed to 100 characters), the feature
+and option, request count, zero-result count, number of choices returned,
+response timing, readiness, first/last seen timestamps, and the latest Discord
+username. It also keeps the complete username history for that search key,
+including each username's first/last seen timestamps and request count. There
+is no automatic 20-user limit: history remains in the JSON file until the
+operator manually purges that file. Raw Discord user and server IDs are not
+stored.
+
+Counters are all-time and have no build-based deletion, so redeploying or
+replacing the bot container does not remove them when the telemetry volume or
+configured host path is preserved. The bot batches file writes in the
+background so autocomplete responses do not wait for disk I/O, and flushes the
+remaining batch during graceful shutdown.
+
+The read-only metrics area is public for now. Open the hub:
+
+```text
+https://<your-bot-domain>/metrics
+```
+
+The pages intentionally show Discord usernames so it is easy to see who
+triggered an autocomplete or telemetry event. They do not show Discord IDs,
+message IDs, request IDs, cache-key hashes, or data hashes.
+
+The hub links to separate clean views:
+
+- `/metrics/autocomplete` — JSON-file-backed cosmetic, sprite, and map search terms, including the full username history.
+- `/metrics/files` — known JSON files, cache directories, binary file counts/bytes, and persistence paths. `/metrics/cache` is an alias.
+- `/metrics/sprites` — sprite catalog/history files, season archive manifests, asset/render cache fingerprints, and safe sprite JSONL telemetry.
+- `/metrics/maps` — map catalog/history JSON, the image manifest, and local map image assets.
+- `/metrics/missing-cosmetics` — daily timing JSONL files and recent report timing summaries.
+
+Each page also has a public `.json` endpoint with the same information in
+machine-readable form. The file views never serve binary images or raw JSONL
+records. They read fixed application-owned paths, report missing directories
+instead of failing a local Windows development process, and include Discord
+usernames in safe telemetry rows while omitting IDs, request IDs, cache-key
+hashes, and data hashes. The file dashboard is read-only; it does not trigger a
+sync, render, or cache cleanup.
+
+The file-backed views cover data that can survive a process restart only when
+the underlying storage survives too. The `.cache` and `.telemetry` directories
+need persistent VPS/Docker volumes, checked-in `src/Fortnite/...` JSON files
+come from the repository, and configured sprite archive backups are separate
+filesystem copies. Remote Backblaze B2 objects are not downloaded or listed by
+the page. Live in-memory component/job counters, Chromium pages, and the
+current host process snapshot remain available through `c!cpu`; they are not
+file-backed history.
+
+Metrics use `AUTOCOMPLETE_METRICS_NAMESPACE` when it is set; otherwise they use
+`FORTNITE_SPRITE_STORAGE_NAMESPACE`. Keep production set to
+`FORTNITE_SPRITE_STORAGE_NAMESPACE=production`, and use a different stable
+namespace for beta/staging. The namespace is part of the filename, so branch
+deployments do not combine their autocomplete history when they share a host
+volume. Do not point two active branches at the same metrics filename unless
+you intentionally want them to share one history.
+
+To purge autocomplete history, stop the bot or pause traffic, remove the
+configured JSON file (normally
+`.telemetry/autocomplete/<namespace>.json`), and start the bot again. The file
+will be recreated after the next recorded autocomplete event. `MONGO_URI` is
+still used by other existing bot features; autocomplete metrics no longer
+depend on MongoDB.
 
 ## Production Deployment
 
@@ -433,8 +514,9 @@ same container destinations (`/app/.cache` and `/app/.telemetry`) instead of
 using the named volumes; do not configure both for either path.
 
 For this bot, the cache mount preserves downloaded sprite assets and rendered
-PNGs, while the telemetry mount preserves JSONL diagnostics independently. The
-cache volume may be cleared when troubleshooting without deleting telemetry.
+PNGs, while the telemetry mount preserves JSONL diagnostics and the durable
+autocomplete JSON independently. The cache volume may be cleared when
+troubleshooting without deleting telemetry or autocomplete history.
 A new UI/data fingerprint automatically selects a new cache namespace, and
 completed generations prune obsolete rendered namespaces while leaving telemetry
 intact.
@@ -451,7 +533,10 @@ message ID; subsequent interaction and refresh events include that message ID
 directly. Telemetry is production-only and remains in its dedicated Docker volume
 until manually removed. To clear disposable cache without touching telemetry,
 remove only the `creeper-bot-cache` volume; do not remove
-`creeper-bot-telemetry`.
+`creeper-bot-telemetry`. The autocomplete metrics file normally lives at
+`/app/.telemetry/autocomplete/production.json` when the production namespace is
+`production`; it is included in the same telemetry volume and is not part of a
+new build image.
 
 ## Repository Notes
 

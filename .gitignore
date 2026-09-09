@@ -2,6 +2,7 @@ node_modules
 .env
 dist
 .cache
+.telemetry
 # Runtime archives stay on persistent storage; the optional second copy is a VPS bind mount.
 sprite-archives/*
 !sprite-archives/**/
