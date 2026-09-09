@@ -6,8 +6,8 @@ import { createTrackedJob, registerComponent } from "../../runtimeDiagnostics";
 import { buildCosmeticEmbed, CatalogCosmetic, cosmeticTypeEmoji, normalizeCosmetic, normalizeCosmeticCatalog } from "./CosmeticEmbed";
 import { CosmeticWatch, CosmeticDelivery, CosmeticAlertLease } from "./CosmeticAlerts.model";
 import { alertButton, cosmeticAlertKey, cosmeticWatchControlsFor } from "./CosmeticAlertsUI";
-import { fortnitePriceService, FortnitePriceLookup, registryPriceFields, validCosmeticPrice } from "./FortnitePriceService";
-import { MissingCosmeticsRender, renderMissingCosmeticsImage } from "../../MissingCosmetics/MissingCosmeticsImage";
+import { fortnitePriceService, FortnitePriceLookup, mergeFortnitePrices, registryPriceFields, validCosmeticPrice } from "./FortnitePriceService";
+import { MissingCosmeticImageItem, MissingCosmeticsRender, renderMissingCosmeticsImage } from "../../MissingCosmetics/MissingCosmeticsImage";
 
 const fields = { brItems: "br", tracks: "tracks", cars: "cars", instruments: "instruments", legoKits: "legoKits" };
 class AlertInputError extends Error {}
@@ -39,6 +39,25 @@ export function alertShopOffers(shop: any, today = new Date().toISOString().slic
     }
     if (!result.size) throw new Error("Empty shop response");
     return result;
+}
+
+/**
+ * Convert a saved watch into the image-card shape without losing price data.
+ * Older watches were saved from the cosmetics catalog, which commonly has no
+ * price. In that case the verified registry supplies the latest known
+ * standalone price instead of leaving the V-Bucks row blank.
+ */
+export function alertWatchlistImageItem(watch: any, lookup?: FortnitePriceLookup): MissingCosmeticImageItem {
+    const item = normalizeCosmetic(watch.item, watch.item.category || "br");
+    const priceFields = validCosmeticPrice(item.price)
+        ? { price: item.price, priceIsCurrent: item.priceIsCurrent, priceObservedAt: item.priceObservedAt }
+        : lookup ? registryPriceFields(lookup, item) : {};
+    return { id: item.id, name: item.name, cosmetic: item, type: item.type.displayValue,
+        imageUrl: item.images?.icon || null, featuredImageUrl: item.images?.featured || null,
+        rarity: item.rarity?.value, introduced: item.introduction?.text,
+        setKey: item.set?.value || item.set?.text, backgroundColors: (item as any).backgroundColors,
+        textBackgroundColor: (item as any).textBackgroundColor, ...priceFields,
+        daysMissing: 0, lastSeenLabel: "", badgeLabel: watch.paused ? "PAUSED" : watch.mode === "once" ? "NEXT RETURN" : "EVERY RETURN" };
 }
 
 export function alertTransition(present: boolean, absentChecks: number, inShop: boolean) {
@@ -89,7 +108,12 @@ export class CosmeticAlerts {
     private async loadCatalog() {
         if (this.catalog.length && Date.now() - this.catalogAt < 300000) return this.catalog;
         if (!this.catalogLoad) this.catalogLoad = axios.get("https://fortnite-api.com/v2/cosmetics?responseFlags=7", { timeout: 20000 })
-            .then(r => { this.catalog = normalizeCosmeticCatalog(r.data.data); this.catalogAt = Date.now(); return this.catalog; })
+            .then(async r => {
+                let data = r.data.data;
+                try { data = mergeFortnitePrices(data, await fortnitePriceService.get()); }
+                catch (priceError: any) { console.warn("Fortnite alert price fallback unavailable:", priceError?.message ?? priceError); }
+                this.catalog = normalizeCosmeticCatalog(data); this.catalogAt = Date.now(); return this.catalog;
+            })
             .finally(() => { this.catalogLoad = undefined; });
         return this.catalogLoad;
     }
@@ -102,14 +126,11 @@ export class CosmeticAlerts {
     private async watchlistImage(viewer: string, watches: any[], payload: any, page: number, total: number, pageSize = 25) {
         if (!watches.length) return payload;
         try {
-            const profile = await this.client.users.fetch(watches[0].user || viewer).catch(() => null);
-            const rendered = await renderMissingCosmeticsImage(watches.map(watch => {
-                const item = normalizeCosmetic(watch.item, watch.item.category || "br");
-                return { id: item.id, name: item.name, cosmetic: item, type: item.type.displayValue,
-                    imageUrl: item.images?.icon || null, featuredImageUrl: item.images?.featured || null,
-                    rarity: item.rarity?.value, introduced: item.introduction?.text,
-                    daysMissing: 0, lastSeenLabel: "", badgeLabel: watch.paused ? "PAUSED" : watch.mode === "once" ? "NEXT RETURN" : "EVERY RETURN" };
-            }), `PAGE ${page + 1}`, "item-shop", 300, undefined,
+            const [profile, lookup] = await Promise.all([
+                this.client.users.fetch(watches[0].user || viewer).catch(() => null),
+                fortnitePriceService.get().catch(() => undefined),
+            ]);
+            const rendered = await renderMissingCosmeticsImage(watches.map(watch => alertWatchlistImageItem(watch, lookup)), `PAGE ${page + 1}`, "item-shop", 300, undefined,
             { title: "SHOP ALERTS", subtitle: "WATCHLIST", footer: `${total} SAVED ALERTS · PAUSED ALERTS SKIP RETURNS`, pageCount: Math.ceil(total / pageSize),
                 profileName: profile ? profile.username : "Fortnite player",
                 profileAvatar: profile?.displayAvatarURL({ format: "png", size: 256 }) });

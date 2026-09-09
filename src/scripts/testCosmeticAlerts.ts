@@ -1,7 +1,8 @@
 import assert from "assert";
 import { MessageButton } from "discord.js";
-import { alertShopOffers, alertTransition, sendAlertWithFallback, CosmeticAlerts } from "../Fortnite/FortniteCosmetics/CosmeticAlerts";
+import { alertShopOffers, alertTransition, alertWatchlistImageItem, sendAlertWithFallback, CosmeticAlerts } from "../Fortnite/FortniteCosmetics/CosmeticAlerts";
 import { cosmeticAlertKey, cosmeticWatchControls } from "../Fortnite/FortniteCosmetics/CosmeticAlertsUI";
+import { buildFortniteItemShopReplicaHtml } from "../MissingCosmetics/MissingCosmeticsImage";
 
 assert.equal((cosmeticWatchControls("user", "item").components[0] as MessageButton).label, "Notify me");
 assert.equal((cosmeticWatchControls("user", "item", { mode: "once" }).components[0] as MessageButton).label, "Watching · Manage");
@@ -19,6 +20,19 @@ async function main() {
     assert.equal(offers.get("a").bundle, false);
     assert.equal(offers.get("b").bundle, true);
     assert.equal(offers.get("song").price, undefined);
+    const savedWithoutPrice = { ...offers.get("a").item, price: undefined, priceIsCurrent: false };
+    const imageItem = alertWatchlistImageItem({ item: savedWithoutPrice, mode: "once" }, {
+        byId: new Map([["a", 800]]), observedAt: new Map([["a", "2024-01-01"]]), documents: 1,
+    });
+    assert.equal(imageItem.price, 800);
+    assert.equal(imageItem.priceIsCurrent, false);
+    assert(buildFortniteItemShopReplicaHtml([imageItem], "PAGE 1").includes("800*"));
+    assert(buildFortniteItemShopReplicaHtml([imageItem], "PAGE 1").includes('class="fs-vbuck"'));
+    const alertHtml = buildFortniteItemShopReplicaHtml([imageItem], "PAGE 1", 300, undefined, {
+        title: "SHOP ALERTS", subtitle: "WATCHLIST", footer: "1 SAVED ALERT",
+    });
+    assert(alertHtml.includes('<div class="fs-price"><b>800*'));
+    assert(!alertHtml.includes(".fs-price{display:none}"));
     for (const invalid of [null, { date: "2024-01-01", entries: [] }, { date: "2024-01-01", entries: [{ brItems: {} }] }, { date: "2023-01-01", entries: [{}] }]) {
         assert.throws(() => alertShopOffers(invalid, "2024-01-01"));
     }
