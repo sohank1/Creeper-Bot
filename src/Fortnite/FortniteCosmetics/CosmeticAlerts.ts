@@ -62,6 +62,17 @@ function alertUserSearchScore(user: AlertUserAutocompleteRecord, query: string):
     return 2;
 }
 
+function getAlertCommandTarget(interaction: any): string | undefined {
+    const option = interaction.options.get?.("user");
+    if (!option) return undefined;
+    // Read the raw option instead of calling getString first. This keeps an
+    // interaction generated from the pre-autocomplete USER schema harmless
+    // while Discord propagates the new STRING schema to every client.
+    if (option.type === "STRING" || option.type === 3) return option.value;
+    if (option.type === "USER" || option.type === 6) return option.user?.id;
+    return undefined;
+}
+
 export function buildAlertUserAutocompleteChoices(records: AlertUserAutocompleteRecord[], query: unknown, limit = 25) {
     const normalizedQuery = normalizedAlertUserSearch(query);
     const unique = new Map<string, AlertUserAutocompleteRecord>();
@@ -321,9 +332,7 @@ export class CosmeticAlerts {
         }
         if (!command && !((i.isButton() || i.isSelectMenu()) && i.customId.startsWith("cosmetic-alert:"))) return;
         let [, owner, operation, token, anchor] = command ? ["", i.user.id, "list", "0"] : i.customId.split(":");
-        // The fallback lets an interaction created before the command schema
-        // update finish safely while clients receive the new string option.
-        const target = command ? (i.options.getString("user") || i.options.getUser?.("user")?.id) : undefined;
+        const target = command ? getAlertCommandTarget(i) : undefined;
         if (target && target !== i.user.id) { operation = "view"; token = target; anchor = "0"; }
         const fork = owner !== i.user.id;
         if (fork) {
