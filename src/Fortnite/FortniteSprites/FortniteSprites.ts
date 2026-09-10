@@ -3027,7 +3027,16 @@ export class FortniteSprites {
                 headless: !HEADFUL_CHROMIUM_ENABLED,
                 executablePath: this.getChromiumExecutablePath(),
                 protocolTimeout: RENDER_PROTOCOL_TIMEOUT_MS,
-                args: ['--no-sandbox', '--disable-setuid-sandbox']
+                // Fortnite.GG's Cloudflare check treats Puppeteer's default
+                // automation marker as a bot signal. Keep Chromium itself
+                // shared for rendering, but remove that marker so the source
+                // fallback behaves like the headed browser we tested.
+                ignoreDefaultArgs: ["--enable-automation"],
+                args: [
+                    '--no-sandbox',
+                    '--disable-setuid-sandbox',
+                    '--disable-blink-features=AutomationControlled'
+                ]
             });
             browser.on("disconnected", () => {
                 if (this.browser === browser) {
@@ -3074,6 +3083,16 @@ export class FortniteSprites {
 
         try {
             page = await this.acquireRenderPage();
+            // This script applies to the next navigation even when the pooled
+            // page previously rendered a Discord response or another source
+            // URL. It covers Chromium builds that still expose webdriver after
+            // the automation launch flag has been removed.
+            await this.withRenderTimeout(
+                "preparing Fortnite.GG source page",
+                () => page.evaluateOnNewDocument(() => {
+                    Object.defineProperty(navigator, "webdriver", { get: () => undefined });
+                })
+            );
             await this.withRenderTimeout(
                 "setting Fortnite.GG source headers",
                 () => page.setExtraHTTPHeaders({
