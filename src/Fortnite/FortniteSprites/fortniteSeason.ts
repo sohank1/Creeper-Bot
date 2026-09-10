@@ -18,15 +18,62 @@ export type FortniteSeasonContext = {
 
 type SeasonCandidate = Omit<FortniteSeasonContext, "validatedBy"> & { source: FortniteSeasonSource };
 
+export type FortniteGgHtmlFallback = (url: string) => Promise<string>;
+export type FortniteGgHtmlValidator = (html: string) => boolean;
+
 const FORTNITE_GG_COUNTDOWN_URL = "https://fortnite.gg/season-countdown";
 const FORTNITE_GG_SPRITES_URL = "https://fortnite.gg/sprites";
 const CACHE_TTL_MS = 15 * 60 * 1000;
 const requestHeaders = {
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/125.0 Safari/537.36",
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0 Safari/537.36",
     Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
 };
 let cachedContext: FortniteSeasonContext | null = null;
 let cachedAt = 0;
+
+function isCloudflareChallenge(error: any): boolean {
+    const response = error?.response;
+    const mitigation = String(response?.headers?.["cf-mitigated"] || response?.headers?.["CF-Mitigated"] || "").toLowerCase();
+    const body = String(response?.data || "").toLowerCase();
+    return response?.status === 403
+        || mitigation === "challenge"
+        || /cf-chl-|just a moment|verify you are human|challenge-platform/.test(body);
+}
+
+function isHtml(value: unknown): value is string {
+    return typeof value === "string" && value.trim().length > 0;
+}
+
+/**
+ * Fetch Fortnite.GG HTML through Axios first, then let the runtime provide a
+ * browser fallback when Cloudflare requires JavaScript to clear its challenge.
+ * Keeping this here gives season detection and the sprite detail scraper the
+ * same source/fallback behavior.
+ */
+export async function fetchFortniteGgHtml(
+    url: string,
+    browserFallback?: FortniteGgHtmlFallback,
+    timeoutMs = 15_000,
+    validator: FortniteGgHtmlValidator = isHtml
+): Promise<string> {
+    try {
+        const response = await axios.get(url, { timeout: timeoutMs, headers: requestHeaders });
+        if (!isHtml(response.data) || !validator(response.data)) {
+            const error: any = new Error(`Unexpected response while fetching ${url}`);
+            error.response = response;
+            throw error;
+        }
+        return response.data;
+    } catch (error) {
+        if (!browserFallback || !isCloudflareChallenge(error)) throw error;
+
+        const browserHtml = await browserFallback(url);
+        if (!isHtml(browserHtml) || !validator(browserHtml)) {
+            throw new Error(`Browser fallback returned an unexpected response while fetching ${url}`);
+        }
+        return browserHtml;
+    }
+}
 
 function seasonId(chapter: number, season: string) {
     return `chapter-${chapter}-season-${season.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`;
@@ -103,13 +150,14 @@ export function parseFortniteGgSeasonFilter(
     return selectedOption;
 }
 
-async function fetchFortniteGgSeason(fallbackContext?: FortniteSeasonContext): Promise<SeasonCandidate> {
-    const [countdownResponse, spritesResponse] = await Promise.all([
-        axios.get(FORTNITE_GG_COUNTDOWN_URL, { timeout: 15_000, headers: requestHeaders }),
-        axios.get(FORTNITE_GG_SPRITES_URL, { timeout: 15_000, headers: requestHeaders })
+async function fetchFortniteGgSeason(
+    fallbackContext?: FortniteSeasonContext,
+    browserFallback?: FortniteGgHtmlFallback
+): Promise<SeasonCandidate> {
+    const [countdownHtml, spritesHtml] = await Promise.all([
+        fetchFortniteGgHtml(FORTNITE_GG_COUNTDOWN_URL, browserFallback),
+        fetchFortniteGgHtml(FORTNITE_GG_SPRITES_URL, browserFallback)
     ]);
-    const countdownHtml = String(countdownResponse.data);
-    const spritesHtml = String(spritesResponse.data);
     const parsed = parseFortniteGgCountdownHtml(countdownHtml);
     // This is the same season key the fortnite.gg client uses when its Season
     // filter hides every card whose data-season differs from the selection.
@@ -129,14 +177,18 @@ async function fetchFortniteGgSeason(fallbackContext?: FortniteSeasonContext): P
     return candidate;
 }
 
-export async function resolveCurrentFortniteSeason(forceRefresh = false, fallbackContext?: FortniteSeasonContext): Promise<FortniteSeasonContext> {
+export async function resolveCurrentFortniteSeason(
+    forceRefresh = false,
+    fallbackContext?: FortniteSeasonContext,
+    browserFallback?: FortniteGgHtmlFallback
+): Promise<FortniteSeasonContext> {
     if (!forceRefresh && cachedContext && Date.now() - cachedAt < CACHE_TTL_MS) return cachedContext;
 
     // fortnite.gg is intentionally authoritative here: its Season filter is
     // the same source used to decide which cards belong to the current sprite
     // dataset. We fail closed if either the current title or filter key cannot
     // be read instead of guessing from an unrelated provider.
-    const candidate = await fetchFortniteGgSeason(fallbackContext);
+    const candidate = await fetchFortniteGgSeason(fallbackContext, browserFallback);
     const context: FortniteSeasonContext = {
         ...candidate,
         validatedBy: ["fortnite-gg"]

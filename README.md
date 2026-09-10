@@ -396,6 +396,7 @@ HOST=0.0.0.0
 GOOGLE_CHROME_BIN=/usr/bin/chromium
 PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
 PUPPETEER_SKIP_DOWNLOAD=true
+FORTNITE_SPRITE_BROWSER_HEADFUL=true
 ```
 
 ### Public URLs
@@ -478,6 +479,9 @@ Current behavior:
 
 - local and development environments render on demand and do not use the file cache
 - Linux production starts the finite pre-render queue after startup on every build
+- production runs the shared Chromium process through Xvfb in headed mode so a
+  Fortnite.GG JavaScript/Cloudflare challenge can be completed when Axios is
+  blocked; local Windows/development runs remain headless
 - Linux production persists the last current-season catalog under `.cache/fortnite-sprites/<storage-namespace>/spriteData.json`
 - a season change creates an immutable archive under `.cache/fortnite-sprites/<storage-namespace>/archives/<season-id>` before replacing that catalog
 - the queue uses one paced background render worker so interactive renders remain responsive

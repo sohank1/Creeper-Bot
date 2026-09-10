@@ -1,9 +1,10 @@
 import * as assert from "assert";
+import axios from "axios";
 import { createHash } from "crypto";
 import * as fs from "fs";
 import * as os from "os";
 import * as path from "path";
-import { parseFortniteGgCountdownHtml, parseFortniteGgSeasonFilter } from "../Fortnite/FortniteSprites/fortniteSeason";
+import { fetchFortniteGgHtml, parseFortniteGgCountdownHtml, parseFortniteGgSeasonFilter } from "../Fortnite/FortniteSprites/fortniteSeason";
 import { archiveCurrentSpriteSnapshot, archiveSpriteSnapshot, verifySpriteArchive } from "../Fortnite/FortniteSprites/spriteArchive";
 import { backupSpriteArchive, backupSpriteHistory, B2Request } from "../Fortnite/FortniteSprites/spriteArchiveBackup";
 import { buildTrackedSpriteMessageEditPayload } from "../Fortnite/FortniteSprites/spriteMessage";
@@ -86,6 +87,35 @@ async function testSeasonFixtures() {
         seasonContext("4", "42")
     );
     assert.deepStrictEqual(fallback, { seasonKey: "42", chapter: 7, season: "4" });
+}
+
+async function testFortniteGgBrowserFallbackHook() {
+    const originalGet = axios.get;
+    let fallbackCalls = 0;
+    try {
+        axios.get = (async () => {
+            const error: any = new Error("Request failed with status code 403");
+            error.response = {
+                status: 403,
+                headers: { "cf-mitigated": "challenge" },
+                data: "Just a moment..."
+            };
+            throw error;
+        }) as typeof axios.get;
+
+        const html = await fetchFortniteGgHtml(
+            "https://fortnite.gg/season-countdown",
+            async () => {
+                fallbackCalls++;
+                return readFixture("fortnite-gg-season-countdown.html");
+            }
+        );
+
+        assert.strictEqual(fallbackCalls, 1);
+        assert.ok(html.includes("Chapter 7 Season 4"));
+    } finally {
+        axios.get = originalGet;
+    }
 }
 
 async function testRolloverOrdering() {
@@ -458,6 +488,7 @@ async function testTrackedMessageRefreshPayload() {
 
 async function main() {
     await testSeasonFixtures();
+    await testFortniteGgBrowserFallbackHook();
     await testRolloverOrdering();
     await testSameSeasonDoesNotRewriteForTimestamp();
     await testPartialArchiveRepairsOnRetry();

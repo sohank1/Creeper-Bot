@@ -1,7 +1,6 @@
-import axios from "axios";
 import cheerio from "cheerio";
 import { createHash } from "crypto";
-import { FortniteSeasonContext, resolveCurrentFortniteSeason } from "./fortniteSeason";
+import { fetchFortniteGgHtml, FortniteGgHtmlFallback, FortniteSeasonContext, resolveCurrentFortniteSeason } from "./fortniteSeason";
 
 export type SpriteRarity = "rare" | "epic" | "legendary" | "mythic" | "special";
 export type SpriteVariantName = string;
@@ -104,13 +103,6 @@ type SpriteVariantDetail = SpriteVariant & {
 const SOURCE_URL = "https://fortnite.gg/sprites";
 const BASE_URL = "https://fortnite.gg";
 const DETAIL_FETCH_CONCURRENCY = 4;
-
-function requestHeaders() {
-    return {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0 Safari/537.36",
-        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
-    };
-}
 
 function absoluteUrl(url: string | undefined): string {
     if (!url) return "";
@@ -242,27 +234,18 @@ function parseListPage(html: string, seasonKey?: string): { items: SpriteListIte
     };
 }
 
-async function fetchHtml(url: string): Promise<string> {
-    const res = await axios.get(url, {
-        headers: requestHeaders(),
-        timeout: 30000
-    });
-
-    if (typeof res.data !== "string" || !res.data.includes("sprite")) {
-        throw new Error(`Unexpected response while fetching ${url}`);
-    }
-
-    return res.data;
+async function fetchHtml(url: string, browserFallback?: FortniteGgHtmlFallback): Promise<string> {
+    return fetchFortniteGgHtml(url, browserFallback, 30_000, html => html.toLowerCase().includes("sprite"));
 }
 
-async function fetchDetail(item: SpriteListItem): Promise<SpriteVariantDetail> {
+async function fetchDetail(item: SpriteListItem, browserFallback?: FortniteGgHtmlFallback): Promise<SpriteVariantDetail> {
     const fallbackRate: SpriteSpawnRate = {
         percent: item.chancePercent,
         label: item.chanceLabel
     };
 
     try {
-        const html = await fetchHtml(item.sourceUrl);
+        const html = await fetchHtml(item.sourceUrl, browserFallback);
         const $ = cheerio.load(html);
         const panel = $(".sprite-detail-panel").first();
         const descriptions = panel.find(".sprite-desc").map((_, el) => normalizeText($(el).text())).get();
@@ -406,11 +389,16 @@ export function validateSpriteData(data: SpriteDataFile) {
     }
 }
 
-export async function fetchSpriteData(delayMs = 150, seasonContext?: FortniteSeasonContext, fallbackSeasonContext?: FortniteSeasonContext): Promise<SpriteDataFile> {
+export async function fetchSpriteData(
+    delayMs = 150,
+    seasonContext?: FortniteSeasonContext,
+    fallbackSeasonContext?: FortniteSeasonContext,
+    browserFallback?: FortniteGgHtmlFallback
+): Promise<SpriteDataFile> {
     // Resolve the season before scraping the list so the stored context is
     // associated with this exact scrape.
-    const resolvedSeason = seasonContext || await resolveCurrentFortniteSeason(false, fallbackSeasonContext);
-    const listHtml = await fetchHtml(SOURCE_URL);
+    const resolvedSeason = seasonContext || await resolveCurrentFortniteSeason(false, fallbackSeasonContext, browserFallback);
+    const listHtml = await fetchHtml(SOURCE_URL, browserFallback);
     const list = parseListPage(listHtml, resolvedSeason.seasonKey);
 
     if (list.items.length === 0) {
@@ -418,7 +406,7 @@ export async function fetchSpriteData(delayMs = 150, seasonContext?: FortniteSea
     }
 
     const details = await mapWithConcurrency(list.items, DETAIL_FETCH_CONCURRENCY, async item => {
-        const detail = await fetchDetail(item);
+        const detail = await fetchDetail(item, browserFallback);
         if (delayMs > 0) await new Promise(resolve => setTimeout(resolve, delayMs));
         return detail;
     });

@@ -106,12 +106,14 @@ type SpriteMessageState = {
     editToken: number;
     refreshGeneration: number | null;
     renderDataFingerprint: string;
+    syncError: string | null;
     updatedAt: number;
 };
 
 type SpriteSyncResult = {
     changed: boolean;
     syncedAt: string;
+    syncErrorChanged: boolean;
 };
 
 type SpriteSyncTrigger = "startup" | "command" | "interaction" | "daily-timer";
@@ -302,6 +304,9 @@ const RENDER_CLEANUP_TIMEOUT_MS = 5 * 1000;
 const SPRITE_ASSET_SYNC_COOLDOWN_MS = 5 * 60 * 1000;
 const AUTO_SPRITE_ARCHIVE_ENABLED = process.platform === "linux"
     && (PRODUCTION_RENDER_CACHE_ENABLED || Boolean(process.env.FORTNITE_SPRITE_ARCHIVE_DIR));
+const HEADFUL_CHROMIUM_ENABLED = process.platform === "linux"
+    && process.env.FORTNITE_SPRITE_BROWSER_HEADFUL === "true"
+    && Boolean(process.env.DISPLAY);
 
 export class FortniteSprites {
     private _data: SpriteDataFile | null = null;
@@ -374,6 +379,7 @@ export class FortniteSprites {
     private renderGenerationProgressTimer?: NodeJS.Timeout;
     private progressMessageEditPromise: Promise<void> = Promise.resolve();
     private spriteAssetSyncPromise: Promise<SpriteAssetSyncResult> | null = null;
+    private browserSourceFetchPipeline: Promise<void> = Promise.resolve();
     private lastSpriteAssetSyncAt = 0;
     private lastSpriteAssetSyncDataFingerprint: string | null = null;
     private spriteAssetContentFingerprint = "";
@@ -1083,6 +1089,7 @@ export class FortniteSprites {
             pendingAssetLoads: this.pendingSpriteAssetLoads.size,
             renderBrowser: {
                 connected: this.isBrowserConnected(this.browser),
+                headful: HEADFUL_CHROMIUM_ENABLED,
                 livePages: this.liveRenderPages.size,
                 pooledPages: this.renderPagePool.length,
                 closeAfterPreRenderPending: this.renderBrowserCloseAfterPreRender,
@@ -1504,6 +1511,7 @@ export class FortniteSprites {
     ): Promise<SpriteSyncResult> {
         this.isSyncingSprites = true;
         const syncStartedAt = Date.now();
+        const previousSyncError = this.lastSyncError;
         const dataFingerprintBefore = this.getCatalogDataFingerprint();
         let latest: SpriteDataFile | null = null;
         let changeSummary: SpriteCatalogChangeSummary = {
@@ -1522,7 +1530,12 @@ export class FortniteSprites {
                 existingJson,
                 history: this.spriteHistory,
                 legacySeasonContext: this.getLegacySeasonContext(),
-                fetchLatest: () => fetchSpriteData(150, undefined, this._data?.seasonContext),
+                fetchLatest: () => fetchSpriteData(
+                    150,
+                    undefined,
+                    this._data?.seasonContext,
+                    this.fetchFortniteGgHtmlWithBrowser.bind(this)
+                ),
                 archivePrevious: ({ previousData: archiveData, previousJson, previousDataFingerprint, nextSeason }) => this.archivePreviousSeasonSnapshot(
                     archiveData,
                     previousJson,
@@ -1567,7 +1580,8 @@ export class FortniteSprites {
             this.lastSyncError = null;
             const result = {
                 changed,
-                syncedAt: this.lastSuccessfulSyncAt
+                syncedAt: this.lastSuccessfulSyncAt,
+                syncErrorChanged: previousSyncError !== this.lastSyncError
             };
             this.recordCatalogSyncTelemetry({
                 startedAt: syncStartedAt,
@@ -1596,7 +1610,8 @@ export class FortniteSprites {
             console.error("[FortniteSprites] Failed to sync sprite data:", this.lastSyncError);
             return {
                 changed: false,
-                syncedAt: new Date().toISOString()
+                syncedAt: new Date().toISOString(),
+                syncErrorChanged: previousSyncError !== this.lastSyncError
             };
         } finally {
             this.isSyncingSprites = false;
@@ -1919,6 +1934,13 @@ export class FortniteSprites {
             await this.markTrackedMessagesRefreshing(generation);
             await this.refreshTrackedMessages(generation, syncResult.syncedAt);
             this.startProductionRenderGeneration("Fortnite data update");
+        } else if (syncResult?.syncErrorChanged) {
+            // A successful retry can leave the catalog byte-for-byte identical
+            // while clearing the error shown in existing Discord footers. Those
+            // messages still need an edit even though their render fingerprint
+            // did not change.
+            await this.markTrackedMessagesRefreshing(generation);
+            await this.refreshTrackedMessages(generation, syncResult.syncedAt);
         }
     }
 
@@ -1985,6 +2007,7 @@ export class FortniteSprites {
             editToken: (previous?.editToken || 0) + 1,
             refreshGeneration,
             renderDataFingerprint,
+            syncError: this.lastSyncError,
             updatedAt: Date.now()
         };
         this.trackedSpriteMessages.set(message.id, nextState);
@@ -2011,6 +2034,7 @@ export class FortniteSprites {
             editToken: previous?.editToken || 1,
             refreshGeneration,
             renderDataFingerprint,
+            syncError: this.lastSyncError,
             updatedAt: Date.now()
         });
         this.pruneTrackedMessages();
@@ -2037,7 +2061,11 @@ export class FortniteSprites {
     private getRefreshTargets(generation: number) {
         const currentFingerprint = this.getRenderDataFingerprint();
         return [...this.trackedSpriteMessages.values()]
-            .filter(state => state.refreshGeneration === generation || state.renderDataFingerprint !== currentFingerprint)
+            .filter(state =>
+                state.refreshGeneration === generation
+                || state.renderDataFingerprint !== currentFingerprint
+                || state.syncError !== this.lastSyncError
+            )
             .sort((a, b) => b.updatedAt - a.updatedAt);
     }
 
@@ -2069,7 +2097,11 @@ export class FortniteSprites {
         const refreshOne = async (state: SpriteMessageState) => {
             const liveState = this.trackedSpriteMessages.get(state.messageId);
             const currentFingerprint = this.getRenderDataFingerprint();
-            if (!liveState || (liveState.refreshGeneration !== generation && liveState.renderDataFingerprint === currentFingerprint)) return;
+            if (!liveState || (
+                liveState.refreshGeneration !== generation
+                && liveState.renderDataFingerprint === currentFingerprint
+                && liveState.syncError === this.lastSyncError
+            )) return;
             const expectedVersion = liveState.viewVersion;
             const expectedToken = liveState.editToken;
             const message = await this.fetchTrackedMessage(liveState);
@@ -2084,7 +2116,11 @@ export class FortniteSprites {
             );
             const latestState = this.trackedSpriteMessages.get(state.messageId);
             if (!latestState || latestState.viewVersion !== expectedVersion || latestState.editToken !== expectedToken) return;
-            if (latestState.refreshGeneration !== generation && latestState.renderDataFingerprint === currentFingerprint) return;
+            if (
+                latestState.refreshGeneration !== generation
+                && latestState.renderDataFingerprint === currentFingerprint
+                && latestState.syncError === this.lastSyncError
+            ) return;
 
             await this.queueMessageEdit(state.messageId, async () => {
                 const queuedState = this.trackedSpriteMessages.get(state.messageId);
@@ -2100,6 +2136,7 @@ export class FortniteSprites {
                     ...refreshedState,
                     refreshGeneration: null,
                     renderDataFingerprint: this.getRenderDataFingerprint(),
+                    syncError: this.lastSyncError,
                     updatedAt: Date.now()
                 });
             }
@@ -2987,7 +3024,7 @@ export class FortniteSprites {
                 || (process.platform === "linux" && fs.existsSync("/usr/bin/chromium-browser") ? "/usr/bin/chromium-browser" : undefined)
                 || undefined;
             const browser = await puppeteerModule.launch({
-                headless: true,
+                headless: !HEADFUL_CHROMIUM_ENABLED,
                 executablePath: this.getChromiumExecutablePath(),
                 protocolTimeout: RENDER_PROTOCOL_TIMEOUT_MS,
                 args: ['--no-sandbox', '--disable-setuid-sandbox']
@@ -3014,6 +3051,72 @@ export class FortniteSprites {
                 this.browserPromise = null;
             }
             throw error;
+        }
+    }
+
+    /**
+     * Fortnite.GG occasionally serves a Cloudflare JavaScript challenge to
+     * server-side HTTP clients. Reuse the same Chromium/page pool as rendering
+     * so the normal Axios path stays fast and a successful fallback browser is
+     * kept warm for the rest of the current render/pre-render job.
+     */
+    private async fetchFortniteGgHtmlWithBrowser(url: string): Promise<string> {
+        let releaseTurn!: () => void;
+        const turn = new Promise<void>(resolve => {
+            releaseTurn = resolve;
+        });
+        const previousTurn = this.browserSourceFetchPipeline;
+        this.browserSourceFetchPipeline = previousTurn.then(() => turn);
+        await previousTurn;
+
+        let page: Page | null = null;
+        let pageHealthy = true;
+
+        try {
+            page = await this.acquireRenderPage();
+            await this.withRenderTimeout(
+                "setting Fortnite.GG source headers",
+                () => page.setExtraHTTPHeaders({
+                    "Referer": "https://fortnite.gg/",
+                    "Accept-Language": "en-US,en;q=0.9"
+                })
+            );
+            await this.withRenderTimeout(
+                "loading Fortnite.GG source page",
+                () => page.goto(url, { waitUntil: "domcontentloaded", timeout: RENDER_PROTOCOL_TIMEOUT_MS }),
+                RENDER_PROTOCOL_TIMEOUT_MS + 5_000
+            );
+            await this.withRenderTimeout(
+                "waiting for Fortnite.GG source challenge",
+                () => page.waitForFunction(() => {
+                    const title = document.title || "";
+                    const body = document.body?.innerText || "";
+                    return document.querySelectorAll(".sprite-card").length > 0
+                        || !!document.querySelector(".sprite-detail-panel")
+                        || !!document.querySelector("#big-countdown")
+                        || (/chapter\s*\d+\s*season/i.test(title) && !/just a moment|verify you are human|checking your browser/i.test(body));
+                }, { timeout: 20_000 }),
+                25_000
+            );
+
+            const html = await this.withRenderTimeout(
+                "reading Fortnite.GG source page",
+                () => page.content()
+            );
+            if (!html.trim()) {
+                throw new Error(`Browser fallback returned an unexpected response while fetching ${url}`);
+            }
+            return html;
+        } catch (error) {
+            pageHealthy = false;
+            if (page) await this.disposeRenderPage(page);
+            throw error;
+        } finally {
+            try {
+                if (page && pageHealthy) await this.releaseRenderPage(page);
+            } finally {
+                releaseTurn();
+            }
         }
     }
 
@@ -6025,6 +6128,7 @@ export class FortniteSprites {
             this.trackedSpriteMessages.set(message.id, {
                 ...latestState,
                 channelId: message.channelId,
+                syncError: this.lastSyncError,
                 updatedAt: Date.now()
             });
         }
@@ -6166,6 +6270,7 @@ export class FortniteSprites {
             this.trackedSpriteMessages.set(message.id, {
                 ...latestState,
                 channelId: message.channelId,
+                syncError: this.lastSyncError,
                 updatedAt: Date.now()
             });
         }
