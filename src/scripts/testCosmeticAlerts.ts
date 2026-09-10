@@ -1,8 +1,9 @@
 import assert from "assert";
 import { MessageButton } from "discord.js";
-import { alertShopOffers, alertTransition, alertWatchlistImageItem, sendAlertWithFallback, CosmeticAlerts } from "../Fortnite/FortniteCosmetics/CosmeticAlerts";
+import { alertShopOffers, alertTransition, alertWatchlistImageItem, buildAlertUserAutocompleteChoices, sendAlertWithFallback, CosmeticAlerts } from "../Fortnite/FortniteCosmetics/CosmeticAlerts";
 import { cosmeticAlertKey, cosmeticWatchControls } from "../Fortnite/FortniteCosmetics/CosmeticAlertsUI";
 import { buildFortniteItemShopReplicaHtml } from "../MissingCosmetics/MissingCosmeticsImage";
+import { fortniteCommand } from "../Fortnite/fortniteCommand";
 
 assert.equal((cosmeticWatchControls("user", "item").components[0] as MessageButton).label, "Notify me");
 assert.equal((cosmeticWatchControls("user", "item", { mode: "once" }).components[0] as MessageButton).label, "Watching · Manage");
@@ -11,6 +12,58 @@ assert.equal((cosmeticWatchControls("user", "item", null).components[0] as Messa
 import { CosmeticWatch, CosmeticDelivery } from "../Fortnite/FortniteCosmetics/CosmeticAlerts.model";
 
 async function main() {
+    const cosmeticGroup: any = (fortniteCommand as any).options.find((option: any) => option.name === "cosmetic");
+    const alertsCommand: any = cosmeticGroup.options.find((option: any) => option.name === "alerts");
+    const userOption: any = alertsCommand.options.find((option: any) => option.name === "user");
+    assert.equal(userOption.type, 3); // Discord STRING option; user options cannot be custom-autocompleted.
+    assert.equal(userOption.autocomplete, true);
+
+    const alertUsers = buildAlertUserAutocompleteChoices([
+        { id: "11111111111111111", username: "alice", displayName: "Alice", lastAlertAt: 1 },
+        { id: "22222222222222222", username: "bob", displayName: "Bob", lastAlertAt: 2 },
+        { id: "11111111111111111", username: "alice", displayName: "Alice", lastAlertAt: 3 },
+        { id: "not-a-discord-id", username: "not-an-alert-user" } as any,
+    ], "ali");
+    assert.deepEqual(alertUsers.map(choice => choice.value), ["11111111111111111"]);
+    assert(alertUsers[0].name.includes("Alice"));
+    assert.equal(buildAlertUserAutocompleteChoices(Array.from({ length: 30 }, (_, index) => ({
+        id: `300000000000000${String(index).padStart(2, "0")}`, username: `user-${index}`,
+    })), "").length, 25);
+
+    // The directory query is intentionally bot-wide. There is no guild filter,
+    // so a user alert created in another server is still discoverable here.
+    const oldFindForAutocomplete = CosmeticWatch.find;
+    const directoryService: any = Object.create(CosmeticAlerts.prototype);
+    directoryService.client = {
+        user: { id: "bot" },
+        users: { cache: new Map(), fetch: async () => ({ username: "legacy-user", globalName: "Legacy User" }) },
+    };
+    directoryService.alertUserDirectory = [];
+    directoryService.alertUserDirectoryAt = 0;
+    directoryService.alertUserDirectoryLoad = undefined;
+    let directoryQuery: any;
+    try {
+        (CosmeticWatch as any).find = query => {
+            directoryQuery = query;
+            const chain: any = {
+                select: () => chain,
+                sort: () => chain,
+                lean: async () => [
+                    { user: "33333333333333333", username: "cross-server", updatedAt: "2025-01-01T00:00:00.000Z" },
+                    { user: "44444444444444444", updatedAt: "2025-01-02T00:00:00.000Z" },
+                ],
+            };
+            return chain;
+        };
+        const directory = await directoryService.loadAlertUserDirectory();
+        assert.deepEqual(directoryQuery, { bot: "bot" });
+        assert.equal(directory.length, 2);
+        assert(directory.some(user => user.id === "33333333333333333" && user.username === "cross-server"));
+        assert(directory.some(user => user.id === "44444444444444444" && user.username === "legacy-user"));
+    } finally {
+        CosmeticWatch.find = oldFindForAutocomplete;
+    }
+
     const offers = alertShopOffers({ date: "2024-01-01", entries: [
         { finalPrice: 2000, bundle: { name: "Bundle" }, brItems: [{ id: "a", name: "A" }, { id: "b", name: "B" }] },
         { finalPrice: 800, brItems: [{ id: "a", name: "A" }] },

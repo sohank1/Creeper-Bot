@@ -263,8 +263,16 @@ Inside the container, the app listens on port `3001`.
 The bot records autocomplete activity for every active autocomplete option:
 
 - cosmetic search (`/fortnite cosmetic search`)
+- users with saved cosmetic alerts (`/fortnite cosmetic alerts user`), across every server where this bot stores alerts
 - sprite search and sprite season selection (`/fortnite sprites`)
 - map version search (`/fortnite map view`)
+
+The alert-user autocomplete is built from the existing `CosmeticWatch` records
+for this bot and is not limited by the server where the command is being used.
+New watches save the Discord username alongside the alert. Older watches from
+before those fields existed remain supported because their existing user IDs
+are still read; the bot resolves a display name from its Discord user cache/API
+when needed and falls back to the ID if Discord cannot resolve that user.
 
 It stores aggregated counters in a durable JSON file, not in MongoDB, `.cache`,
 or the Docker image. By default the file is

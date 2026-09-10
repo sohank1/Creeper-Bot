@@ -32,7 +32,7 @@ export const fortniteCommand = new SlashCommandBuilder()
             .addStringOption(o => o.setName('date').setDescription('Shop date in UTC (YYYY-MM-DD); defaults to today'))
             .addIntegerOption(o => o.setName('days').setDescription('Minimum days away from the shop; defaults to 300').setMinValue(1).setMaxValue(100000)))
         .addSubcommand(subcommand => subcommand.setName('alerts').setDescription('Manage your alerts or view someone else’s watchlist')
-            .addUserOption(option => option.setName('user').setDescription('Whose cosmetic alerts to view; defaults to yours'))))
+            .addStringOption(option => option.setName('user').setDescription('Whose alerts to view; choose someone with saved alerts').setAutocomplete(true))))
 
     .addSubcommand(subcommand =>
         subcommand

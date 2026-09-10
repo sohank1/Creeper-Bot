@@ -2,12 +2,14 @@ import axios from "axios";
 import { randomBytes, createHash } from "crypto";
 import { Client, MessageActionRow, MessageEmbed, MessageSelectMenu } from "discord.js";
 import { scheduleJob } from "node-schedule";
+import { performance } from "perf_hooks";
 import { createTrackedJob, registerComponent } from "../../runtimeDiagnostics";
 import { buildCosmeticEmbed, CatalogCosmetic, cosmeticTypeEmoji, normalizeCosmetic, normalizeCosmeticCatalog } from "./CosmeticEmbed";
 import { CosmeticWatch, CosmeticDelivery, CosmeticAlertLease } from "./CosmeticAlerts.model";
 import { alertButton, cosmeticAlertKey, cosmeticWatchControlsFor } from "./CosmeticAlertsUI";
 import { fortnitePriceService, FortnitePriceLookup, mergeFortnitePrices, registryPriceFields, validCosmeticPrice } from "./FortnitePriceService";
 import { MissingCosmeticImageItem, MissingCosmeticsRender, renderMissingCosmeticsImage } from "../../MissingCosmetics/MissingCosmeticsImage";
+import { recordAutocompleteMetric } from "../../Autocomplete/AutocompleteMetrics";
 
 const fields = { brItems: "br", tracks: "tracks", cars: "cars", instruments: "instruments", legoKits: "legoKits" };
 class AlertInputError extends Error {}
@@ -39,6 +41,53 @@ export function alertShopOffers(shop: any, today = new Date().toISOString().slic
     }
     if (!result.size) throw new Error("Empty shop response");
     return result;
+}
+
+export interface AlertUserAutocompleteRecord {
+    id: string;
+    username?: string;
+    displayName?: string;
+    lastAlertAt?: number;
+}
+
+function normalizedAlertUserSearch(value: unknown): string {
+    return String(value || "").trim().toLowerCase().replace(/^@/, "");
+}
+
+function alertUserSearchScore(user: AlertUserAutocompleteRecord, query: string): number {
+    if (!query) return 0;
+    const values = [user.displayName, user.username, user.id].map(normalizedAlertUserSearch).filter(Boolean);
+    if (values.some(value => value === query)) return 0;
+    if (values.some(value => value.startsWith(query))) return 1;
+    return 2;
+}
+
+export function buildAlertUserAutocompleteChoices(records: AlertUserAutocompleteRecord[], query: unknown, limit = 25) {
+    const normalizedQuery = normalizedAlertUserSearch(query);
+    const unique = new Map<string, AlertUserAutocompleteRecord>();
+    for (const record of records) {
+        if (!record || !/^\d{16,22}$/.test(String(record.id || ""))) continue;
+        const current = unique.get(record.id);
+        if (!current || (!current.username && record.username) || (!current.displayName && record.displayName)) {
+            unique.set(record.id, { ...current, ...record });
+        }
+    }
+    const matches = Array.from(unique.values()).filter(user => {
+        if (!normalizedQuery) return true;
+        return [user.displayName, user.username, user.id].some(value => normalizedAlertUserSearch(value).includes(normalizedQuery));
+    });
+    matches.sort((a, b) => alertUserSearchScore(a, normalizedQuery) - alertUserSearchScore(b, normalizedQuery)
+        || (b.lastAlertAt || 0) - (a.lastAlertAt || 0)
+        || (a.displayName || a.username || a.id).localeCompare(b.displayName || b.username || b.id)
+        || a.id.localeCompare(b.id));
+    return matches.slice(0, Math.max(0, limit)).map(user => {
+        const username = String(user.username || "").trim();
+        const displayName = String(user.displayName || "").trim();
+        const identity = displayName && username && displayName !== username
+            ? `${displayName} (@${username})`
+            : displayName || (username ? `@${username}` : `User ${user.id}`);
+        return { name: identity.slice(0, 100), value: user.id };
+    });
 }
 
 /**
@@ -97,6 +146,9 @@ export class CosmeticAlerts {
     private ready: Promise<any>;
     private lastChecked: string | null = null;
     private lastError: string | null = null;
+    private alertUserDirectory: AlertUserAutocompleteRecord[] = [];
+    private alertUserDirectoryAt = 0;
+    private alertUserDirectoryLoad?: Promise<AlertUserAutocompleteRecord[]>;
     constructor(private client: Client) {
         registerComponent("cosmeticAlerts", this);
         this.ready = Promise.all([CosmeticWatch.init(), CosmeticDelivery.init(), CosmeticAlertLease.init()]);
@@ -105,6 +157,85 @@ export class CosmeticAlerts {
         void this.poll();
     }
     public getDiagnostics() { return { running: this.running, lastChecked: this.lastChecked, lastError: this.lastError, cachedCosmetics: this.catalog.length }; }
+    private invalidateAlertUserDirectory() { this.alertUserDirectoryAt = 0; }
+    private async loadAlertUserDirectory(): Promise<AlertUserAutocompleteRecord[]> {
+        const now = Date.now();
+        if (this.alertUserDirectoryLoad) return this.alertUserDirectoryLoad;
+        if (this.alertUserDirectoryAt && now - this.alertUserDirectoryAt < 15000) return this.alertUserDirectory;
+        this.alertUserDirectoryLoad = (async () => {
+            // This query is deliberately scoped only by bot ID, never guild ID:
+            // the command must discover alert owners from every server.
+            const watches: any[] = await CosmeticWatch.find({ bot: this.client.user.id })
+                .select("user username displayName updatedAt")
+                .sort({ updatedAt: -1 })
+                .lean();
+            const records = new Map<string, AlertUserAutocompleteRecord>();
+            for (const watch of watches) {
+                const id = String(watch?.user || "");
+                if (!/^\d{16,22}$/.test(id)) continue;
+                const existing = records.get(id);
+                const next: AlertUserAutocompleteRecord = {
+                    id,
+                    username: typeof watch.username === "string" ? watch.username : undefined,
+                    displayName: typeof watch.displayName === "string" ? watch.displayName : undefined,
+                    lastAlertAt: new Date(watch.updatedAt || 0).getTime() || 0,
+                };
+                if (!existing) records.set(id, next);
+                else records.set(id, {
+                    ...existing,
+                    username: existing.username || next.username,
+                    displayName: existing.displayName || next.displayName,
+                    lastAlertAt: Math.max(existing.lastAlertAt || 0, next.lastAlertAt || 0),
+                });
+            }
+
+            // New watches have names stored. Older watches may not, so use the
+            // local cache first and fetch only those unresolved users once.
+            const unresolved = Array.from(records.values()).filter(record => !record.username && !record.displayName);
+            const concurrency = 8;
+            for (let offset = 0; offset < unresolved.length; offset += concurrency) {
+                await Promise.all(unresolved.slice(offset, offset + concurrency).map(async record => {
+                    let user: any = this.client.users?.cache?.get(record.id);
+                    if (!user && typeof this.client.users?.fetch === "function") user = await this.client.users.fetch(record.id).catch(() => null);
+                    if (!user) return;
+                    record.username = String(user.username || user.tag || "").trim() || undefined;
+                    record.displayName = String(user.globalName || user.displayName || record.username || "").trim() || undefined;
+                }));
+            }
+            this.alertUserDirectory = Array.from(records.values());
+            this.alertUserDirectoryAt = Date.now();
+            return this.alertUserDirectory;
+        })().finally(() => { this.alertUserDirectoryLoad = undefined; });
+        return this.alertUserDirectoryLoad;
+    }
+    private async resolveAlertUserAutocomplete(i: any) {
+        const startedAt = performance.now();
+        const query = String(i.options.getFocused(true).value || "").trim();
+        let resultCount = 0;
+        let outcome: "success" | "error" = "success";
+        try {
+            const choices = buildAlertUserAutocompleteChoices(await this.loadAlertUserDirectory(), query);
+            resultCount = choices.length;
+            await i.respond(choices);
+        } catch (error: any) {
+            outcome = "error";
+            console.warn("Cosmetic alert user autocomplete failed:", error?.message || error);
+            if (!i.responded) await i.respond([]).catch(() => {});
+        } finally {
+            recordAutocompleteMetric({
+                surface: "cosmetic-alerts",
+                command: "fortnite cosmetic alerts",
+                option: "user",
+                query,
+                username: i.user.username,
+                resultCount,
+                durationMs: performance.now() - startedAt,
+                outcome,
+                dataReady: true,
+                responseMode: query ? "search" : "browse",
+            });
+        }
+    }
     private async loadCatalog() {
         if (this.catalog.length && Date.now() - this.catalogAt < 300000) return this.catalog;
         if (!this.catalogLoad) this.catalogLoad = axios.get("https://fortnite-api.com/v2/cosmetics?responseFlags=7", { timeout: 20000 })
@@ -181,10 +312,19 @@ export class CosmeticAlerts {
     }
     private async handle(i: any) {
         const command = i.isCommand() && i.commandName === "fortnite" && i.options.getSubcommandGroup(false) === "cosmetic" && i.options.getSubcommand(false) === "alerts";
+        const autocomplete = typeof i.isAutocomplete === "function" && i.isAutocomplete()
+            && i.commandName === "fortnite" && i.options.getSubcommandGroup(false) === "cosmetic" && i.options.getSubcommand(false) === "alerts";
+        if (autocomplete) {
+            if (i.options.getFocused(true).name === "user") await this.resolveAlertUserAutocomplete(i);
+            else await i.respond([]).catch(() => {});
+            return;
+        }
         if (!command && !((i.isButton() || i.isSelectMenu()) && i.customId.startsWith("cosmetic-alert:"))) return;
         let [, owner, operation, token, anchor] = command ? ["", i.user.id, "list", "0"] : i.customId.split(":");
-        const target = command ? i.options.getUser("user") : undefined;
-        if (target && target.id !== i.user.id) { operation = "view"; token = target.id; anchor = "0"; }
+        // The fallback lets an interaction created before the command schema
+        // update finish safely while clients receive the new string option.
+        const target = command ? (i.options.getString("user") || i.options.getUser?.("user")?.id) : undefined;
+        if (target && target !== i.user.id) { operation = "view"; token = target; anchor = "0"; }
         const fork = owner !== i.user.id;
         if (fork) {
             owner = i.user.id;
@@ -199,7 +339,11 @@ export class CosmeticAlerts {
             // Open setup as its own public message so report navigation stays intact.
             if (command || fork || operation === "setup") await i.deferReply(); else await i.deferUpdate();
             await this.ready;
-            if (operation === "view") return await i.editReply(await this.publicWatchlist(owner, token, Number(anchor) || 0));
+            if (operation === "view") {
+                if (command && !/^\d{16,22}$/.test(String(token || ""))) throw new AlertInputError("Choose a user from the alert-user autocomplete list.");
+                if (command && !await CosmeticWatch.exists(this.query(token))) throw new AlertInputError("That user no longer has saved alerts. Open autocomplete again and choose another user.");
+                return await i.editReply(await this.publicWatchlist(owner, token, Number(anchor) || 0));
+            }
             const key = i.isSelectMenu() && ["manage", "setup"].includes(operation) ? i.values[0] : token;
             if (operation === "details") {
                 const item = (await this.loadCatalog()).find(item => cosmeticAlertKey(item.id) === key);
@@ -223,8 +367,10 @@ export class CosmeticAlerts {
                         alertButton(owner, "every", key, "Every return", "SUCCESS").setCustomId(`cosmetic-alert:${owner}:every:${key}:${i.message.id}`),
                         alertButton(owner, "list", "0", "My alerts"))] });
                 if (await CosmeticWatch.countDocuments(this.query(owner)) >= 100) throw new AlertInputError("You have 100 saved alerts. Remove one before adding another.");
-                await CosmeticWatch.create({ _id: `${this.client.user.id}:${owner}:${key}`, ...this.query(owner, key), itemId: item.id, item,
+                await CosmeticWatch.create({ _id: `${this.client.user.id}:${owner}:${key}`, ...this.query(owner, key),
+                    username: i.user.username, displayName: (i.user as any).globalName || i.user.username, itemId: item.id, item,
                     channel: i.channelId, message: anchor || i.message.id, mode: operation, present: shop.has(item.id), status: "Watching" });
+                this.invalidateAlertUserDirectory();
                 return await i.editReply(await this.manager(owner));
             }
             if (operation.startsWith("delivery") || operation === "retry") return await this.deliveryInteraction(i, owner, operation, key);
@@ -238,6 +384,7 @@ export class CosmeticAlerts {
                     alertButton(owner, "manage", key, "Keep alert", "SECONDARY").setEmoji("↩️"))] });
             if (operation === "confirmremove") {
                 await CosmeticWatch.deleteOne({ _id: watch._id });
+                this.invalidateAlertUserDirectory();
                 return await i.editReply({ ...await this.manager(owner), content: "✅ Alert removed." });
             }
             if (["pause", "resume", "move", "mode"].includes(operation)) {
@@ -363,7 +510,10 @@ export class CosmeticAlerts {
         for (const item of delivery.items) {
             const query = { _id: item.watch, "pending.event": item.event };
             const current: any = await CosmeticWatch.findOne(query).lean();
-            if (current?.mode === "once") await CosmeticWatch.deleteOne(query);
+            if (current?.mode === "once") {
+                await CosmeticWatch.deleteOne(query);
+                this.invalidateAlertUserDirectory();
+            }
             else await CosmeticWatch.updateOne(query, { $unset: { pending: 1 }, $set: { status: "Watching" } });
         }
         await CosmeticDelivery.updateOne({ _id: delivery._id }, { $set: { status: "complete" } });
