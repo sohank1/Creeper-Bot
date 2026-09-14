@@ -371,9 +371,9 @@ export class FortniteStatsDirectory {
         ): number => {
             return left.score.rank - right.score.rank
                 || left.score.fuzzy - right.score.fuzzy
-                || supportedPlatforms.indexOf(left.item.identifier.platform) - supportedPlatforms.indexOf(right.item.identifier.platform)
-                || timestamp(right.item.record.lastUsedAt) - timestamp(left.item.record.lastUsedAt)
                 || (right.item.record.lookupCount || 0) - (left.item.record.lookupCount || 0)
+                || timestamp(right.item.record.lastUsedAt) - timestamp(left.item.record.lastUsedAt)
+                || supportedPlatforms.indexOf(left.item.identifier.platform) - supportedPlatforms.indexOf(right.item.identifier.platform)
                 || identifierKey(left.item).localeCompare(identifierKey(right.item));
         };
 
