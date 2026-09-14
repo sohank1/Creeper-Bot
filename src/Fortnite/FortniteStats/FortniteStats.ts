@@ -694,7 +694,7 @@
 // }
 
 import axios from "axios";
-import { BaseCommandInteraction, CacheType, Client, EmbedField, MessageActionRow, MessageAttachment, MessageEmbed, MessageSelectMenu, SelectMenuInteraction } from "discord.js";
+import { AutocompleteInteraction, BaseCommandInteraction, CacheType, Client, EmbedField, MessageActionRow, MessageAttachment, MessageEmbed, MessageSelectMenu, SelectMenuInteraction } from "discord.js";
 import { version } from "../../index";
 import { platformChoices } from "../fortniteCommand";
 import path from "path";
@@ -705,6 +705,9 @@ import { createCanvas, loadImage, registerFont, CanvasRenderingContext2D } from 
 import { registerComponent } from "../../runtimeDiagnostics";
 import { FortniteSeasonContext, resolveCurrentFortniteSeason } from "../FortniteSprites/fortniteSeason";
 import { getFortniteSeasonEmoji, getFortniteSeasonEmojiAssetUrl } from "../fortniteSeasonEmoji";
+import { performance } from "perf_hooks";
+import { recordAutocompleteMetric } from "../../Autocomplete/AutocompleteMetrics";
+import { FortniteStatsDirectory, FortniteStatsPlatform, parseFortniteStatsPlayerInput } from "./FortniteStatsDirectory";
 
 const rankedLoadingEmoji = "<a:loading:1140700893898084382>";
 const loadingStr = `Loading more... ${rankedLoadingEmoji}`;
@@ -762,14 +765,21 @@ export class FortniteStats {
     private lastStatsRequestAt: string | null = null;
     private lastStatsError: string | null = null;
     private statsRequestsHandled = 0;
+    private readonly playerDirectory: FortniteStatsDirectory;
 
     constructor(private client: Client) {
+        this.playerDirectory = new FortniteStatsDirectory(this.client.user?.id || "");
         registerComponent("fortniteStats", this);
         void this.fetchSeasonContext();
         void this.fetchSeasonEndDate();
         this.client.on("interactionCreate", (i) => {
+            if (i.isAutocomplete()) {
+                if (i.commandName !== "fortnite" || i.options.getSubcommand(false) !== "stats") return;
+                return void this.resolvePlayerAutocomplete(i);
+            }
             if (!i.isCommand()) return
             if (i.commandName !== "fortnite") return
+            if (i.options.getSubcommand(false) !== "stats") return
             if (!i.options.get('username')) return
 
             return void this.getStats(i)
@@ -961,6 +971,90 @@ export class FortniteStats {
         });
     }
 
+    private getStatsPlatform(interaction: BaseCommandInteraction<CacheType>): string | undefined {
+        return interaction.options.get("platform")?.value
+            ? String(interaction.options.get("platform")?.value)
+            : undefined;
+    }
+
+    private async resolveStatsInput(value: unknown, selectedPlatform?: string) {
+        const selected = await this.playerDirectory.resolveSelection(value, selectedPlatform).catch(error => {
+            console.warn("Failed to resolve saved Fortnite stats player selection.", error);
+            return null;
+        });
+        if (selected) return selected;
+
+        if (this.playerDirectory.isSavedSelection(value)) {
+            throw new Error("That autocomplete player is no longer available. Please enter the username again.");
+        }
+
+        const parsed = parseFortniteStatsPlayerInput(value);
+        return {
+            username: parsed.username,
+            platform: (selectedPlatform || parsed.platform || "epic") as FortniteStatsPlatform,
+        };
+    }
+
+    private hasUsableStats(data: any): boolean {
+        const accountId = String(data?.account?.id || "").trim();
+        const accountName = String(data?.account?.name || "").trim();
+        const overall = data?.stats?.all?.overall;
+        return !!accountId
+            && !!accountName
+            && !!overall
+            && typeof overall === "object"
+            && Object.keys(overall).length > 0;
+    }
+
+    private async saveSuccessfulPlayer(data: any, username: string, platform: string): Promise<void> {
+        if (!this.hasUsableStats(data)) return;
+        const normalizedPlatform = platform as FortniteStatsPlatform;
+        if (!["epic", "psn", "xbl"].includes(normalizedPlatform)) return;
+
+        await this.playerDirectory.recordSuccessfulLookup({
+            username,
+            platform: normalizedPlatform,
+            accountId: String(data.account.id),
+            canonicalName: String(data.account.name),
+        });
+    }
+
+    private async resolvePlayerAutocomplete(i: AutocompleteInteraction<CacheType>): Promise<void> {
+        const startedAt = performance.now();
+        const focused = i.options.getFocused(true);
+        const query = String(focused.value || "").trim();
+        const selectedPlatform = this.getStatsPlatform(i as any);
+        let resultCount = 0;
+        let outcome: "success" | "error" = "success";
+
+        try {
+            if (focused.name !== "username") {
+                await i.respond([]);
+                return;
+            }
+            const choices = await this.playerDirectory.search(query, selectedPlatform);
+            resultCount = choices.length;
+            await i.respond(choices);
+        } catch (error) {
+            outcome = "error";
+            console.warn("Fortnite stats autocomplete failed:", error?.message || error);
+            if (!i.responded) await i.respond([]).catch(() => {});
+        } finally {
+            recordAutocompleteMetric({
+                surface: "fortnite-stats",
+                command: "fortnite stats",
+                option: "username",
+                query,
+                username: i.user.username,
+                resultCount,
+                durationMs: performance.now() - startedAt,
+                outcome,
+                dataReady: true,
+                responseMode: query ? "search" : "browse",
+            });
+        }
+    }
+
     private createPlatformRow(username: string, platform: string, userId: string): MessageActionRow {
         return new MessageActionRow().addComponents(
             new MessageSelectMenu()
@@ -1049,10 +1143,17 @@ export class FortniteStats {
     }
 
     private async getStats(interaction: BaseCommandInteraction<CacheType>): Promise<void> {
-        const username = String(interaction.options.get("username")?.value || "").trim();
-        const platform = String(interaction.options.get("platform")?.value || "epic");
+        const submittedUsername = String(interaction.options.get("username")?.value || "").trim();
+        const selectedPlatform = this.getStatsPlatform(interaction);
+        const parsedSubmittedInput = parseFortniteStatsPlayerInput(submittedUsername);
+        let username = parsedSubmittedInput.username;
+        let platform = (selectedPlatform || parsedSubmittedInput.platform || "epic") as FortniteStatsPlatform;
 
         try {
+            const resolvedInput = await this.resolveStatsInput(submittedUsername, selectedPlatform);
+            username = resolvedInput.username;
+            platform = resolvedInput.platform;
+
             if (!interaction.replied) {
                 await interaction.reply({ content: loadingStr });
             }
@@ -1064,6 +1165,9 @@ export class FortniteStats {
             this.statsRequestsHandled++;
             this.lastStatsRequestAt = new Date().toISOString();
             this.lastStatsError = null;
+            await this.saveSuccessfulPlayer(data, username, platform).catch(error => {
+                console.warn("Failed to save Fortnite stats player for autocomplete.", error);
+            });
 
             // The progress card is helpful, but it is not allowed to prevent
             // the actual player stats from being returned.
@@ -1111,6 +1215,7 @@ export class FortniteStats {
             // Keep the raw value for buttons created by an older bot version.
         }
         const platform = String(i.values[0] || "epic");
+        username = parseFortniteStatsPlayerInput(username).username;
 
         try {
             await i.update({ content: loadingStr, components: [] });
@@ -1122,6 +1227,9 @@ export class FortniteStats {
             this.statsRequestsHandled++;
             this.lastStatsRequestAt = new Date().toISOString();
             this.lastStatsError = null;
+            await this.saveSuccessfulPlayer(data, username, platform).catch(error => {
+                console.warn("Failed to save Fortnite stats player for autocomplete.", error);
+            });
 
             let attachment: MessageAttachment | null = null;
             try {

@@ -264,6 +264,7 @@ The bot records autocomplete activity for every active autocomplete option:
 
 - cosmetic search (`/fortnite cosmetic search`)
 - users with saved cosmetic alerts (`/fortnite cosmetic alerts user`), across every server where this bot stores alerts
+- previously successful Fortnite player searches (`/fortnite stats`)
 - sprite search and sprite season selection (`/fortnite sprites`)
 - map version search (`/fortnite map view`)
 
