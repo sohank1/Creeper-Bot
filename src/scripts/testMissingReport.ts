@@ -1,6 +1,6 @@
 import assert from "assert";
 import { missingItemControls, missingItemEmbed } from "../MissingCosmetics/MissingItemDetails";
-import { reportControls, registerMissingReportBrowser, resolveReportDate } from "../MissingCosmetics/MissingReportBrowser";
+import { reportControls, registerMissingReportBrowser, resolveReportDate, scheduledReportControls } from "../MissingCosmetics/MissingReportBrowser";
 import { shiftDate, todayUTC, validReportDate, validMinimumDays, filteredItems } from "../MissingCosmetics/MissingReport";
 import { MissingHistoryIndex, MissingHistoryService, mergeCurrentShop } from "../MissingCosmetics/MissingHistory";
 import { fortniteCommand } from "../Fortnite/fortniteCommand";
@@ -101,6 +101,9 @@ for (const row of reportControls("123", "2024-02-02", false, [], 42)) {
     for (const component of row.components) assert(component.customId.endsWith(":42"));
 }
 assert.equal(reportControls("123", todayUTC(), true, []).length, 1);
+const scheduled = scheduledReportControls("2024-02-02")[0].toJSON().components[0] as any;
+assert.equal(scheduled.label, "Item details");
+assert.equal(scheduled.custom_id, "missing-report:scheduled:2024-02-02:items-0:300");
 assert(!fortniteCommand.options.some(option => option.name === "cosmetics"));
 const cosmetic: any = fortniteCommand.options.find(option => option.name === "cosmetic");
 assert.equal(cosmetic.type, 2);

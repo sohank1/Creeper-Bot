@@ -42,6 +42,16 @@ export function reportControls(owner: string, date: string, picker = false, avai
     return rows;
 }
 
+export function scheduledReportControls(date: string, minimum = 300): MessageActionRow[] {
+    return [new MessageActionRow().addComponents(
+        new MessageButton()
+            .setCustomId(`missing-report:scheduled:${date}:items-0:${minimum}`)
+            .setLabel("Item details")
+            .setEmoji("🔍")
+            .setStyle("SECONDARY"),
+    )];
+}
+
 export function resolveReportDate(date: string, available: AvailableReportDay[], today = todayUTC()) {
     return date === today && !available.some(day => day.date === date)
         ? available.filter(day => day.date < date).sort((a, b) => b.date.localeCompare(a.date))[0]?.date || date : date;

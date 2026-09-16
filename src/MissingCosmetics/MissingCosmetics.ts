@@ -108,7 +108,7 @@ import itemShopChannels from "../ShopSections/shopSectionChannels.json";
 import { createTrackedJob, registerComponent } from "../runtimeDiagnostics";
 import { MissingCosmeticImageItem, renderMissingCosmeticsImage } from "./MissingCosmeticsImage";
 import { MissingReport, validReportDate } from "./MissingReport";
-import { registerMissingReportBrowser } from "./MissingReportBrowser";
+import { registerMissingReportBrowser, scheduledReportControls } from "./MissingReportBrowser";
 import { fortnitePriceService, registryPriceFields } from "../Fortnite/FortniteCosmetics/FortnitePriceService";
 
 // --- NEW INTERFACES BASED ON V2 API ---
@@ -387,6 +387,7 @@ export class MissingCosmetics {
             .setTitle(`Returning Cosmetics for ${shopDateLabel} (${itemsMissing})`)
             .setDescription(d.substring(0, 4096)) // Safety cap for Discord Embed limits
             .setColor("#2186DB");
+        const detailsComponents = scheduledReportControls(report.date, 300);
 
         let render: Awaited<ReturnType<typeof renderMissingCosmeticsImage>> | null = null;
         try {
@@ -395,7 +396,7 @@ export class MissingCosmetics {
                 const channel = this.client.channels.cache.get(s.channel) as TextChannel;
                 if (!channel) continue;
                 try {
-                    await channel.send({ embeds: [e], files: [new MessageAttachment(render.image, "returning-cosmetics.png")] });
+                    await channel.send({ embeds: [e], files: [new MessageAttachment(render.image, "returning-cosmetics.png")], components: detailsComponents });
                 } catch (error) {
                     console.error(`Error sending missing cosmetics report to channel ${s.channel}:`, error);
                 }
@@ -405,7 +406,7 @@ export class MissingCosmetics {
             this.lastDailyError = error?.message || String(error);
             for (const s of Object.values(itemShopChannels)) {
                 const channel = this.client.channels.cache.get(s.channel) as TextChannel;
-                if (channel) await channel.send({ embeds: [e] }).catch(console.error);
+                if (channel) await channel.send({ embeds: [e], components: scheduledReportControls(report.date, 300) }).catch(console.error);
             }
         } finally {
             await render?.close().catch(error => console.error("Error closing missing cosmetics browser:", error));
