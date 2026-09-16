@@ -1,7 +1,7 @@
 # Creeper-Bot
 
 - [Creeper Bot Roadmap](https://github.com/users/CreeperPlanet26/projects/2)
-- Current package version: `4.0.56`
+- Current package version: `4.0.63`
 
 ## Overview
 
@@ -296,6 +296,13 @@ configured host path is preserved. The bot batches file writes in the
 background so autocomplete responses do not wait for disk I/O, and flushes the
 remaining batch during graceful shutdown.
 
+The autocomplete file also keeps a small daily rollup for dashboard charts:
+request volume, successful/failed responses, zero-result requests, average
+result volume, average latency inputs, and the surface that generated each
+request. Older schema-1 files remain readable; their existing all-time rows and
+username history are preserved, and daily chart history begins when the new
+rollup is first written.
+
 The read-only metrics area is public for now. Open the hub:
 
 ```text
@@ -313,6 +320,13 @@ The hub links to separate clean views:
 - `/metrics/sprites` — sprite catalog/history files, season archive manifests, asset/render cache fingerprints, and safe sprite JSONL telemetry.
 - `/metrics/maps` — map catalog/history JSON, the image manifest, and local map image assets.
 - `/metrics/missing-cosmetics` — daily timing JSONL files and recent report timing summaries.
+
+The HTML views include responsive Chart.js graphs for activity, failures,
+storage footprint, sprite render latency, map coverage, missing-report timing,
+and autocomplete demand. Chart.js is pinned in `package.json` and served from
+the bot itself at `/metrics/chart.js`; the dashboard does not depend on a
+third-party CDN. The exact JSON endpoints remain available when a browser has
+JavaScript disabled or when a chart library cannot load.
 
 Each page also has a public `.json` endpoint with the same information in
 machine-readable form. The file views never serve binary images or raw JSONL

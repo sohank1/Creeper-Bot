@@ -91,6 +91,17 @@ export interface AutocompleteMetricRow {
     recentUsernames?: string[];
 }
 
+export interface AutocompleteDailyMetric {
+    date: string;
+    requests: number;
+    successfulResponses: number;
+    failedResponses: number;
+    zeroResultRequests: number;
+    resultCountTotal: number;
+    durationTotalMs: number;
+    bySurface: Record<string, number>;
+}
+
 export interface AutocompleteMetricsSnapshot {
     available: boolean;
     namespace: string;
@@ -106,6 +117,7 @@ export interface AutocompleteMetricsSnapshot {
         durationTotalMs: number;
     };
     rows: AutocompleteMetricRow[];
+    daily: AutocompleteDailyMetric[];
     error?: string;
 }
 
@@ -148,12 +160,17 @@ interface PendingMetric {
     usernames: Map<string, PendingUsername>;
 }
 
+interface PendingDailyMetric extends Omit<AutocompleteDailyMetric, "bySurface"> {
+    bySurface: Record<string, number>;
+}
+
 interface StoredMetricsFile {
-    schemaVersion: 1;
+    schemaVersion: 2;
     namespace: string;
     generatedAt: string;
     totals: MetricTotals;
     rows: AutocompleteMetricRow[];
+    daily: Record<string, AutocompleteDailyMetric>;
 }
 
 function emptyTotals(): MetricTotals {
@@ -216,6 +233,88 @@ function timestampOr(value: unknown, fallback: number): number {
 
 function isoDate(value: unknown, fallback: Date): string {
     return (validDate(value) || fallback).toISOString();
+}
+
+function validDayKey(value: unknown): string | null {
+    const day = String(value || "").trim();
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) return null;
+    const date = new Date(`${day}T00:00:00.000Z`);
+    return Number.isFinite(date.getTime()) && date.toISOString().slice(0, 10) === day ? day : null;
+}
+
+function emptyDailyMetric(date: string): AutocompleteDailyMetric {
+    return {
+        date,
+        requests: 0,
+        successfulResponses: 0,
+        failedResponses: 0,
+        zeroResultRequests: 0,
+        resultCountTotal: 0,
+        durationTotalMs: 0,
+        bySurface: {}
+    };
+}
+
+function safeSurfaceKey(value: unknown): string {
+    const key = cleanField(value, "");
+    return key === "__proto__" || key === "constructor" || key === "prototype" ? "" : key;
+}
+
+function incrementCounter(target: Record<string, number>, key: string, amount = 1): void {
+    if (!key || !Number.isFinite(amount) || amount <= 0) return;
+    target[key] = counterValue(target[key]) + amount;
+}
+
+function normalizeCounterMap(value: unknown): Record<string, number> {
+    if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+    const normalized: Record<string, number> = {};
+    for (const [rawKey, rawValue] of Object.entries(value as Record<string, unknown>)) {
+        const key = safeSurfaceKey(rawKey);
+        const count = counterValue(rawValue);
+        if (key && count > 0) normalized[key] = count;
+    }
+    return normalized;
+}
+
+function normalizeDailyMetric(value: unknown, date: string): AutocompleteDailyMetric {
+    const raw = value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, any> : {};
+    return {
+        date,
+        requests: counterValue(raw.requests),
+        successfulResponses: counterValue(raw.successfulResponses),
+        failedResponses: counterValue(raw.failedResponses),
+        zeroResultRequests: counterValue(raw.zeroResultRequests),
+        resultCountTotal: counterValue(raw.resultCountTotal),
+        durationTotalMs: counterValue(raw.durationTotalMs),
+        bySurface: normalizeCounterMap(raw.bySurface)
+    };
+}
+
+function mergeDailyMetric(target: AutocompleteDailyMetric, source: Pick<AutocompleteDailyMetric, "requests" | "successfulResponses" | "failedResponses" | "zeroResultRequests" | "resultCountTotal" | "durationTotalMs" | "bySurface">): void {
+    target.requests += counterValue(source.requests);
+    target.successfulResponses += counterValue(source.successfulResponses);
+    target.failedResponses += counterValue(source.failedResponses);
+    target.zeroResultRequests += counterValue(source.zeroResultRequests);
+    target.resultCountTotal += counterValue(source.resultCountTotal);
+    target.durationTotalMs += counterValue(source.durationTotalMs);
+    for (const [surface, count] of Object.entries(source.bySurface || {})) {
+        incrementCounter(target.bySurface, safeSurfaceKey(surface), counterValue(count));
+    }
+}
+
+function normalizeDailyMetrics(value: unknown): Record<string, AutocompleteDailyMetric> {
+    if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+    const normalized: Record<string, AutocompleteDailyMetric> = {};
+    for (const [rawDate, rawMetric] of Object.entries(value as Record<string, unknown>)) {
+        const metricDate = rawMetric && typeof rawMetric === "object" ? (rawMetric as any).date : null;
+        const date = validDayKey(rawDate) || validDayKey(metricDate);
+        if (!date) continue;
+        const metric = normalizeDailyMetric(rawMetric, date);
+        const existing = normalized[date];
+        if (existing) mergeDailyMetric(existing, metric);
+        else normalized[date] = metric;
+    }
+    return normalized;
 }
 
 function metricKey(metric: Pick<PendingMetric, "namespace" | "surface" | "command" | "option" | "queryKey">): string {
@@ -472,11 +571,12 @@ function calculateTotals(rows: AutocompleteMetricRow[]): MetricTotals {
 
 function emptyStoredFile(): StoredMetricsFile {
     return {
-        schemaVersion: 1,
+        schemaVersion: 2,
         namespace: AUTOCOMPLETE_METRICS_NAMESPACE,
         generatedAt: new Date(0).toISOString(),
         totals: emptyTotals(),
         rows: [],
+        daily: {}
     };
 }
 
@@ -504,11 +604,12 @@ async function readStoredFile(): Promise<StoredMetricsFile> {
 
     const rows = parsed.rows.map(normalizeStoredRow).filter(Boolean) as AutocompleteMetricRow[];
     return {
-        schemaVersion: 1,
+        schemaVersion: 2,
         namespace: AUTOCOMPLETE_METRICS_NAMESPACE,
         generatedAt: isoDate(parsed.generatedAt, new Date(0)),
         totals: calculateTotals(rows),
         rows,
+        daily: normalizeDailyMetrics(parsed.daily)
     };
 }
 
@@ -536,7 +637,13 @@ async function writeStoredFile(file: StoredMetricsFile): Promise<void> {
     }
 }
 
-function mergePendingIntoFile(file: StoredMetricsFile, batch: PendingMetric[]): void {
+function mergePendingIntoFile(file: StoredMetricsFile, batch: PendingMetric[], dailyBatch: PendingDailyMetric[]): void {
+    if (!file.daily) file.daily = {};
+    for (const metric of dailyBatch) {
+        const existing = file.daily[metric.date] || emptyDailyMetric(metric.date);
+        mergeDailyMetric(existing, metric);
+        file.daily[metric.date] = existing;
+    }
     for (const metric of batch) {
         const existing = file.rows.find(row => rowKey(row) === metricKey(metric));
         if (existing) mergeStoredRow(existing, metric);
@@ -549,6 +656,7 @@ function mergePendingIntoFile(file: StoredMetricsFile, batch: PendingMetric[]): 
 }
 
 const pending = new Map<string, PendingMetric>();
+const pendingDaily = new Map<string, PendingDailyMetric>();
 let flushPromise: Promise<void> | null = null;
 
 /**
@@ -578,6 +686,12 @@ export function recordAutocompleteMetric(event: AutocompleteMetricEvent): void {
         const outcome = event.outcome === "error" ? "error" : "success";
         const responseMode = cleanField(event.responseMode, "search", 40);
         const username = cleanField(event.username, "");
+        const date = now.toISOString().slice(0, 10);
+        let dailyMetric = pendingDaily.get(date);
+        if (!dailyMetric) {
+            dailyMetric = emptyDailyMetric(date);
+            pendingDaily.set(date, dailyMetric);
+        }
 
         metric.lastSeenAt = now;
         metric.requests++;
@@ -596,6 +710,13 @@ export function recordAutocompleteMetric(event: AutocompleteMetricEvent): void {
         metric.lastDurationMs = durationMs;
         metric.lastOutcome = outcome;
         metric.lastResponseMode = responseMode;
+        dailyMetric.requests++;
+        if (outcome === "success") dailyMetric.successfulResponses++;
+        else dailyMetric.failedResponses++;
+        if (resultCount === 0) dailyMetric.zeroResultRequests++;
+        dailyMetric.resultCountTotal += resultCount;
+        dailyMetric.durationTotalMs += durationMs;
+        incrementCounter(dailyMetric.bySurface, surface);
         if (username) {
             metric.lastUsername = username;
             rememberUsername(metric, username, now);
@@ -609,12 +730,14 @@ export function recordAutocompleteMetric(event: AutocompleteMetricEvent): void {
 }
 
 async function flushPendingMetrics(): Promise<void> {
-    if (!pending.size) return;
+    if (!pending.size && !pendingDaily.size) return;
     const batch = Array.from(pending.values());
+    const dailyBatch = Array.from(pendingDaily.values());
     pending.clear();
+    pendingDaily.clear();
     try {
         const file = await readStoredFile();
-        mergePendingIntoFile(file, batch);
+        mergePendingIntoFile(file, batch, dailyBatch);
         await writeStoredFile(file);
     } catch (error) {
         for (const metric of batch) {
@@ -622,6 +745,11 @@ async function flushPendingMetrics(): Promise<void> {
             const current = pending.get(key);
             if (current) mergePendingMetric(current, metric);
             else if (pending.size < MAX_PENDING_KEYS) pending.set(key, metric);
+        }
+        for (const metric of dailyBatch) {
+            const current = pendingDaily.get(metric.date);
+            if (current) mergeDailyMetric(current, metric);
+            else pendingDaily.set(metric.date, metric);
         }
         throw error;
     }
@@ -665,6 +793,9 @@ export async function getAutocompleteMetricsSnapshot(): Promise<AutocompleteMetr
         pendingKeys: pending.size,
         totals: file.totals,
         rows,
+        daily: Object.values(file.daily || {})
+            .sort((a, b) => a.date.localeCompare(b.date))
+            .map(metric => ({ ...metric, bySurface: { ...metric.bySurface } }))
     };
 }
 

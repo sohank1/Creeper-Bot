@@ -1,8 +1,10 @@
 import { Application, Request, Response } from "express";
+import * as path from "path";
 import {
     DirectorySummary,
     FileCacheSnapshot,
     FileStoreSummary,
+    JsonlDailyPoint,
     JsonlSnapshot,
     MissingTelemetryEvent,
     SpriteArchiveSummary,
@@ -12,8 +14,10 @@ import {
     getFileCacheSnapshot
 } from "./FileCacheMetrics";
 import { allowPublicMetrics, escapeHtml, formatDate, formatDuration, formatNumber } from "./AutocompleteMetricsPage";
+import { METRICS_CHART_STYLES, renderMetricsChart, renderMetricsChartClient } from "./MetricsCharts";
 
 type MetricsPage = "overview" | "files" | "sprites" | "maps" | "missing";
+const CHART_JS_PATH = path.resolve(__dirname, "..", "..", "node_modules", "chart.js", "dist", "chart.umd.min.js");
 
 function formatBytes(value: unknown): string {
     const bytes = Number(value);
@@ -47,13 +51,15 @@ function pageNav(active: MetricsPage): string {
 }
 
 function shell(title: string, active: MetricsPage, content: string, generatedAt?: string): string {
+    const charts = content.includes("metrics-chart-data") ? renderMetricsChartClient() : "";
     return `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <meta http-equiv="refresh" content="60"><title>Creeper Bot · ${escapeHtml(title)}</title>
 <style>
 :root{color-scheme:dark;--bg:#07101c;--panel:#101d30;--panel2:#0c1727;--line:#263a55;--text:#edf5ff;--muted:#94a8c2;--blue:#69d5ff;--green:#75e0ae;--orange:#ffc46b;--red:#ff8f8f;--purple:#c9a5ff}
 *{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at top right,#132b46 0,#07101c 42%,#050b14 100%);color:var(--text);font:14px/1.5 system-ui,-apple-system,Segoe UI,sans-serif;padding:28px}main{max-width:1600px;margin:auto}header{display:flex;justify-content:space-between;gap:24px;align-items:end;margin-bottom:16px}h1{font-size:clamp(25px,4vw,42px);line-height:1.05;margin:0 0 7px}h2{font-size:17px;margin:0 0 13px}h3{font-size:14px;margin:0 0 9px}p{color:var(--muted);margin:0 0 10px}a{color:var(--blue)}nav{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 23px;padding:8px;background:rgba(8,18,32,.75);border:1px solid var(--line);border-radius:11px}nav a{padding:8px 11px;border-radius:8px;text-decoration:none;color:var(--muted)}nav a:hover,nav a.active{background:#173754;color:var(--text)}.actions{display:flex;gap:9px;align-items:center;flex-wrap:wrap}.button{display:inline-block;padding:9px 12px;border:1px solid var(--line);border-radius:8px;color:var(--text);text-decoration:none;background:var(--panel)}.namespace,code{font-family:ui-monospace,SFMono-Regular,Consolas,monospace}.namespace{color:var(--blue)}.status-line{color:var(--muted);margin:0 0 18px}.cards{display:grid;grid-template-columns:repeat(6,minmax(135px,1fr));gap:11px;margin:0 0 20px}.card{background:rgba(16,29,48,.91);border:1px solid var(--line);border-radius:11px;padding:14px;min-width:0}.card label{display:block;color:var(--muted);font-size:12px}.card strong{display:block;color:var(--green);font-size:23px;margin-top:5px;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}.card small{display:block;color:var(--muted);margin-top:5px}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin-bottom:16px}.panel{background:rgba(16,29,48,.91);border:1px solid var(--line);border-radius:11px;padding:17px;overflow:auto;margin-bottom:16px}.panel p:last-child{margin-bottom:0}.table-wrap{overflow:auto}table{width:100%;border-collapse:collapse;min-width:780px}th,td{text-align:left;padding:10px 9px;border-bottom:1px solid var(--line);vertical-align:top}th{color:var(--muted);font-size:11px;letter-spacing:.04em;text-transform:uppercase;white-space:nowrap}td{color:var(--text)}td.number,th.number{text-align:right;font-variant-numeric:tabular-nums}.muted{color:var(--muted)}.tiny{font-size:12px}.wrap{overflow-wrap:anywhere;max-width:440px}.status-pill{display:inline-block;padding:3px 7px;border-radius:999px;font-size:11px;white-space:nowrap}.status-pill.ok{background:#123b35;color:var(--green)}.status-pill.missing{background:#3d321d;color:var(--orange)}.status-pill.bad{background:#452529;color:var(--red)}.tag{display:inline-block;color:var(--blue);background:#163651;border-radius:999px;padding:3px 7px;font-size:11px}.metric-list{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}.metric-list span{background:var(--panel2);border:1px solid var(--line);border-radius:7px;padding:7px 9px;color:var(--muted)}.metric-list b{color:var(--text);font-variant-numeric:tabular-nums}.file-details{color:var(--muted);font-size:12px;line-height:1.45}.event-details{display:flex;flex-wrap:wrap;gap:5px}.event-details span{padding:3px 6px;background:var(--panel2);border:1px solid var(--line);border-radius:5px;color:var(--muted);font-size:11px}.event-details b{color:var(--text);font-weight:500}.notice{padding:11px 13px;border-left:3px solid var(--blue);background:#0d2235;color:var(--muted);border-radius:5px;margin-bottom:16px}.notice.warn{border-left-color:var(--orange);background:#2b2415}.empty{color:var(--muted);padding:15px 5px}.route-card{display:block;text-decoration:none;color:var(--text);height:100%}.route-card:hover .card{border-color:var(--blue)}.route-card .card strong{color:var(--blue)}@media(max-width:1100px){.cards{grid-template-columns:repeat(3,minmax(135px,1fr))}}@media(max-width:760px){body{padding:16px}header{display:block}.actions{margin-top:14px}.grid{grid-template-columns:1fr}.cards{grid-template-columns:repeat(2,minmax(130px,1fr))}.panel{padding:13px}}
-</style></head><body><main>${pageNav(active)}${content}<p class="tiny muted">Generated ${escapeHtml(formatDate(generatedAt || new Date().toISOString()))}. Pages refresh every 60 seconds.</p></main></body></html>`;
+${METRICS_CHART_STYLES}
+</style></head><body><main>${pageNav(active)}${content}${charts}<p class="tiny muted">Generated ${escapeHtml(formatDate(generatedAt || new Date().toISOString()))}. Pages refresh every 60 seconds.</p></main></body></html>`;
 }
 
 function header(title: string, description: string, jsonPath: string): string {
@@ -76,7 +82,10 @@ function fileDetails(details: Record<string, unknown>): string {
         let rendered: string;
         if (typeof value === "number") rendered = key.toLowerCase().includes("bytes") ? formatBytes(value) : formatNumber(value);
         else if (typeof value === "boolean") rendered = value ? "yes" : "no";
-        else if (typeof value === "object") rendered = JSON.stringify(value);
+        else if (typeof value === "object") {
+            const json = JSON.stringify(value);
+            rendered = json.length > 240 ? `${json.slice(0, 237)}…` : json;
+        }
         else rendered = String(value);
         return `<span>${escapeHtml(key)}: ${escapeHtml(rendered)}</span>`;
     }).join(" · ");
@@ -180,22 +189,139 @@ function telemetryFilesRows(snapshot: JsonlSnapshot<unknown>): string {
     return snapshot.files.map(file => `<tr><td><code>${escapeHtml(file.name)}</code></td><td class="number">${formatNumber(file.events)}</td><td class="number">${formatNumber(file.invalidLines)}</td><td class="number">${formatBytes(file.sizeBytes)}</td><td>${escapeHtml(formatDate(file.modifiedAt))}</td><td>${file.truncated ? statusPill("error") : statusPill("present")}</td><td><code>${escapeHtml(file.path)}</code></td></tr>`).join("");
 }
 
+type AutocompleteDailyPoint = {
+    date: string;
+    requests: number;
+    successfulResponses: number;
+    failedResponses: number;
+    zeroResultRequests: number;
+    resultCountTotal: number;
+    durationTotalMs: number;
+};
+
+function metricNumber(value: unknown): number {
+    const number = Number(value);
+    return Number.isFinite(number) ? Math.max(0, number) : 0;
+}
+
+function dayKey(value: unknown): string | null {
+    const day = String(value || "").trim();
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) return null;
+    const date = new Date(`${day}T00:00:00.000Z`);
+    return Number.isFinite(date.getTime()) && date.toISOString().slice(0, 10) === day ? day : null;
+}
+
+function chartDays(sources: Array<Array<{ date: string }>>, count = 30): string[] {
+    const dates = Array.from(new Set(sources.flatMap(source => source.map(point => dayKey(point.date)).filter(Boolean) as string[]))).sort();
+    if (!dates.length) return [];
+    const latest = new Date(`${dates[dates.length - 1]}T00:00:00.000Z`);
+    const result: string[] = [];
+    for (let offset = count - 1; offset >= 0; offset--) {
+        const date = new Date(latest.getTime() - offset * 24 * 60 * 60 * 1000);
+        result.push(date.toISOString().slice(0, 10));
+    }
+    return result;
+}
+
+function chartDayLabel(day: string): string {
+    const date = new Date(`${day}T00:00:00.000Z`);
+    return Number.isFinite(date.getTime())
+        ? date.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" })
+        : day;
+}
+
+function jsonlPoint(points: JsonlDailyPoint[], date: string): JsonlDailyPoint | undefined {
+    return points.find(point => point.date === date);
+}
+
+function autocompletePoints(value: unknown): AutocompleteDailyPoint[] {
+    if (!Array.isArray(value)) return [];
+    return value.map((entry: any) => ({
+        date: dayKey(entry?.date) || "",
+        requests: metricNumber(entry?.requests),
+        successfulResponses: metricNumber(entry?.successfulResponses),
+        failedResponses: metricNumber(entry?.failedResponses),
+        zeroResultRequests: metricNumber(entry?.zeroResultRequests),
+        resultCountTotal: metricNumber(entry?.resultCountTotal),
+        durationTotalMs: metricNumber(entry?.durationTotalMs)
+    })).filter(entry => Boolean(entry.date));
+}
+
+function autocompletePoint(points: AutocompleteDailyPoint[], date: string): AutocompleteDailyPoint | undefined {
+    return points.find(point => point.date === date);
+}
+
+function dailyTypeCount(point: JsonlDailyPoint | undefined, type: string): number {
+    return metricNumber(point?.byType?.[type]);
+}
+
+function dailyAverage(point: JsonlDailyPoint | undefined, type: string, field: string): number {
+    const total = metricNumber(point?.byTypeNumericTotals?.[type]?.[field]);
+    const count = metricNumber(point?.byTypeNumericCounts?.[type]?.[field]);
+    return count ? total / count : 0;
+}
+
+function safeRate(numerator: number, denominator: number): string {
+    return denominator > 0 ? `${((numerator / denominator) * 100).toFixed(1)}%` : "0.0%";
+}
+
 function renderOverview(snapshot: FileCacheSnapshot): string {
     const s = snapshot.sprite;
     const m = snapshot.maps;
     const missing = snapshot.missingCosmetics;
     const autocomplete = snapshot.autocomplete;
+    const autocompleteDaily = autocompletePoints(autocomplete.details.daily);
+    const days = chartDays([s.telemetry.daily, missing.daily, autocompleteDaily]);
+    const labels = days.map(chartDayLabel);
+    const autocompleteRequests = days.map(day => metricNumber(autocompletePoint(autocompleteDaily, day)?.requests));
+    const spriteEvents = days.map(day => metricNumber(jsonlPoint(s.telemetry.daily, day)?.events));
+    const missingReports = days.map(day => metricNumber(jsonlPoint(missing.daily, day)?.events));
+    const spriteFailures = days.map(day => metricNumber(jsonlPoint(s.telemetry.daily, day)?.byOutcome?.failure));
+    const missingFailures = days.map(day => metricNumber(jsonlPoint(missing.daily, day)?.byOutcome?.failure));
+    const autocompleteFailures = days.map(day => metricNumber(autocompletePoint(autocompleteDaily, day)?.failedResponses));
+    const autocompleteRequestsTotal = metricNumber(autocomplete.details.requests);
+    const observedEvents = s.telemetry.totalEvents + missing.totalEvents + autocompleteRequestsTotal;
+    const failureTotal = metricNumber(s.telemetry.byOutcome.failure) + missing.failedReports + metricNumber(autocomplete.details.failedResponses);
+    const currentCatalog = s.dataFiles.find(file => file.status === "present" && file.details.season && file.details.season !== "Unknown season");
+    const catalogSeason = currentCatalog ? String(currentCatalog.details.season) : "Not available";
+    const lastActivity = [s.telemetry.newestAt, missing.newestAt, autocomplete.modifiedAt].filter(Boolean).sort().pop() || null;
     return shell("Metrics overview", "overview", `${header("File-backed metrics", `Read-only cache and telemetry overview · namespace ${snapshot.namespace}`, "/metrics/files.json")}
-    <p class="status-line">This dashboard reads the application’s known files on this machine. It does not change, delete, or rebuild any cache. Missing local stores are shown as “not created yet,” which is normal for a fresh Windows development checkout.</p>
+    <p class="status-line">A quick operational view of the bot’s durable files, cache activity, search demand, and recent failures. All charts use UTC dates and the underlying JSON links remain available for exact values.</p>
     <section class="cards">
         <div class="card"><label>Cache directory</label><strong>${formatBytes(snapshot.cacheRoot.bytes)}</strong><small>${formatNumber(snapshot.cacheRoot.files)} files</small></div>
         <div class="card"><label>Sprite cache</label><strong>${formatBytes(s.root.bytes)}</strong><small>${formatNumber(s.root.files)} files</small></div>
         <div class="card"><label>Sprite telemetry</label><strong>${formatNumber(s.telemetry.totalEvents)}</strong><small>${formatNumber(s.telemetry.totalFiles)} JSONL files</small></div>
         <div class="card"><label>Map image assets</label><strong>${formatBytes(m.assets.bytes)}</strong><small>${formatNumber(m.assets.files)} files</small></div>
         <div class="card"><label>Missing reports</label><strong>${formatNumber(missing.totalEvents)}</strong><small>${formatNumber(missing.failedReports)} failures</small></div>
-        <div class="card"><label>Autocomplete searches</label><strong>${formatNumber(autocomplete.details.requests)}</strong><small>${formatBytes(autocomplete.sizeBytes)} · ${statusLabel(autocomplete.status)}</small></div>
+        <div class="card"><label>Autocomplete searches</label><strong>${formatNumber(autocompleteRequestsTotal)}</strong><small>${formatBytes(autocomplete.sizeBytes)} · ${statusLabel(autocomplete.status)}</small></div>
+        <div class="card"><label>Observed failure rate</label><strong>${safeRate(failureTotal, observedEvents)}</strong><small>${formatNumber(failureTotal)} of ${formatNumber(observedEvents)} events</small></div>
+        <div class="card"><label>Current sprite season</label><strong>${escapeHtml(catalogSeason)}</strong><small>${escapeHtml(snapshot.namespace)} namespace</small></div>
         <div class="card"><label>Runtime</label><strong>${escapeHtml(snapshot.environment.platform)}</strong><small>${escapeHtml(snapshot.environment.nodeEnv)} · ${snapshot.environment.productionRenderCacheEnabled ? "disk cache on" : "disk cache off"}</small></div>
     </section>
+    <div class="chart-grid">
+        ${renderMetricsChart({
+            id: "overview-activity",
+            title: "Activity over time",
+            description: days.length ? `Daily activity · last ${days.length} UTC days` : "Daily activity",
+            type: "line",
+            labels,
+            datasets: [
+                { label: "Autocomplete", data: autocompleteRequests, color: "blue" },
+                { label: "Sprite events", data: spriteEvents, color: "purple" },
+                { label: "Missing reports", data: missingReports, color: "orange" }
+            ],
+            emptyMessage: "No timestamped activity has been recorded yet."
+        })}
+        ${renderMetricsChart({
+            id: "overview-failures",
+            title: "Failures by subsystem",
+            description: "Total failures in the same period",
+            type: "bar",
+            labels: ["Sprites", "Missing reports", "Autocomplete"],
+            datasets: [{ label: "Failures", data: [spriteFailures.reduce((a, b) => a + b, 0), missingFailures.reduce((a, b) => a + b, 0), autocompleteFailures.reduce((a, b) => a + b, 0)], color: "red" }],
+            emptyMessage: "No failures have been recorded in the selected period."
+        })}
+    </div>
     <div class="grid">
         <a class="route-card" href="/metrics/files"><section class="card"><h2>File stores</h2><p>Every known JSON file, telemetry directory, archive root, asset cache, render cache, map asset folder, and persistent branding asset.</p><strong>Open inventory →</strong></section></a>
         <a class="route-card" href="/metrics/sprites"><section class="card"><h2>Sprite cache</h2><p>Current catalogs, history files, season archives, binary assets, rendered PNGs, and the full JSONL sprite performance feed.</p><strong>Open sprite view →</strong></section></a>
@@ -203,7 +329,7 @@ function renderOverview(snapshot: FileCacheSnapshot): string {
         <a class="route-card" href="/metrics/missing-cosmetics"><section class="card"><h2>Missing cosmetics</h2><p>Daily timing files with request totals, report outcomes, cache usage, and recent safe timing records.</p><strong>Open timing view →</strong></section></a>
         <a class="route-card" href="/metrics/autocomplete"><section class="card"><h2>Autocomplete</h2><p>File-backed cosmetic, sprite, and map searches, including the full username history retained in the JSON file.</p><strong>Open search view →</strong></section></a>
     </div>
-    <section class="panel"><h2>What is not in these file views</h2><p>In-memory Discord caches, live Chromium pages, current job counters, and the live <code>c!cpu</code> process snapshot are not persisted files. They reset with a process and remain available through <code>c!cpu</code>; this dashboard focuses on data that can survive a restart or build when its underlying volume/repository/database is preserved.</p></section>`, snapshot.generatedAt);
+    <section class="panel"><h2>Freshness and scope</h2><div class="metric-list"><span>Last activity <b>${escapeHtml(formatDate(lastActivity))}</b></span><span>Chart window <b>${days.length ? `${days.length} UTC days` : "Waiting for data"}</b></span><span>Namespace <b>${escapeHtml(snapshot.namespace)}</b></span><span>Persistent source <b>JSON files</b></span></div><p style="margin-top:12px">In-memory Discord caches, live Chromium pages, current job counters, and the live <code>c!cpu</code> process snapshot are not persisted files. They reset with a process and remain available through <code>c!cpu</code>; this dashboard focuses on data that can survive a restart or build when its underlying volume/repository is preserved.</p></section>`, snapshot.generatedAt);
 }
 
 function renderFiles(snapshot: FileCacheSnapshot): string {
@@ -219,7 +345,20 @@ function renderFiles(snapshot: FileCacheSnapshot): string {
         ["Missing-cosmetics telemetry", snapshot.missingCosmetics.directory],
     ];
     for (const child of snapshot.cacheChildren) directories.push([`Cache child: ${child.name}`, child]);
+    const storage = directories
+        .filter(([, directory]) => directory.bytes > 0)
+        .sort((a, b) => b[1].bytes - a[1].bytes)
+        .slice(0, 10);
     return shell("File stores", "files", `${header("File store inventory", `Known persistent files and directories · namespace ${snapshot.namespace}`, "/metrics/files.json")}
+    <div class="chart-grid">${renderMetricsChart({
+        id: "files-footprint",
+        title: "Current storage footprint",
+        description: "Largest known directories by on-disk size",
+        type: "bar",
+        labels: storage.map(([label]) => label.replace(/^Cache child: /, "")),
+        datasets: [{ label: "Bytes", data: storage.map(([, directory]) => directory.bytes), color: "blue" }],
+        emptyMessage: "No persistent cache files have been created yet."
+    })}</div>
     <div class="notice">Only fixed application paths are read. Binary assets are counted by size and file count; Discord usernames are shown for attribution, while user IDs, message IDs, cache hashes, and raw JSONL records are not sent to the browser.</div>
     <section class="panel"><h2>JSON and persistent file stores</h2><div class="table-wrap"><table><thead><tr><th>Store</th><th>Status</th><th>Path</th><th class="number">Size</th><th>Updated</th><th>Decoded summary</th><th>ID</th></tr></thead><tbody>${fileRows(files)}</tbody></table></div></section>
     <section class="panel"><h2>Directories and binary cache totals</h2><div class="table-wrap"><table><thead><tr><th>Directory</th><th>Status</th><th>Path</th><th class="number">Files</th><th class="number">Bytes</th><th>Newest change</th><th>Notes</th></tr></thead><tbody>${directories.map(([label, directory]) => directoryRow(label, directory)).join("")}</tbody></table></div></section>
@@ -229,7 +368,9 @@ function renderFiles(snapshot: FileCacheSnapshot): string {
 function renderSprites(snapshot: FileCacheSnapshot): string {
     const sprite = snapshot.sprite;
     const telemetry = sprite.telemetry;
-    const renderAverage = telemetry.numericCounts.durationMs ? telemetry.numericTotals.durationMs / telemetry.numericCounts.durationMs : 0;
+    const renderAverage = telemetry.byTypeNumericCounts.render?.durationMs ? telemetry.byTypeNumericTotals.render.durationMs / telemetry.byTypeNumericCounts.render.durationMs : 0;
+    const days = chartDays([telemetry.daily]);
+    const labels = days.map(chartDayLabel);
     return shell("Sprite cache", "sprites", `${header("Sprite cache and telemetry", `Catalog, history, archives, binary caches, and JSONL performance data · namespace ${snapshot.namespace}`, "/metrics/sprites.json")}
     <section class="cards">
         <div class="card"><label>Render events</label><strong>${formatNumber(telemetry.renderEvents)}</strong><small>${formatNumber(telemetry.renderFailures)} failures</small></div>
@@ -237,8 +378,35 @@ function renderSprites(snapshot: FileCacheSnapshot): string {
         <div class="card"><label>Catalog syncs</label><strong>${formatNumber(telemetry.catalogSyncEvents)}</strong><small>${formatNumber(telemetry.catalogSyncFailures)} failures</small></div>
         <div class="card"><label>Catalog changes</label><strong>${formatNumber(telemetry.changedCatalogEvents)}</strong><small>historical JSONL count</small></div>
         <div class="card"><label>Render generation</label><strong>${formatNumber(telemetry.renderGenerationEvents)}</strong><small>progress records</small></div>
-        <div class="card"><label>Avg event duration</label><strong>${formatDuration(renderAverage)}</strong><small>${formatNumber(telemetry.totalEvents)} safe records</small></div>
+        <div class="card"><label>Avg render duration</label><strong>${formatDuration(renderAverage)}</strong><small>${formatNumber(telemetry.renderEvents)} render records</small></div>
+        <div class="card"><label>Render failure rate</label><strong>${safeRate(telemetry.renderFailures, telemetry.renderEvents)}</strong><small>${formatNumber(telemetry.renderFailures)} of ${formatNumber(telemetry.renderEvents)}</small></div>
+        <div class="card"><label>Binary cache footprint</label><strong>${formatBytes(sprite.assetCache.directory.bytes + sprite.renderCache.directory.bytes)}</strong><small>assets + rendered PNGs</small></div>
     </section>
+    <div class="chart-grid">
+        ${renderMetricsChart({
+            id: "sprite-activity",
+            title: "Sprite activity over time",
+            description: days.length ? `Daily event volume · last ${days.length} UTC days` : "Daily event volume",
+            type: "line",
+            labels,
+            datasets: [
+                { label: "Renders", data: days.map(day => dailyTypeCount(jsonlPoint(telemetry.daily, day), "render")), color: "blue" },
+                { label: "Asset loads", data: days.map(day => dailyTypeCount(jsonlPoint(telemetry.daily, day), "asset")), color: "green" },
+                { label: "Catalog syncs", data: days.map(day => dailyTypeCount(jsonlPoint(telemetry.daily, day), "catalog-sync")), color: "purple" }
+            ],
+            emptyMessage: "No timestamped sprite telemetry has been recorded yet."
+        })}
+        ${renderMetricsChart({
+            id: "sprite-render-latency",
+            title: "Average render time",
+            description: "Average render duration per UTC day",
+            type: "line",
+            labels,
+            datasets: [{ label: "Render duration", data: days.map(day => dailyAverage(jsonlPoint(telemetry.daily, day), "render", "durationMs")), color: "orange" }],
+            valueSuffix: " ms",
+            emptyMessage: "No render duration telemetry has been recorded yet."
+        })}
+    </div>
     <section class="panel"><h2>Sprite telemetry feed</h2><p>${escapeHtml(directoryText(telemetry.directory))}. ${telemetry.skippedFiles ? `${formatNumber(telemetry.skippedFiles)} older files were skipped after the safety limit.` : "All discovered JSONL files were included."}</p>${jsonlSummary(telemetry, "Event types")}${renderSpritePerformanceSummary(telemetry)}<div class="table-wrap"><table><thead><tr><th>File</th><th class="number">Records</th><th class="number">Invalid</th><th class="number">Size</th><th>Updated</th><th>Read</th><th>Path</th></tr></thead><tbody>${telemetryFilesRows(telemetry)}</tbody></table></div></section>
     <section class="panel"><h2>Catalog and history files</h2><div class="table-wrap"><table><thead><tr><th>Store</th><th>Status</th><th>Path</th><th class="number">Size</th><th>Updated</th><th>Decoded summary</th><th>ID</th></tr></thead><tbody>${fileRows([...sprite.dataFiles, ...sprite.historyFiles])}</tbody></table></div></section>
     <section class="panel"><h2>Season archives</h2><p>Each row is one immutable archive folder discovered under the active namespace, checked-in archive folder, or configured filesystem backup.</p><div class="table-wrap"><table><thead><tr><th>Root</th><th>Season</th><th>Folder</th><th>Manifest</th><th class="number">Sprites</th><th class="number">Assets</th><th class="number">Missing</th><th class="number">Asset bytes</th><th>Archived</th><th>Folder changed</th><th>Path</th></tr></thead><tbody>${archiveRows(sprite.archiveRoots)}</tbody></table></div></section>
@@ -251,6 +419,9 @@ function renderMaps(snapshot: FileCacheSnapshot): string {
     const data = files.find(file => file.id === "map-data")?.details || {};
     const history = files.find(file => file.id === "map-history")?.details || {};
     const imageManifest = files.find(file => file.id === "map-image-manifest")?.details || {};
+    const chapterCounts = data.chapterCounts && typeof data.chapterCounts === "object"
+        ? Object.entries(data.chapterCounts as Record<string, unknown>).sort((a, b) => Number(a[0]) - Number(b[0]))
+        : [];
     return shell("Map cache", "maps", `${header("Map cache", "Map catalogs, historical versions, image manifest, and local map image files", "/metrics/maps.json")}
     <section class="cards">
         <div class="card"><label>Catalog versions</label><strong>${formatNumber(data.records)}</strong><small>latest ${escapeHtml(String(data.latestVersion || "unknown"))}</small></div>
@@ -260,6 +431,26 @@ function renderMaps(snapshot: FileCacheSnapshot): string {
         <div class="card"><label>Chapters</label><strong>${formatNumber(data.chapters)}</strong><small>catalog distinct chapters</small></div>
         <div class="card"><label>POI versions</label><strong>${formatNumber(data.versionsWithPois)}</strong><small>catalog entries with POIs</small></div>
     </section>
+    <div class="chart-grid">
+        ${renderMetricsChart({
+            id: "map-chapters",
+            title: "Catalog versions by chapter",
+            description: "Current map catalog distribution",
+            type: "bar",
+            labels: chapterCounts.map(([chapter]) => `Chapter ${chapter}`),
+            datasets: [{ label: "Versions", data: chapterCounts.map(([, count]) => metricNumber(count)), color: "blue" }],
+            emptyMessage: "No map catalog versions have been loaded yet."
+        })}
+        ${renderMetricsChart({
+            id: "map-assets",
+            title: "Map asset coverage",
+            description: "Current manifest and local image counts",
+            type: "bar",
+            labels: ["Manifest versions", "Uploaded", "Local files"],
+            datasets: [{ label: "Assets", data: [metricNumber(imageManifest.versions), metricNumber(imageManifest.uploaded), metricNumber(imageManifest.localAssets)], color: "green" }],
+            emptyMessage: "No map image manifest has been created yet."
+        })}
+    </div>
     <section class="panel"><h2>Map JSON stores</h2><div class="table-wrap"><table><thead><tr><th>Store</th><th>Status</th><th>Path</th><th class="number">Size</th><th>Updated</th><th>Decoded summary</th><th>ID</th></tr></thead><tbody>${fileRows(files)}</tbody></table></div></section>
     <section class="panel"><h2>Local map image directory</h2><p>${escapeHtml(directoryText(snapshot.maps.assets))}</p><div class="table-wrap"><table><thead><tr><th>Directory</th><th>Status</th><th>Path</th><th class="number">Files</th><th class="number">Bytes</th><th>Newest change</th><th>Notes</th></tr></thead><tbody>${directoryRow("Map image assets", snapshot.maps.assets)}</tbody></table></div></section>
     <section class="panel"><h2>How map persistence works</h2><p><code>mapData.json</code> is the catalog used by the command, <code>mapHistory.json</code> is the historical fallback used by asset fetches, and <code>mapImageManifest.json</code> records local/Discord-hosted image metadata. The image directory is scanned by metadata only; the page never serves those files.</p></section>`, snapshot.generatedAt);
@@ -272,6 +463,8 @@ function renderMissing(snapshot: FileCacheSnapshot): string {
     const averageIndex = telemetry.numericCounts.indexMs ? telemetry.numericTotals.indexMs / telemetry.numericCounts.indexMs : 0;
     const averageCalculation = telemetry.numericCounts.calculationMs ? telemetry.numericTotals.calculationMs / telemetry.numericCounts.calculationMs : 0;
     const averageRender = telemetry.numericCounts.renderMs ? telemetry.numericTotals.renderMs / telemetry.numericCounts.renderMs : 0;
+    const days = chartDays([telemetry.daily]);
+    const labels = days.map(chartDayLabel);
     return shell("Missing cosmetics telemetry", "missing", `${header("Missing-cosmetics telemetry", "Persistent daily timing files for missing-cosmetics reports", "/metrics/missing-cosmetics.json")}
     <section class="cards">
         <div class="card"><label>Total reports</label><strong>${formatNumber(telemetry.totalEvents)}</strong><small>${formatNumber(telemetry.successfulReports)} successful</small></div>
@@ -280,7 +473,36 @@ function renderMissing(snapshot: FileCacheSnapshot): string {
         <div class="card"><label>Avg total time</label><strong>${formatDuration(averageTotal)}</strong><small>all recorded reports</small></div>
         <div class="card"><label>Avg index + query</label><strong>${formatDuration(averageIndex + averageCalculation)}</strong><small>index ${formatDuration(averageIndex)}</small></div>
         <div class="card"><label>Avg render</label><strong>${formatDuration(averageRender)}</strong><small>${formatBytes(telemetry.numericTotals.imageBytes)} image bytes total</small></div>
+        <div class="card"><label>Success rate</label><strong>${safeRate(telemetry.successfulReports, telemetry.totalEvents)}</strong><small>${formatNumber(telemetry.failedReports)} failed reports</small></div>
     </section>
+    <div class="chart-grid">
+        ${renderMetricsChart({
+            id: "missing-outcomes",
+            title: "Report outcomes over time",
+            description: days.length ? `Daily reports · last ${days.length} UTC days` : "Daily reports",
+            type: "line",
+            labels,
+            datasets: [
+                { label: "Successful", data: days.map(day => metricNumber(jsonlPoint(telemetry.daily, day)?.byOutcome?.success)), color: "green" },
+                { label: "Image fallback", data: days.map(day => metricNumber(jsonlPoint(telemetry.daily, day)?.byOutcome?.["image-fallback"])), color: "orange" },
+                { label: "Failed", data: days.map(day => metricNumber(jsonlPoint(telemetry.daily, day)?.byOutcome?.failure)), color: "red" }
+            ],
+            emptyMessage: "No timestamped missing-cosmetics reports have been recorded yet."
+        })}
+        ${renderMetricsChart({
+            id: "missing-performance",
+            title: "Report timing over time",
+            description: "Daily average total and render time",
+            type: "line",
+            labels,
+            datasets: [
+                { label: "Total ms", data: days.map(day => dailyAverage(jsonlPoint(telemetry.daily, day), "missing-cosmetics", "totalMs")), color: "blue" },
+                { label: "Render ms", data: days.map(day => dailyAverage(jsonlPoint(telemetry.daily, day), "missing-cosmetics", "renderMs")), color: "purple" }
+            ],
+            valueSuffix: " ms",
+            emptyMessage: "No timing telemetry has been recorded yet."
+        })}
+    </div>
     <section class="panel"><h2>Daily timing files</h2><p>${escapeHtml(directoryText(telemetry.directory))}. Files are append-only JSONL diagnostics and are not removed by application builds.</p>${jsonlSummary(telemetry, "Report records")}<div class="table-wrap"><table><thead><tr><th>File</th><th class="number">Reports</th><th class="number">Invalid</th><th class="number">Size</th><th>Updated</th><th>Read</th><th>Path</th></tr></thead><tbody>${telemetryFilesRows(telemetry)}</tbody></table></div></section>
     <section class="panel"><h2>Recent report timings</h2><p>These rows contain timings, counts, and the Discord username that triggered the report. The user-facing “cached” wording was removed; the flag remains here as an internal performance metric.</p><div class="table-wrap"><table><thead><tr><th>Type</th><th>Outcome</th><th>When</th><th>Timing details</th></tr></thead><tbody>${eventRows<MissingTelemetryEvent>(telemetry.recent)}</tbody></table></div></section>
     <section class="panel"><h2>Average timing components</h2><div class="metric-list"><span>History <b>${formatDuration(averageHistory)}</b></span><span>Index <b>${formatDuration(averageIndex)}</b></span><span>Calculation <b>${formatDuration(averageCalculation)}</b></span><span>Render <b>${formatDuration(averageRender)}</b></span><span>Delivery <b>${formatDuration(telemetry.numericCounts.deliveryMs ? telemetry.numericTotals.deliveryMs / telemetry.numericCounts.deliveryMs : 0)}</b></span><span>Cleanup <b>${formatDuration(telemetry.numericCounts.cleanupMs ? telemetry.numericTotals.cleanupMs / telemetry.numericCounts.cleanupMs : 0)}</b></span></div></section>`, snapshot.generatedAt);
@@ -312,6 +534,14 @@ function sendJson(response: Response, value: unknown, status = 200): void {
 }
 
 export function registerFileCacheMetricsRoutes(app: Application): void {
+    app.get("/metrics/chart.js", allowPublicMetrics, (_request: Request, response: Response) => {
+        response.set("Cache-Control", "public, max-age=3600");
+        response.set("X-Content-Type-Options", "nosniff");
+        response.sendFile(CHART_JS_PATH, error => {
+            if (error && !response.headersSent) response.status(404).type("text").send("Chart library is not installed.");
+        });
+    });
+
     app.get("/metrics", allowPublicMetrics, async (_request: Request, response: Response) => {
         const snapshot = await loadSnapshot(response);
         if (!snapshot) return sendHtml(response, unavailablePage(response.locals.fileMetricsError || "File metrics are unavailable."), 503);

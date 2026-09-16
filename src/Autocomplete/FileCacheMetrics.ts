@@ -37,6 +37,7 @@ const MAX_JSONL_READ_BYTES = 16 * 1024 * 1024;
 const MAX_TREE_FILES = 30_000;
 const MAX_TELEMETRY_FILES = 5_000;
 const MAX_RECENT_EVENTS = 100;
+const MAX_DAILY_POINTS = 180;
 const MAX_ARCHIVES_PER_ROOT = 250;
 const MAX_CACHE_FINGERPRINTS = 250;
 
@@ -75,6 +76,18 @@ export type JsonlFileSummary = {
     truncated: boolean;
 };
 
+export type JsonlDailyPoint = {
+    date: string;
+    events: number;
+    byType: Record<string, number>;
+    byOutcome: Record<string, number>;
+    byTypeOutcome: Record<string, Record<string, number>>;
+    numericTotals: Record<string, number>;
+    numericCounts: Record<string, number>;
+    byTypeNumericTotals: Record<string, Record<string, number>>;
+    byTypeNumericCounts: Record<string, Record<string, number>>;
+};
+
 export type JsonlSnapshot<T> = {
     directory: DirectorySummary;
     files: JsonlFileSummary[];
@@ -95,6 +108,7 @@ export type JsonlSnapshot<T> = {
     byTypeNumericTotals: Record<string, Record<string, number>>;
     byTypeNumericCounts: Record<string, Record<string, number>>;
     booleanCounts: Record<string, number>;
+    daily: JsonlDailyPoint[];
     recent: T[];
 };
 
@@ -472,12 +486,17 @@ function summarizeSpriteHistory(value: any): Record<string, unknown> {
 function summarizeMapData(value: any): Record<string, unknown> {
     const entries = arrayValue(value);
     const chapters = new Set<number>();
+    const chapterCounts: Record<string, number> = {};
     const seasons = new Set<string>();
     let images = 0;
     let pois = 0;
     for (const entry of entries) {
         const chapter = Number(entry?.chapter);
-        if (Number.isFinite(chapter)) chapters.add(chapter);
+        if (Number.isFinite(chapter)) {
+            chapters.add(chapter);
+            const chapterKey = String(chapter);
+            chapterCounts[chapterKey] = (chapterCounts[chapterKey] || 0) + 1;
+        }
         const season = cleanText(entry?.season, "", 40);
         if (season) seasons.add(season);
         if (entry?.hasImage) images++;
@@ -487,6 +506,7 @@ function summarizeMapData(value: any): Record<string, unknown> {
         records: entries.length,
         latestVersion: cleanText(entries[0]?.version, "", 80) || null,
         chapters: chapters.size,
+        chapterCounts,
         seasons: seasons.size,
         versionsWithImages: images,
         versionsWithPois: pois
@@ -508,6 +528,17 @@ function summarizeMapImageManifest(value: any): Record<string, unknown> {
 
 function summarizeAutocompleteMetrics(value: any): Record<string, unknown> {
     const rows = Array.isArray(value?.rows) ? value.rows : [];
+    const daily = Array.isArray(value?.daily)
+        ? value.daily.map((entry: any) => ({
+            date: cleanText(entry?.date, "", 10),
+            requests: nonNegativeNumber(entry?.requests),
+            successfulResponses: nonNegativeNumber(entry?.successfulResponses),
+            failedResponses: nonNegativeNumber(entry?.failedResponses),
+            zeroResultRequests: nonNegativeNumber(entry?.zeroResultRequests),
+            resultCountTotal: nonNegativeNumber(entry?.resultCountTotal),
+            durationTotalMs: nonNegativeNumber(entry?.durationTotalMs)
+        })).filter((entry: any) => /^\d{4}-\d{2}-\d{2}$/.test(entry.date)).slice(-366)
+        : [];
     const usernames = rows.reduce((total: number, row: any) => {
         const history = Array.isArray(row?.usernameHistory)
             ? row.usernameHistory
@@ -520,7 +551,12 @@ function summarizeAutocompleteMetrics(value: any): Record<string, unknown> {
         generatedAt: validIsoDate(value?.generatedAt),
         queries: rows.length,
         requests: nonNegativeNumber(value?.totals?.requests),
-        usernames
+        successfulResponses: nonNegativeNumber(value?.totals?.successfulResponses),
+        failedResponses: nonNegativeNumber(value?.totals?.failedResponses),
+        zeroResultRequests: nonNegativeNumber(value?.totals?.zeroResultRequests),
+        usernames,
+        dailyDays: daily.length,
+        daily
     };
 }
 
@@ -615,6 +651,7 @@ async function readJsonlDirectory<T>(
         byTypeNumericTotals: {},
         byTypeNumericCounts: {},
         booleanCounts: {},
+        daily: [],
         recent: []
     };
     if (directorySummary.status !== "present") return empty;
@@ -638,6 +675,7 @@ async function readJsonlDirectory<T>(
         totalBytes: directorySummary.bytes
     };
     const recent: Array<{ timestamp: string | null; event: T }> = [];
+    const daily = new Map<string, JsonlDailyPoint>();
 
     for (const entry of filesToRead) {
         const filePath = path.join(directory, entry.name);
@@ -677,11 +715,37 @@ async function readJsonlDirectory<T>(
             const type = cleanMetricKey(classifyType(raw), "record");
             result.byType[type] = (result.byType[type] || 0) + 1;
             const outcome = classifyOutcome(raw);
+            const date = timestamp ? timestamp.slice(0, 10) : null;
+            let dailyPoint: JsonlDailyPoint | undefined;
+            if (date) {
+                dailyPoint = daily.get(date);
+                if (!dailyPoint) {
+                    dailyPoint = {
+                        date,
+                        events: 0,
+                        byType: {},
+                        byOutcome: {},
+                        byTypeOutcome: {},
+                        numericTotals: {},
+                        numericCounts: {},
+                        byTypeNumericTotals: {},
+                        byTypeNumericCounts: {}
+                    };
+                    daily.set(date, dailyPoint);
+                }
+                dailyPoint.events++;
+                dailyPoint.byType[type] = (dailyPoint.byType[type] || 0) + 1;
+            }
             if (outcome) {
                 const outcomeKey = cleanMetricKey(outcome, "unknown");
                 result.byOutcome[outcomeKey] = (result.byOutcome[outcomeKey] || 0) + 1;
                 if (!result.byTypeOutcome[type]) result.byTypeOutcome[type] = {};
                 result.byTypeOutcome[type][outcomeKey] = (result.byTypeOutcome[type][outcomeKey] || 0) + 1;
+                if (dailyPoint) {
+                    dailyPoint.byOutcome[outcomeKey] = (dailyPoint.byOutcome[outcomeKey] || 0) + 1;
+                    if (!dailyPoint.byTypeOutcome[type]) dailyPoint.byTypeOutcome[type] = {};
+                    dailyPoint.byTypeOutcome[type][outcomeKey] = (dailyPoint.byTypeOutcome[type][outcomeKey] || 0) + 1;
+                }
             }
 
             for (const field of NUMERIC_TELEMETRY_FIELDS) {
@@ -689,6 +753,14 @@ async function readJsonlDirectory<T>(
                 if (!Number.isFinite(value)) continue;
                 result.numericTotals[field] = (result.numericTotals[field] || 0) + Math.max(0, value);
                 result.numericCounts[field] = (result.numericCounts[field] || 0) + 1;
+                if (dailyPoint) {
+                    dailyPoint.numericTotals[field] = (dailyPoint.numericTotals[field] || 0) + Math.max(0, value);
+                    dailyPoint.numericCounts[field] = (dailyPoint.numericCounts[field] || 0) + 1;
+                    if (!dailyPoint.byTypeNumericTotals[type]) dailyPoint.byTypeNumericTotals[type] = {};
+                    if (!dailyPoint.byTypeNumericCounts[type]) dailyPoint.byTypeNumericCounts[type] = {};
+                    dailyPoint.byTypeNumericTotals[type][field] = (dailyPoint.byTypeNumericTotals[type][field] || 0) + Math.max(0, value);
+                    dailyPoint.byTypeNumericCounts[type][field] = (dailyPoint.byTypeNumericCounts[type][field] || 0) + 1;
+                }
                 if (!result.byTypeNumericTotals[type]) result.byTypeNumericTotals[type] = {};
                 if (!result.byTypeNumericCounts[type]) result.byTypeNumericCounts[type] = {};
                 result.byTypeNumericTotals[type][field] = (result.byTypeNumericTotals[type][field] || 0) + Math.max(0, value);
@@ -729,6 +801,9 @@ async function readJsonlDirectory<T>(
         const bTime = b.timestamp ? new Date(b.timestamp).getTime() : 0;
         return bTime - aTime;
     });
+    result.daily = Array.from(daily.values())
+        .sort((a, b) => a.date.localeCompare(b.date))
+        .slice(-MAX_DAILY_POINTS);
     result.recent = recent.slice(0, MAX_RECENT_EVENTS).map(entry => entry.event);
     return result;
 }
