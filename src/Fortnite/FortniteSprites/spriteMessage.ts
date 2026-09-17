@@ -20,12 +20,13 @@ export function buildTrackedSpriteMessageEditPayload(
     const content = typeof payload.content === "string" ? payload.content : "";
     const hasEmbeds = Array.isArray(payload.embeds) && payload.embeds.length > 0;
     const hasFiles = Array.isArray(payload.files) && payload.files.length > 0;
+    const { content: _ignoredContent, ...payloadWithoutContent } = payload;
 
     return {
-        ...payload,
-        content: hasEmbeds || hasFiles
-            ? ""
-            : content.trim() || EMPTY_SPRITE_VIEW_MESSAGE,
+        ...payloadWithoutContent,
+        ...(hasEmbeds || hasFiles
+            ? {}
+            : { content: content.trim() || EMPTY_SPRITE_VIEW_MESSAGE }),
         attachments: []
     };
 }

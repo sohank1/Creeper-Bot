@@ -472,7 +472,7 @@ async function testTrackedMessageRefreshPayload() {
         files: [{}],
         components: []
     });
-    assert.strictEqual(visualResponse.content, "");
+    assert.strictEqual("content" in visualResponse, false);
     assert.deepStrictEqual(visualResponse.attachments, []);
 
     const textResponse = buildTrackedSpriteMessageEditPayload({
