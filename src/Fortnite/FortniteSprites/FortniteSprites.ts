@@ -3083,40 +3083,13 @@ export class FortniteSprites {
 
         try {
             page = await this.acquireRenderPage();
-            // This script applies to the next navigation even when the pooled
-            // page previously rendered a Discord response or another source
-            // URL. It covers Chromium builds that still expose webdriver after
-            // the automation launch flag has been removed.
-            await this.withRenderTimeout(
-                "preparing Fortnite.GG source page",
-                () => page.evaluateOnNewDocument(() => {
-                    Object.defineProperty(navigator, "webdriver", { get: () => undefined });
-                })
-            );
-            await this.withRenderTimeout(
-                "setting Fortnite.GG source headers",
-                () => page.setExtraHTTPHeaders({
-                    "Referer": "https://fortnite.gg/",
-                    "Accept-Language": "en-US,en;q=0.9"
-                })
-            );
+            await this.prepareFortniteGgSourcePage(page);
             await this.withRenderTimeout(
                 "loading Fortnite.GG source page",
                 () => page.goto(url, { waitUntil: "domcontentloaded", timeout: RENDER_PROTOCOL_TIMEOUT_MS }),
                 RENDER_PROTOCOL_TIMEOUT_MS + 5_000
             );
-            await this.withRenderTimeout(
-                "waiting for Fortnite.GG source challenge",
-                () => page.waitForFunction(() => {
-                    const title = document.title || "";
-                    const body = document.body?.innerText || "";
-                    return document.querySelectorAll(".sprite-card").length > 0
-                        || !!document.querySelector(".sprite-detail-panel")
-                        || !!document.querySelector("#big-countdown")
-                        || (/chapter\s*\d+\s*season/i.test(title) && !/just a moment|verify you are human|checking your browser/i.test(body));
-                }, { timeout: 20_000 }),
-                25_000
-            );
+            await this.waitForFortniteGgSourcePage(page);
 
             const html = await this.withRenderTimeout(
                 "reading Fortnite.GG source page",
@@ -3137,6 +3110,41 @@ export class FortniteSprites {
                 releaseTurn();
             }
         }
+    }
+
+    private async prepareFortniteGgSourcePage(page: Page) {
+        // This script applies to the next navigation even when the pooled
+        // page previously rendered a Discord response or another source URL.
+        // It covers Chromium builds that still expose webdriver after the
+        // automation launch flag has been removed.
+        await this.withRenderTimeout(
+            "preparing Fortnite.GG source page",
+            () => page.evaluateOnNewDocument(() => {
+                Object.defineProperty(navigator, "webdriver", { get: () => undefined });
+            })
+        );
+        await this.withRenderTimeout(
+            "setting Fortnite.GG source headers",
+            () => page.setExtraHTTPHeaders({
+                "Referer": "https://fortnite.gg/",
+                "Accept-Language": "en-US,en;q=0.9"
+            })
+        );
+    }
+
+    private async waitForFortniteGgSourcePage(page: Page) {
+        await this.withRenderTimeout(
+            "waiting for Fortnite.GG source challenge",
+            () => page.waitForFunction(() => {
+                const title = document.title || "";
+                const body = document.body?.innerText || "";
+                return document.querySelectorAll(".sprite-card").length > 0
+                    || !!document.querySelector(".sprite-detail-panel")
+                    || !!document.querySelector("#big-countdown")
+                    || (/chapter\s*\d+\s*season/i.test(title) && !/just a moment|verify you are human|checking your browser/i.test(body));
+            }, { timeout: 20_000 }),
+            25_000
+        );
     }
 
     private getChromiumExecutablePath(): string | undefined {
@@ -3576,6 +3584,91 @@ export class FortniteSprites {
         };
     }
 
+    private async fetchSpriteAssetCandidateWithBrowser(candidateUrl: string): Promise<SpriteAssetRefreshResult | null> {
+        if (!candidateUrl.includes("fortnite.gg")) return null;
+
+        let releaseTurn!: () => void;
+        const turn = new Promise<void>(resolve => {
+            releaseTurn = resolve;
+        });
+        const previousTurn = this.browserSourceFetchPipeline;
+        this.browserSourceFetchPipeline = previousTurn.then(() => turn);
+        await previousTurn;
+
+        let page: Page | null = null;
+        let pageHealthy = true;
+
+        try {
+            page = await this.acquireRenderPage();
+            await this.prepareFortniteGgSourcePage(page);
+
+            const navigateToAsset = () => page!.goto(candidateUrl, {
+                waitUntil: "domcontentloaded",
+                timeout: RENDER_PROTOCOL_TIMEOUT_MS
+            });
+            let response = await this.withRenderTimeout(
+                "loading Fortnite.GG sprite artwork",
+                navigateToAsset,
+                RENDER_PROTOCOL_TIMEOUT_MS + 5_000
+            ).catch(() => null);
+
+            const responseContentType = () => this.normalizeSpriteContentType(response?.headers()["content-type"]);
+            if (response?.status() !== 404 && (!response || response.status() !== 200 || !responseContentType())) {
+                // A direct image navigation can receive the Cloudflare
+                // challenge before the browser has a clearance cookie. Load a
+                // normal Fortnite.GG page once, wait for it to clear, then
+                // retry the same asset URL in that browser session.
+                await this.withRenderTimeout(
+                    "loading Fortnite.GG artwork clearance page",
+                    () => page!.goto("https://fortnite.gg/sprites", {
+                        waitUntil: "domcontentloaded",
+                        timeout: RENDER_PROTOCOL_TIMEOUT_MS
+                    }),
+                    RENDER_PROTOCOL_TIMEOUT_MS + 5_000
+                );
+                await this.waitForFortniteGgSourcePage(page);
+                response = await this.withRenderTimeout(
+                    "retrying Fortnite.GG sprite artwork",
+                    navigateToAsset,
+                    RENDER_PROTOCOL_TIMEOUT_MS + 5_000
+                ).catch(() => null);
+            }
+
+            if (!response || response.status() !== 200) return null;
+            const contentType = this.normalizeSpriteContentType(responseContentType() || undefined);
+            if (!contentType) return null;
+
+            const imageBuffer = Buffer.from(await response.buffer());
+            if (!await this.isUsableSpriteArtwork(imageBuffer)) return null;
+
+            const headers = response.headers();
+            const etag = headers["etag"];
+            const lastModified = headers["last-modified"];
+            return {
+                src: this.spriteAssetDataUrl(contentType, imageBuffer),
+                buffer: imageBuffer,
+                metadata: {
+                    resolvedUrl: candidateUrl,
+                    contentSha256: this.hashSpriteAsset(imageBuffer),
+                    contentType,
+                    ...(etag ? { etag: String(etag) } : {}),
+                    ...(lastModified ? { lastModified: String(lastModified) } : {}),
+                    checkedAt: new Date().toISOString()
+                }
+            };
+        } catch (error) {
+            pageHealthy = false;
+            if (page) await this.disposeRenderPage(page);
+            throw error;
+        } finally {
+            try {
+                if (page && pageHealthy) await this.releaseRenderPage(page);
+            } finally {
+                releaseTurn();
+            }
+        }
+    }
+
     private async refreshSpriteAsset(
         imageUrl: string,
         dataFingerprint: string,
@@ -3622,6 +3715,20 @@ export class FortniteSprites {
                 if (refreshed) return refreshed;
             } catch {
                 // Try the next known image extension before retaining the prior asset.
+            }
+        }
+
+        // Fortnite.GG may allow the artwork through a real Chromium session
+        // while returning a Cloudflare response to Axios. Try the same
+        // candidate list in the already-configured browser before declaring
+        // the variant unavailable.
+        for (const candidateUrl of Array.from(new Set(candidates))) {
+            try {
+                const refreshed = await this.fetchSpriteAssetCandidateWithBrowser(candidateUrl);
+                if (refreshed) return refreshed;
+            } catch {
+                // Keep trying the remaining extensions and preserve any prior
+                // disk entry when the browser is unavailable.
             }
         }
 
@@ -4029,35 +4136,23 @@ export class FortniteSprites {
                     return diskCached;
                 }
 
-                for (const candidateUrl of this.getSpriteImageUrlCandidates(imageUrl)) {
-                    try {
-                        const res = await axios.get<ArrayBuffer>(candidateUrl, {
-                            responseType: "arraybuffer",
-                            timeout: 15000,
-                            httpsAgent: IMAGE_HTTPS_AGENT,
-                            headers: {
-                                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-                                "Accept": "image/webp,image/png,image/apng,image/*,*/*;q=0.8"
-                            }
-                        });
-                        const contentType = String(res.headers["content-type"] || "").toLowerCase();
-                        if (!contentType.includes("image/")) {
-                            continue;
-                        }
-                        const imageBuffer = Buffer.from(res.data);
-                        if (!await this.isUsableSpriteArtwork(imageBuffer)) {
-                            continue;
-                        }
-                        if (dataFingerprint !== this.getCatalogDataFingerprint()) return null;
-                        const mimeType = contentType.includes("image/") ? contentType.split(";")[0] : "image/png";
-                        const dataUrl = `data:${mimeType};base64,${imageBuffer.toString("base64")}`;
-                        this.setSpriteAssetCacheEntry(imageUrl, dataUrl, dataFingerprint);
-                        await this.persistSpriteAssetToDisk(imageUrl, imageBuffer, mimeType, dataFingerprint);
-                        this.recordAssetTelemetry("network", imageUrl, dataFingerprint, assetStartedAt, telemetryOrigin);
-                        return dataUrl;
-                    } catch {
-                        // Try the next known Fortnite image extension before giving up.
-                    }
+                const manifest = await this.readSpriteAssetManifest(dataFingerprint);
+                const refreshed = await this.refreshSpriteAsset(
+                    imageUrl,
+                    dataFingerprint,
+                    manifest.assets[imageUrl]
+                );
+                if (refreshed) {
+                    if (dataFingerprint !== this.getCatalogDataFingerprint()) return null;
+                    this.setSpriteAssetCacheEntry(imageUrl, refreshed.src, dataFingerprint);
+                    await this.persistSpriteAssetToDisk(
+                        imageUrl,
+                        refreshed.buffer,
+                        refreshed.metadata.contentType,
+                        dataFingerprint
+                    );
+                    this.recordAssetTelemetry("network", imageUrl, dataFingerprint, assetStartedAt, telemetryOrigin);
+                    return refreshed.src;
                 }
 
                 this.recordAssetTelemetry("miss", imageUrl, dataFingerprint, assetStartedAt, telemetryOrigin);
