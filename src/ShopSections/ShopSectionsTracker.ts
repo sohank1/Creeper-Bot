@@ -3,24 +3,52 @@ import { Client, MessageEmbed, TextChannel } from "discord.js";
 import ShopSectionsModel from "./ShopSections.model";
 import { AllShopSectionsResponseObject, EpicModesResponseObject, FormatedSections, SectionStoreEnds } from "./ShopSections.type";
 import shopSectionChannels from "./shopSectionChannels.json"
+import { createTrackedJob, registerComponent } from "../runtimeDiagnostics";
 
 export class ShopSectionsTracker {
+    private lastPollAt: string | null = null;
+    private lastUpdateAt: string | null = null;
+    private lastKnownSectionTotal = 0;
+    private updatesSent = 0;
+    private lastPollError: string | null = null;
+
     constructor(private client: Client) {
-        this.interval();
-        setInterval(() => this.interval(), 15000); // 15 seconds used to be 30 seconds
+        registerComponent("shopSectionsTracker", this);
+        const pollJob = createTrackedJob("shop-sections-poll", "Shop Sections Poll", "Every 15 seconds", () => this.interval());
+        pollJob();
+        setInterval(pollJob, 15000); // 15 seconds used to be 30 seconds
+    }
+
+    public getDiagnostics() {
+        return {
+            lastPollAt: this.lastPollAt,
+            lastUpdateAt: this.lastUpdateAt,
+            lastKnownSectionTotal: this.lastKnownSectionTotal,
+            updatesSent: this.updatesSent,
+            lastPollError: this.lastPollError,
+        };
     }
 
     private async interval(): Promise<void> {
-        const { data } = (await axios.get<EpicModesResponseObject>("https://api.nitestats.com/v1/epic/modes-smart"));
-        const states = data.channels["client-events"].states;
-        const shopSections = states[states.length - 1].state.sectionStoreEnds;
-        const doc = await ShopSectionsModel.findOne();
+        try {
+            const { data } = (await axios.get<EpicModesResponseObject>("https://api.nitestats.com/v1/epic/modes-smart"));
+            const states = data.channels["client-events"].states;
+            const shopSections = states[states.length - 1].state.sectionStoreEnds;
+            this.lastPollAt = new Date().toISOString();
+            this.lastPollError = null;
+            this.lastKnownSectionTotal = Object.keys(shopSections || {}).length;
+            const doc = await ShopSectionsModel.findOne();
 
-        if (JSON.stringify(shopSections) !== JSON.stringify(doc.sections)) {
-            this.sendMessage(await this.formatSections(shopSections))
-            await ShopSectionsModel.updateOne({ sections: shopSections })
+            if (JSON.stringify(shopSections) !== JSON.stringify(doc.sections)) {
+                this.sendMessage(await this.formatSections(shopSections))
+                await ShopSectionsModel.updateOne({ sections: shopSections })
+                this.lastUpdateAt = new Date().toISOString();
+                this.updatesSent++;
+            }
+        } catch (error: any) {
+            this.lastPollError = error?.message || String(error);
+            throw error;
         }
-
     }
 
     private async formatSections(sections: SectionStoreEnds): Promise<FormatedSections> {

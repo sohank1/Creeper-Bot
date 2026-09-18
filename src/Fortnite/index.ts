@@ -1,3 +1,6 @@
 export * from "./fortniteCommand"
 export * from "./FortniteStats/FortniteStats"
 export * from "./FortniteCosmetics/FortniteCosmetics"
+export * from "./FortniteMap/FortniteMap"
+export * from "./FortniteSprites/FortniteSprites"
+export * from "./FortniteSprites/FortniteSpriteCard"

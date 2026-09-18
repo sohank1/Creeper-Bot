@@ -1,0 +1,1078 @@
+{
+  "fetchedAt": "2026-08-20T20:50:54.851Z",
+  "totalSprites": 36,
+  "totalLevels": 180,
+  "listedVariantIds": [
+    161,
+    162,
+    163,
+    164,
+    165,
+    166,
+    167,
+    168,
+    169,
+    170,
+    171,
+    172,
+    173,
+    174,
+    175,
+    176,
+    177,
+    178,
+    179,
+    180,
+    181,
+    182,
+    183,
+    184,
+    185,
+    186,
+    187,
+    188,
+    189,
+    190,
+    191,
+    192,
+    193,
+    194,
+    195,
+    196
+  ],
+  "seasonContext": {
+    "id": "chapter-7-season-4",
+    "chapter": 7,
+    "season": "4",
+    "displayName": "Chapter 7 Season 4",
+    "seasonKey": "42",
+    "endsAt": "2026-11-01T08:00:00.000Z",
+    "source": "fortnite-gg",
+    "validatedBy": [
+      "fortnite-gg"
+    ]
+  },
+  "families": [
+    {
+      "key": "jackrabbit",
+      "displayName": "Jackrabbit",
+      "effectSummary": "Grants the ability to perform another jump while mid-air! Cooldown between jumps decreases with each Level Up!",
+      "levelScaling": "No level scaling available.",
+      "location": "Spotted near high and mountainous areas",
+      "variants": [
+        {
+          "id": 161,
+          "name": "Jackrabbit",
+          "rarity": "legendary",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_JazzJackrabbit_L.png",
+          "sourceSeasonKey": "42",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Base",
+          "summonCost": 0,
+          "effectText": "Grants the ability to perform another jump while mid-air! Cooldown between jumps decreases with each Level Up!",
+          "detailStatus": "complete",
+          "introducedSeasonId": "chapter-7-season-4",
+          "introducedAt": "2026-08-20T20:43:28.900Z",
+          "availableSeasonIds": [
+            "chapter-7-season-4"
+          ]
+        },
+        {
+          "id": 162,
+          "name": "Gold Jackrabbit",
+          "rarity": "special",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_JazzJackrabbit_Gold_L.png",
+          "sourceSeasonKey": "42",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Gold",
+          "summonCost": 0,
+          "effectText": "Grants the ability to perform another jump while mid-air! Cooldown between jumps decreases with each Level Up!",
+          "specialEffectText": "Gain 3x bonus XP from eliminations",
+          "detailStatus": "complete",
+          "introducedSeasonId": "chapter-7-season-4",
+          "introducedAt": "2026-08-20T20:43:28.900Z",
+          "availableSeasonIds": [
+            "chapter-7-season-4"
+          ]
+        },
+        {
+          "id": 163,
+          "name": "Cheat Master Jackrabbit",
+          "rarity": "special",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_JazzJackrabbit_Cheatmaster_L.png",
+          "sourceSeasonKey": "42",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Cheatmaster",
+          "summonCost": 0,
+          "effectText": "Grants the ability to perform another jump while mid-air! Cooldown between jumps decreases with each Level Up!",
+          "detailStatus": "complete",
+          "introducedSeasonId": "chapter-7-season-4",
+          "introducedAt": "2026-08-20T20:43:28.900Z",
+          "availableSeasonIds": [
+            "chapter-7-season-4"
+          ]
+        }
+      ]
+    },
+    {
+      "key": "shadow",
+      "displayName": "Shadow",
+      "effectSummary": "Automatically reload unequipped weapons over time. Reloads equipped weapon at max level. Automatic reload gets faster with each Level Up!",
+      "levelScaling": "No level scaling available.",
+      "location": "Spotted near high and mountainous areas",
+      "variants": [
+        {
+          "id": 164,
+          "name": "Shadow",
+          "rarity": "epic",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_NarrowFlea_Scribe_L.png",
+          "sourceSeasonKey": "42",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Base",
+          "summonCost": 0,
+          "effectText": "Automatically reload unequipped weapons over time. Reloads equipped weapon at max level. Automatic reload gets faster with each Level Up!",
+          "detailStatus": "complete",
+          "introducedSeasonId": "chapter-7-season-4",
+          "introducedAt": "2026-08-20T20:43:28.900Z",
+          "availableSeasonIds": [
+            "chapter-7-season-4"
+          ]
+        },
+        {
+          "id": 165,
+          "name": "Cheat Master Shadow",
+          "rarity": "special",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_NarrowFlea_Scribe_Cheatmaster_L.png",
+          "sourceSeasonKey": "42",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Cheatmaster",
+          "summonCost": 0,
+          "effectText": "Automatically reload unequipped weapons over time. Reloads equipped weapon at max level. Automatic reload gets faster with each Level Up!",
+          "detailStatus": "complete",
+          "introducedSeasonId": "chapter-7-season-4",
+          "introducedAt": "2026-08-20T20:43:28.900Z",
+          "availableSeasonIds": [
+            "chapter-7-season-4"
+          ]
+        },
+        {
+          "id": 166,
+          "name": "Gold Shadow",
+          "rarity": "special",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_NarrowFlea_Scribe_Gold_L.png",
+          "sourceSeasonKey": "42",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Gold",
+          "summonCost": 0,
+          "effectText": "Automatically reload unequipped weapons over time. Reloads equipped weapon at max level. Automatic reload gets faster with each Level Up!",
+          "specialEffectText": "Gain 3x bonus XP from eliminations",
+          "detailStatus": "complete",
+          "introducedSeasonId": "chapter-7-season-4",
+          "introducedAt": "2026-08-20T20:43:28.900Z",
+          "availableSeasonIds": [
+            "chapter-7-season-4"
+          ]
+        }
+      ]
+    },
+    {
+      "key": "bush",
+      "displayName": "Bush",
+      "effectSummary": "Grants a bush on you after a duration, gain a bush on elimination at max level. Time between bush activating decreases with each Level Up!",
+      "levelScaling": "No level scaling available.",
+      "location": "Unknown",
+      "variants": [
+        {
+          "id": 167,
+          "name": "Bush",
+          "rarity": "rare",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_BushRanger_L.png",
+          "sourceSeasonKey": "42",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Base",
+          "summonCost": 0,
+          "effectText": "Grants a bush on you after a duration, gain a bush on elimination at max level. Time between bush activating decreases with each Level Up!",
+          "detailStatus": "complete",
+          "introducedSeasonId": "chapter-7-season-4",
+          "introducedAt": "2026-08-20T20:43:28.900Z",
+          "availableSeasonIds": [
+            "chapter-7-season-4"
+          ]
+        },
+        {
+          "id": 168,
+          "name": "Cheat Master Bush",
+          "rarity": "special",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_BushRanger_Cheatmaster_L.png",
+          "sourceSeasonKey": "42",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Cheatmaster",
+          "summonCost": 0,
+          "effectText": "Grants a bush on you after a duration, gain a bush on elimination at max level. Time between bush activating decreases with each Level Up!",
+          "detailStatus": "complete",
+          "introducedSeasonId": "chapter-7-season-4",
+          "introducedAt": "2026-08-20T20:43:28.900Z",
+          "availableSeasonIds": [
+            "chapter-7-season-4"
+          ]
+        },
+        {
+          "id": 169,
+          "name": "Gold Bush",
+          "rarity": "special",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_BushRanger_Gold_L.png",
+          "sourceSeasonKey": "42",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Gold",
+          "summonCost": 0,
+          "effectText": "Grants a bush on you after a duration, gain a bush on elimination at max level. Time between bush activating decreases with each Level Up!",
+          "specialEffectText": "Gain 3x bonus XP from eliminations",
+          "detailStatus": "complete",
+          "introducedSeasonId": "chapter-7-season-4",
+          "introducedAt": "2026-08-20T20:43:28.900Z",
+          "availableSeasonIds": [
+            "chapter-7-season-4"
+          ]
+        }
+      ]
+    },
+    {
+      "key": "tails",
+      "displayName": "Tails",
+      "effectSummary": "Grants the ability to hover with the Help of Tails! Hover speed increased with each Level Up!",
+      "levelScaling": "No level scaling available.",
+      "location": "Spotted near high and mountainous areas",
+      "variants": [
+        {
+          "id": 170,
+          "name": "Tails",
+          "rarity": "epic",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_NarrowFlea_Monkey_L.png",
+          "sourceSeasonKey": "42",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Base",
+          "summonCost": 0,
+          "effectText": "Grants the ability to hover with the Help of Tails! Hover speed increased with each Level Up!",
+          "detailStatus": "complete",
+          "introducedSeasonId": "chapter-7-season-4",
+          "introducedAt": "2026-08-20T20:43:28.900Z",
+          "availableSeasonIds": [
+            "chapter-7-season-4"
+          ]
+        },
+        {
+          "id": 171,
+          "name": "Cheat Master Tails",
+          "rarity": "special",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_NarrowFlea_Monkey_Cheatmaster_L.png",
+          "sourceSeasonKey": "42",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Cheatmaster",
+          "summonCost": 0,
+          "effectText": "Grants the ability to hover with the Help of Tails! Hover speed increased with each Level Up!",
+          "detailStatus": "complete",
+          "introducedSeasonId": "chapter-7-season-4",
+          "introducedAt": "2026-08-20T20:43:28.900Z",
+          "availableSeasonIds": [
+            "chapter-7-season-4"
+          ]
+        },
+        {
+          "id": 172,
+          "name": "Gold Tails",
+          "rarity": "special",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_NarrowFlea_Monkey_Gold_L.png",
+          "sourceSeasonKey": "42",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Gold",
+          "summonCost": 0,
+          "effectText": "Grants the ability to hover with the Help of Tails! Hover speed increased with each Level Up!",
+          "specialEffectText": "Gain 3x bonus XP from eliminations",
+          "detailStatus": "complete",
+          "introducedSeasonId": "chapter-7-season-4",
+          "introducedAt": "2026-08-20T20:43:28.900Z",
+          "availableSeasonIds": [
+            "chapter-7-season-4"
+          ]
+        }
+      ]
+    },
+    {
+      "key": "killswitch",
+      "displayName": "Killswitch",
+      "effectSummary": "Enter Hangtime with improved accuracy when aiming while jumping and falling. Accuracy increases with each Level Up!",
+      "levelScaling": "No level scaling available.",
+      "location": "Found in the world at nighttime",
+      "variants": [
+        {
+          "id": 173,
+          "name": "Killswitch",
+          "rarity": "epic",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Killswitch_L.png",
+          "sourceSeasonKey": "42",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Base",
+          "summonCost": 0,
+          "effectText": "Enter Hangtime with improved accuracy when aiming while jumping and falling. Accuracy increases with each Level Up!",
+          "detailStatus": "complete",
+          "introducedSeasonId": "chapter-7-season-4",
+          "introducedAt": "2026-08-20T20:43:28.900Z",
+          "availableSeasonIds": [
+            "chapter-7-season-4"
+          ]
+        },
+        {
+          "id": 174,
+          "name": "Cheat Master Killswitch",
+          "rarity": "special",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Killswitch_Cheatmaster_L.png",
+          "sourceSeasonKey": "42",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Cheatmaster",
+          "summonCost": 0,
+          "effectText": "Enter Hangtime with improved accuracy when aiming while jumping and falling. Accuracy increases with each Level Up!",
+          "detailStatus": "complete",
+          "introducedSeasonId": "chapter-7-season-4",
+          "introducedAt": "2026-08-20T20:43:28.900Z",
+          "availableSeasonIds": [
+            "chapter-7-season-4"
+          ]
+        },
+        {
+          "id": 175,
+          "name": "Gold Killswitch",
+          "rarity": "special",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Killswitch_Gold_L.png",
+          "sourceSeasonKey": "42",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Gold",
+          "summonCost": 0,
+          "effectText": "Enter Hangtime with improved accuracy when aiming while jumping and falling. Accuracy increases with each Level Up!",
+          "specialEffectText": "Gain 3x bonus XP from eliminations",
+          "detailStatus": "complete",
+          "introducedSeasonId": "chapter-7-season-4",
+          "introducedAt": "2026-08-20T20:43:28.900Z",
+          "availableSeasonIds": [
+            "chapter-7-season-4"
+          ]
+        }
+      ]
+    },
+    {
+      "key": "adventure",
+      "displayName": "Adventure",
+      "effectSummary": "Upgrades a random item in the player's inventory with each Level Up!",
+      "levelScaling": "No level scaling available.",
+      "location": "Spotted near high and mountainous areas",
+      "variants": [
+        {
+          "id": 176,
+          "name": "Adventure",
+          "rarity": "rare",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Dwarf_L.png",
+          "sourceSeasonKey": "42",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Base",
+          "summonCost": 0,
+          "effectText": "Upgrades a random item in the player's inventory with each Level Up!",
+          "detailStatus": "complete",
+          "introducedSeasonId": "chapter-7-season-4",
+          "introducedAt": "2026-08-20T20:43:28.900Z",
+          "availableSeasonIds": [
+            "chapter-7-season-4"
+          ]
+        },
+        {
+          "id": 177,
+          "name": "Cheat Master Adventure",
+          "rarity": "special",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Dwarf_Cheatmaster_L.png",
+          "sourceSeasonKey": "42",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Cheatmaster",
+          "summonCost": 0,
+          "effectText": "Upgrades a random item in the player's inventory with each Level Up!",
+          "detailStatus": "complete",
+          "introducedSeasonId": "chapter-7-season-4",
+          "introducedAt": "2026-08-20T20:43:28.900Z",
+          "availableSeasonIds": [
+            "chapter-7-season-4"
+          ]
+        },
+        {
+          "id": 178,
+          "name": "Gold Adventure",
+          "rarity": "special",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Dwarf_Gold_L.png",
+          "sourceSeasonKey": "42",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Gold",
+          "summonCost": 0,
+          "effectText": "Upgrades a random item in the player's inventory with each Level Up!",
+          "specialEffectText": "Gain 3x bonus XP from eliminations",
+          "detailStatus": "complete",
+          "introducedSeasonId": "chapter-7-season-4",
+          "introducedAt": "2026-08-20T20:43:28.900Z",
+          "availableSeasonIds": [
+            "chapter-7-season-4"
+          ]
+        }
+      ]
+    },
+    {
+      "key": "klombo",
+      "displayName": "Klombo",
+      "effectSummary": "Grants random items at each level, only levels up by consuming items. Item quality increases with each Level Up!",
+      "levelScaling": "No level scaling available.",
+      "location": "Spotted near high and mountainous areas",
+      "variants": [
+        {
+          "id": 179,
+          "name": "Klombo",
+          "rarity": "mythic",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Klombo_L.png",
+          "sourceSeasonKey": "42",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Base",
+          "summonCost": 0,
+          "effectText": "Grants random items at each level, only levels up by consuming items. Item quality increases with each Level Up!",
+          "detailStatus": "complete",
+          "introducedSeasonId": "chapter-7-season-4",
+          "introducedAt": "2026-08-20T20:43:28.900Z",
+          "availableSeasonIds": [
+            "chapter-7-season-4"
+          ]
+        },
+        {
+          "id": 180,
+          "name": "Cheat Master Klombo",
+          "rarity": "special",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Klombo_Cheatmaster_L.png",
+          "sourceSeasonKey": "42",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Cheatmaster",
+          "summonCost": 0,
+          "effectText": "Grants random items at each level, only levels up by consuming items. Item quality increases with each Level Up!",
+          "detailStatus": "complete",
+          "introducedSeasonId": "chapter-7-season-4",
+          "introducedAt": "2026-08-20T20:43:28.900Z",
+          "availableSeasonIds": [
+            "chapter-7-season-4"
+          ]
+        },
+        {
+          "id": 181,
+          "name": "Gold Klombo",
+          "rarity": "special",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Klombo_Gold_L.png",
+          "sourceSeasonKey": "42",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Gold",
+          "summonCost": 0,
+          "effectText": "Grants random items at each level, only levels up by consuming items. Item quality increases with each Level Up!",
+          "specialEffectText": "Gain 3x bonus XP from eliminations",
+          "detailStatus": "complete",
+          "introducedSeasonId": "chapter-7-season-4",
+          "introducedAt": "2026-08-20T20:43:28.900Z",
+          "availableSeasonIds": [
+            "chapter-7-season-4"
+          ]
+        }
+      ]
+    },
+    {
+      "key": "jonesy",
+      "displayName": "Jonesy",
+      "effectSummary": "Recover some health or shields after being damaged after a short duration. Increase amount healed with each Level Up!",
+      "levelScaling": "No level scaling available.",
+      "location": "Spotted near high and mountainous areas",
+      "variants": [
+        {
+          "id": 182,
+          "name": "Jonesy",
+          "rarity": "rare",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Jonesy_L.png",
+          "sourceSeasonKey": "42",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Base",
+          "summonCost": 0,
+          "effectText": "Recover some health or shields after being damaged after a short duration. Increase amount healed with each Level Up!",
+          "detailStatus": "complete",
+          "introducedSeasonId": "chapter-7-season-4",
+          "introducedAt": "2026-08-20T20:43:28.900Z",
+          "availableSeasonIds": [
+            "chapter-7-season-4"
+          ]
+        },
+        {
+          "id": 183,
+          "name": "Cheat Master Jonesy",
+          "rarity": "special",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Jonesy_Cheatmaster_L.png",
+          "sourceSeasonKey": "42",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Cheatmaster",
+          "summonCost": 0,
+          "effectText": "Recover some health or shields after being damaged after a short duration. Increase amount healed with each Level Up!",
+          "detailStatus": "complete",
+          "introducedSeasonId": "chapter-7-season-4",
+          "introducedAt": "2026-08-20T20:43:28.900Z",
+          "availableSeasonIds": [
+            "chapter-7-season-4"
+          ]
+        },
+        {
+          "id": 184,
+          "name": "Gold Jonesy",
+          "rarity": "special",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Jonesy_Gold_L.png",
+          "sourceSeasonKey": "42",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Gold",
+          "summonCost": 0,
+          "effectText": "Recover some health or shields after being damaged after a short duration. Increase amount healed with each Level Up!",
+          "specialEffectText": "Gain 3x bonus XP from eliminations",
+          "detailStatus": "complete",
+          "introducedSeasonId": "chapter-7-season-4",
+          "introducedAt": "2026-08-20T20:43:28.900Z",
+          "availableSeasonIds": [
+            "chapter-7-season-4"
+          ]
+        }
+      ]
+    },
+    {
+      "key": "sonic",
+      "displayName": "Sonic",
+      "effectSummary": "Gotta Go Fast! Sprint faster with each Level Up!",
+      "levelScaling": "No level scaling available.",
+      "location": "Spotted near high and mountainous areas",
+      "variants": [
+        {
+          "id": 185,
+          "name": "Sonic",
+          "rarity": "epic",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_NarrowFlea_Obsidian_L.png",
+          "sourceSeasonKey": "42",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Base",
+          "summonCost": 0,
+          "effectText": "Gotta Go Fast! Sprint faster with each Level Up!",
+          "detailStatus": "complete",
+          "introducedSeasonId": "chapter-7-season-4",
+          "introducedAt": "2026-08-20T20:43:28.900Z",
+          "availableSeasonIds": [
+            "chapter-7-season-4"
+          ]
+        },
+        {
+          "id": 186,
+          "name": "Cheat Master Sonic",
+          "rarity": "special",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_NarrowFlea_Obsidian_Cheatmaster_L.png",
+          "sourceSeasonKey": "42",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Cheatmaster",
+          "summonCost": 0,
+          "effectText": "Gotta Go Fast! Sprint faster with each Level Up!",
+          "detailStatus": "complete",
+          "introducedSeasonId": "chapter-7-season-4",
+          "introducedAt": "2026-08-20T20:43:28.900Z",
+          "availableSeasonIds": [
+            "chapter-7-season-4"
+          ]
+        },
+        {
+          "id": 187,
+          "name": "Gold Sonic",
+          "rarity": "special",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_NarrowFlea_Obsidian_Gold_L.png",
+          "sourceSeasonKey": "42",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Gold",
+          "summonCost": 0,
+          "effectText": "Gotta Go Fast! Sprint faster with each Level Up!",
+          "specialEffectText": "Gain 3x bonus XP from eliminations",
+          "detailStatus": "complete",
+          "introducedSeasonId": "chapter-7-season-4",
+          "introducedAt": "2026-08-20T20:43:28.900Z",
+          "availableSeasonIds": [
+            "chapter-7-season-4"
+          ]
+        }
+      ]
+    },
+    {
+      "key": "crown",
+      "displayName": "Crown",
+      "effectSummary": "Only levels up by winning matches. Level up faster with Crown Wins. New variants unlocked after mastering!",
+      "levelScaling": "No level scaling available.",
+      "location": "Spotted near high and mountainous areas",
+      "variants": [
+        {
+          "id": 188,
+          "name": "Crown",
+          "rarity": "mythic",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Crown_L.png",
+          "sourceSeasonKey": "42",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Base",
+          "summonCost": 0,
+          "effectText": "Only levels up by winning matches. Level up faster with Crown Wins. New variants unlocked after mastering!",
+          "detailStatus": "complete",
+          "introducedSeasonId": "chapter-7-season-4",
+          "introducedAt": "2026-08-20T20:43:28.900Z",
+          "availableSeasonIds": [
+            "chapter-7-season-4"
+          ]
+        },
+        {
+          "id": 189,
+          "name": "Cheat Master Crown",
+          "rarity": "special",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Crown_Cheatmaster_L.png",
+          "sourceSeasonKey": "42",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Cheatmaster",
+          "summonCost": 0,
+          "effectText": "Only levels up by winning matches. Level up faster with Crown Wins. New variants unlocked after mastering!",
+          "detailStatus": "complete",
+          "introducedSeasonId": "chapter-7-season-4",
+          "introducedAt": "2026-08-20T20:43:28.900Z",
+          "availableSeasonIds": [
+            "chapter-7-season-4"
+          ]
+        },
+        {
+          "id": 190,
+          "name": "Gold Crown",
+          "rarity": "special",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_Crown_Gold_L.png",
+          "sourceSeasonKey": "42",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Gold",
+          "summonCost": 0,
+          "effectText": "Only levels up by winning matches. Level up faster with Crown Wins. New variants unlocked after mastering!",
+          "specialEffectText": "Gain 3x bonus XP from eliminations",
+          "detailStatus": "complete",
+          "introducedSeasonId": "chapter-7-season-4",
+          "introducedAt": "2026-08-20T20:43:28.900Z",
+          "availableSeasonIds": [
+            "chapter-7-season-4"
+          ]
+        }
+      ]
+    },
+    {
+      "key": "8-bit",
+      "displayName": "8-Bit",
+      "effectSummary": "Find an 8-Bit Shotgun in your first chest and gain a score multiplier for it.",
+      "levelScaling": "No level scaling available.",
+      "location": "Spotted near high and mountainous areas",
+      "variants": [
+        {
+          "id": 191,
+          "name": "8-Bit",
+          "rarity": "rare",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_EightBitBlaster_L.png",
+          "sourceSeasonKey": "42",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Base",
+          "summonCost": 0,
+          "effectText": "Find an 8-Bit Shotgun in your first chest and gain a score multiplier for it.",
+          "detailStatus": "complete",
+          "introducedSeasonId": "chapter-7-season-4",
+          "introducedAt": "2026-08-20T20:43:28.900Z",
+          "availableSeasonIds": [
+            "chapter-7-season-4"
+          ]
+        },
+        {
+          "id": 192,
+          "name": "Cheat Master 8-Bit",
+          "rarity": "special",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_EightBitBlaster_Cheatmaster_L.png",
+          "sourceSeasonKey": "42",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Cheatmaster",
+          "summonCost": 0,
+          "effectText": "Find an 8-Bit Shotgun in your first chest and gain a score multiplier for it.",
+          "detailStatus": "complete",
+          "introducedSeasonId": "chapter-7-season-4",
+          "introducedAt": "2026-08-20T20:43:28.900Z",
+          "availableSeasonIds": [
+            "chapter-7-season-4"
+          ]
+        },
+        {
+          "id": 193,
+          "name": "Gold 8-Bit",
+          "rarity": "special",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_EightBitBlaster_Gold_L.png",
+          "sourceSeasonKey": "42",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Gold",
+          "summonCost": 0,
+          "effectText": "Find an 8-Bit Shotgun in your first chest and gain a score multiplier for it.",
+          "specialEffectText": "Gain 3x bonus XP from eliminations",
+          "detailStatus": "complete",
+          "introducedSeasonId": "chapter-7-season-4",
+          "introducedAt": "2026-08-20T20:43:28.900Z",
+          "availableSeasonIds": [
+            "chapter-7-season-4"
+          ]
+        }
+      ]
+    },
+    {
+      "key": "storm-scout",
+      "displayName": "Storm Scout",
+      "effectSummary": "Applies Overdrive after taking a certain amount of storm damage. Reveals future Storm Circles at max level. Reduces damage to trigger overdrive with each Level Up!",
+      "levelScaling": "No level scaling available.",
+      "location": "Spotted near high and mountainous areas",
+      "variants": [
+        {
+          "id": 194,
+          "name": "Storm Scout",
+          "rarity": "rare",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_StormScout_L.png",
+          "sourceSeasonKey": "42",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Base",
+          "summonCost": 0,
+          "effectText": "Applies Overdrive after taking a certain amount of storm damage. Reveals future Storm Circles at max level. Reduces damage to trigger overdrive with each Level Up!",
+          "detailStatus": "complete",
+          "introducedSeasonId": "chapter-7-season-4",
+          "introducedAt": "2026-08-20T20:43:28.900Z",
+          "availableSeasonIds": [
+            "chapter-7-season-4"
+          ]
+        },
+        {
+          "id": 195,
+          "name": "Cheat Master Storm Scout",
+          "rarity": "special",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_StormScout_Cheatmaster_L.png",
+          "sourceSeasonKey": "42",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Cheatmaster",
+          "summonCost": 0,
+          "effectText": "Applies Overdrive after taking a certain amount of storm damage. Reveals future Storm Circles at max level. Reduces damage to trigger overdrive with each Level Up!",
+          "detailStatus": "complete",
+          "introducedSeasonId": "chapter-7-season-4",
+          "introducedAt": "2026-08-20T20:43:28.900Z",
+          "availableSeasonIds": [
+            "chapter-7-season-4"
+          ]
+        },
+        {
+          "id": 196,
+          "name": "Gold Storm Scout",
+          "rarity": "special",
+          "chancePercent": 0,
+          "chanceLabel": "0%",
+          "starter": false,
+          "imageUrl": "https://fortnite.gg/img/x/sprites/icons/T_Icon_BR_Creature_Sprite_StormScout_Gold_L.png",
+          "sourceSeasonKey": "42",
+          "spawnRates": {
+            "spriteChest": {
+              "percent": 0,
+              "label": "0%"
+            }
+          },
+          "variant": "Gold",
+          "summonCost": 0,
+          "effectText": "Applies Overdrive after taking a certain amount of storm damage. Reveals future Storm Circles at max level. Reduces damage to trigger overdrive with each Level Up!",
+          "specialEffectText": "Gain 3x bonus XP from eliminations",
+          "detailStatus": "complete",
+          "introducedSeasonId": "chapter-7-season-4",
+          "introducedAt": "2026-08-20T20:43:28.900Z",
+          "availableSeasonIds": [
+            "chapter-7-season-4"
+          ]
+        }
+      ]
+    }
+  ],
+  "contentFingerprint": "56448072baef7505692b9370fec04377f779773d5f250ac85c93ed1d811fc23d"
+}

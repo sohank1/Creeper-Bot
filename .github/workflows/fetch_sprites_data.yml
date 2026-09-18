@@ -1,0 +1,63 @@
+name: Fetch Sprites Data
+
+on:
+  schedule:
+    - cron: '0 1 * * *' # Runs daily at 1:00 AM UTC
+  workflow_dispatch: # Allows manual trigger
+
+jobs:
+  fetch-sprites-data:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      # The scheduled job commits only the source catalog. Keep generated
+      # season artifacts out of the checkout and retain them as a workflow
+      # artifact instead; production owns the persistent archive/backup path.
+      FORTNITE_SPRITE_ARCHIVE_DIR: ${{ runner.temp }}/creeper-bot-sprite-archives
+      FORTNITE_SPRITE_HISTORY_PATH: ${{ runner.temp }}/creeper-bot-sprite-archives/spriteHistory.json
+      FORTNITE_SPRITE_ARCHIVE_BACKUP_REQUIRED: "false"
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run fetch sprites data script
+        run: npm run fetch-sprites
+
+      - name: Compile the sprite pipeline
+        run: npm run build
+
+      - name: Run sprite fixture tests
+        run: npm test
+
+      - name: Retain generated sprite archive artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sprite-archives-${{ github.run_id }}
+          path: ${{ runner.temp }}/creeper-bot-sprite-archives
+          if-no-files-found: ignore
+          retention-days: 90
+
+      - name: Commit and push changes
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/Fortnite/FortniteSprites/spriteData.json
+
+          # Only commit and push if there are changes
+          if ! git diff --staged --quiet; then
+            git commit -m "Automated update: Fetch latest Fortnite sprite data"
+            git push
+          else
+            echo "No changes detected."
+          fi

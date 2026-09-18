@@ -3,12 +3,31 @@ import { Client, Collection, MessageEmbed, Snowflake, TextChannel } from "discor
 import { Br, Creative, NewsResponseObject, Stw } from "./news.type";
 import NewsModel from './news.model'
 import newsChannels from "./newsChannels.json"
+import { createTrackedJob, registerComponent } from "../runtimeDiagnostics";
 
 export class News {
     public responseObject: NewsResponseObject;
+    private lastFetchAt: string | null = null;
+    private lastNewsUpdateAt: string | null = null;
+    private updatesSent = 0;
+    private lastFetchError: string | null = null;
 
     constructor(private client: Client) {
+        registerComponent("news", this);
         this._init();
+    }
+
+    public getDiagnostics() {
+        return {
+            lastFetchAt: this.lastFetchAt,
+            lastNewsUpdateAt: this.lastNewsUpdateAt,
+            updatesSent: this.updatesSent,
+            lastFetchError: this.lastFetchError,
+            brMotds: this.responseObject?.data?.br?.motds?.length || 0,
+            creativeMotds: this.responseObject?.data?.creative?.motds?.length || 0,
+            stwMessages: this.responseObject?.data?.stw?.messages?.length || 0,
+            brDate: this.responseObject?.data?.br?.date ? new Date(this.responseObject.data.br.date).toISOString() : null,
+        };
     }
 
     private async _init(): Promise<void> {
@@ -20,7 +39,7 @@ export class News {
 
     private interval(): void {
         // Check to see if news has been updated every 15 seconds.
-        setInterval(async () => {
+        setInterval(createTrackedJob("fortnite-news-poll", "Fortnite News Poll", "Every 10 seconds", async () => {
             //   console.log("Getting data from Fortnite servers.")
             await this.fetch();
 
@@ -39,12 +58,13 @@ export class News {
 
                 //     console.log("Sending the message.")
                 await this.send(db);
+                this.lastNewsUpdateAt = new Date().toISOString();
 
             } else {
                 // console.log("Already up to date.")
             }
 
-        }, 10000)
+        }), 10000)
     }
 
     private async send(db: NewsResponseObject): Promise<void> {
@@ -74,27 +94,20 @@ export class News {
                     .addField("Image URLs", `${news.image} ${news.tileImage}`)
                     .setFooter({ text: `Updated at ${new Date(looper.date).toLocaleString("en-US", { timeZone: "America/New_York" })}` });
                 for (const s of Object.values(newsChannels)) (<TextChannel>this.client.channels.cache.get(s.channel))?.send({ embeds: [e] });
+                this.updatesSent++;
             }
         }
     }
 
 
-    private async fetch(): Promise<NewsResponseObject> {
-        try {
-            const responseObject = (await (axios.get("https://fortnite-api.com/v2/news"))).data;
-            return this.responseObject = responseObject;
-        } catch (err: any) {
-            console.error("Error fetching news:", err?.message ?? err);
-            // Keep previous responseObject if available
-            return this.responseObject;
-        }
-    }
+    private fetch = createTrackedJob("fortnite-news-fetch", "Fortnite News Fetch", "On demand / Interval", async (): Promise<NewsResponseObject> => {
+        const responseObject = (await (axios.get("https://fortnite-api.com/v2/news"))).data;
+        this.lastFetchAt = new Date().toISOString();
+        this.lastFetchError = null;
+        return this.responseObject = responseObject;
+    });
 
     private async save(): Promise<void> {
-        console.log("OVERWRITING")
-        console.log("OVERWRITING")
-        console.log("OVERWRITING")
-        console.log("OVERWRITING")
         console.log("OVERWRITING")
         await NewsModel.updateMany({}, { responseObject: this.responseObject });
         // await (await NewsModel.create({ responseObject: this.responseObject })).save()
