@@ -6007,7 +6007,10 @@ export class FortniteSprites {
             overshield: "🛡️",
             "mega-man": "🤖",
             "x-ray": "🥽",
-            onigiri: "🍙"
+            onigiri: "🍙",
+            blinky: "👻",
+            "crash-bandicoot": "🦊",
+            pond: "🐸"
         };
         return familyKey ? emojis[familyKey] || "🧚" : "🧚";
     }
@@ -6033,7 +6036,8 @@ export class FortniteSprites {
             Gem: "💎",
             Cube: "🧊",
             Quack: "🐥",
-            Cheatmaster: "🃏"
+            Cheatmaster: "🃏",
+            Hacker: "💻"
         };
         return variant ? emojis[variant] || "🧩" : "🎭";
     }
