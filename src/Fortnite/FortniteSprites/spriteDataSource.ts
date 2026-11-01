@@ -123,7 +123,7 @@ function parsePercent(value: string): number {
     return Number.isFinite(parsed) ? parsed : 0;
 }
 
-function parseNumber(value: string): number {
+function parseNumber(value: string = ""): number {
     const parsed = parseInt(value.replace(/,/g, "").replace(/[^\d]/g, ""), 10);
     return Number.isFinite(parsed) ? parsed : 0;
 }
@@ -197,7 +197,7 @@ function parseListPage(html: string, seasonKey?: string): { items: SpriteListIte
         const sourceUrl = absoluteUrl(nameLink.attr("href") || card.find(".sprite-art").attr("href"));
         const imageUrl = normalizeImageUrl(absoluteUrl(card.find(".sprite-art img").first().attr("src")));
         const pills = card.find(".sprite-pill").map((__, pill) => normalizeText($(pill).text())).get();
-        const rarity = (pills.find(p => ["rare", "epic", "legendary", "mythic", "special"].includes(p.toLowerCase())) || "rare").toLowerCase() as SpriteRarity;
+        const rarity = (pills.find(p => ["rare", "epic", "legendary", "mythic", "special"].includes(p.toLowerCase())) || card.attr("data-rarity") || "rare").toLowerCase() as SpriteRarity;
         const chanceLabel = pills.find(p => p.includes("%")) || "0%";
         const starter = pills.some(p => p.toLowerCase() === "starter");
         const sourceSeasonKey = normalizeText(card.attr("data-season")) || undefined;
@@ -248,6 +248,7 @@ async function fetchDetail(item: SpriteListItem, browserFallback?: FortniteGgHtm
         const html = await fetchHtml(item.sourceUrl, browserFallback);
         const $ = cheerio.load(html);
         const panel = $(".sprite-detail-panel").first();
+        if (!panel.length) throw new Error(`Sprite detail panel is missing for ${item.id}.`);
         const descriptions = panel.find(".sprite-desc").map((_, el) => normalizeText($(el).text())).get();
         const specialEffectText = normalizeText(panel.find(".sprite-desc-special").first().text()) || undefined;
         const facts: Record<string, string> = {};
@@ -395,10 +396,9 @@ export async function fetchSpriteData(
     fallbackSeasonContext?: FortniteSeasonContext,
     browserFallback?: FortniteGgHtmlFallback
 ): Promise<SpriteDataFile> {
-    // Resolve the season before scraping the list so the stored context is
-    // associated with this exact scrape.
-    const resolvedSeason = seasonContext || await resolveCurrentFortniteSeason(false, fallbackSeasonContext, browserFallback);
+    // Use the same list response for season detection and card selection.
     const listHtml = await fetchHtml(SOURCE_URL, browserFallback);
+    const resolvedSeason = seasonContext || await resolveCurrentFortniteSeason(false, fallbackSeasonContext, browserFallback, listHtml);
     const list = parseListPage(listHtml, resolvedSeason.seasonKey);
 
     if (list.items.length === 0) {

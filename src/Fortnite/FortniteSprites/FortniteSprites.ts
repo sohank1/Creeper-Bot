@@ -26,6 +26,7 @@ import { performance } from "perf_hooks";
 import { createCanvas, loadImage } from "@napi-rs/canvas";
 import { applySpriteHistory, fetchSpriteData, mergeSpriteCatalog, mergeSpriteHistories, sanitizeSpriteHistory, SpriteDataFile, SpriteFamily, SpriteHistoryFile, SpriteRarity, SpriteVariant, SpriteVariantName, updateSpriteHistory, validateSpriteData } from "./spriteDataSource";
 import { FortniteSeasonContext } from "./fortniteSeason";
+import { fetchFortniteGgBrowserHtml } from "./fortniteGgBrowser";
 import { getFortniteSeasonEmoji, getFortniteSeasonEmojiAssetUrl } from "../fortniteSeasonEmoji";
 import { archiveSpriteSnapshot } from "./spriteArchive";
 import { backupSpriteArchive, backupSpriteHistory, getSpriteArchiveBackupDirectory, getSpriteArchiveBackupStatus } from "./spriteArchiveBackup";
@@ -912,7 +913,7 @@ export class FortniteSprites {
             ...(error ? { error: error instanceof Error ? error.message : String(error) } : {})
         });
 
-        console.log(`[FortniteSprites] Fortnite.GG catalog sync ${changed ? "detected changes" : "found no changes"}`
+        console.log(`[FortniteSprites] Fortnite.GG catalog sync ${error ? "failed" : changed ? "detected changes" : "found no changes"}`
             + ` | current-season detail pages: ${detailPagesComplete ?? 0}/${detailPagesDiscovered ?? 0}`
             + ` | historical detail pages: 0`
             + ` | duration: ${Math.max(0, Date.now() - startedAt)}ms`
@@ -3079,33 +3080,15 @@ export class FortniteSprites {
         await previousTurn;
 
         let page: Page | null = null;
-        let pageHealthy = true;
-
         try {
+            // Hold a render-page lease so browser cleanup cannot interrupt the
+            // source request, but fetch in a fresh context. Reused cookies/page
+            // state can leave every subsequent request on a security challenge.
             page = await this.acquireRenderPage();
-            await this.prepareFortniteGgSourcePage(page);
-            await this.withRenderTimeout(
-                "loading Fortnite.GG source page",
-                () => page.goto(url, { waitUntil: "domcontentloaded", timeout: RENDER_PROTOCOL_TIMEOUT_MS }),
-                RENDER_PROTOCOL_TIMEOUT_MS + 5_000
-            );
-            await this.waitForFortniteGgSourcePage(page);
-
-            const html = await this.withRenderTimeout(
-                "reading Fortnite.GG source page",
-                () => page.content()
-            );
-            if (!html.trim()) {
-                throw new Error(`Browser fallback returned an unexpected response while fetching ${url}`);
-            }
-            return html;
-        } catch (error) {
-            pageHealthy = false;
-            if (page) await this.disposeRenderPage(page);
-            throw error;
+            return await fetchFortniteGgBrowserHtml(page.browser(), url);
         } finally {
             try {
-                if (page && pageHealthy) await this.releaseRenderPage(page);
+                if (page) await this.releaseRenderPage(page);
             } finally {
                 releaseTurn();
             }

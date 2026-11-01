@@ -151,7 +151,7 @@ async function main(): Promise<void> {
         archiveKey,
         assetConcurrency: Number(process.env.FORTNITE_SPRITE_ARCHIVE_ASSET_CONCURRENCY || 4),
         assetResolver: cachedAssetResolver(cachedAssets),
-        backup: backupSpriteArchive
+        backup: (archivePath, manifest) => backupSpriteArchive(archivePath, manifest, { archiveKey: path.basename(archivePath) })
     });
 
     console.log(

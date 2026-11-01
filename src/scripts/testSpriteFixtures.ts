@@ -4,12 +4,12 @@ import { createHash } from "crypto";
 import * as fs from "fs";
 import * as os from "os";
 import * as path from "path";
-import { fetchFortniteGgHtml, parseFortniteGgCountdownHtml, parseFortniteGgSeasonFilter } from "../Fortnite/FortniteSprites/fortniteSeason";
+import { fetchFortniteGgHtml, parseActiveFortniteGgSeason, parseFortniteGgCountdownHtml, parseFortniteGgSeasonFilter } from "../Fortnite/FortniteSprites/fortniteSeason";
 import { archiveCurrentSpriteSnapshot, archiveSpriteSnapshot, verifySpriteArchive } from "../Fortnite/FortniteSprites/spriteArchive";
 import { backupSpriteArchive, backupSpriteHistory, B2Request } from "../Fortnite/FortniteSprites/spriteArchiveBackup";
 import { buildTrackedSpriteMessageEditPayload } from "../Fortnite/FortniteSprites/spriteMessage";
 import { SPRITE_STORAGE_NAMESPACE } from "../Fortnite/FortniteSprites/spriteStorage";
-import { applySpriteHistory, mergeSpriteCatalog, SpriteDataFile, stableSpriteDataJson, updateSpriteHistory, validateSpriteData } from "../Fortnite/FortniteSprites/spriteDataSource";
+import { applySpriteHistory, fetchSpriteData, mergeSpriteCatalog, SpriteDataFile, stableSpriteDataJson, updateSpriteHistory, validateSpriteData } from "../Fortnite/FortniteSprites/spriteDataSource";
 import { syncSpriteCatalog } from "../Fortnite/FortniteSprites/spriteSyncService";
 
 const fixtureRoot = path.join(process.cwd(), "test", "fixtures");
@@ -116,6 +116,87 @@ async function testFortniteGgBrowserFallbackHook() {
     } finally {
         axios.get = originalGet;
     }
+}
+
+async function testModernMiniSeasonCatalog() {
+    const list = readFixture("fortnite-gg-sprites-mini-season.html");
+    const active = parseActiveFortniteGgSeason(list);
+    assert.strictEqual(active?.id, "chapter-7-season-ms");
+    assert.strictEqual(active?.seasonKey, "43");
+    assert.deepStrictEqual(parseFortniteGgSeasonFilter(list, { chapter: 7, season: "MS" }), {
+        chapter: 7, season: "MS", seasonKey: "43"
+    });
+    assert.throws(() => parseActiveFortniteGgSeason(list.replace('class="filter active" data-sprite-season="43"', 'class="filter active" data-sprite-season="99"')), /no sprite cards/);
+
+    const originalGet = axios.get;
+    const requests: string[] = [];
+    try {
+        axios.get = (async (url: string) => {
+            requests.push(url);
+            if (url === "https://fortnite.gg/sprites") return { data: list };
+            assert.ok(/\/sprites\/28[01]-/.test(url), `Unexpected source request: ${url}`);
+            return { data: `<div class="sprite-detail-panel"><div class="sprite-desc">Restores shields.</div>
+                <div class="sprite-fact"><span>Variant</span><b>${url.includes("281-") ? "Fortune" : "Base"}</b></div>
+                <div class="sprite-fact"><span>Summon Cost</span><b>100</b></div></div>
+                <div class="sprite-related"><a class="sprite-name">Water Sprite</a></div>` };
+        }) as typeof axios.get;
+        const data = await fetchSpriteData(0, undefined, seasonContext("4", "42"));
+        assert.strictEqual(data.seasonContext?.id, "chapter-7-season-ms");
+        assert.strictEqual(data.totalSprites, 2);
+        assert.strictEqual(data.families.length, 1);
+        assert.deepStrictEqual(data.listedVariantIds, [280, 281]);
+        assert.strictEqual(data.families[0].variants.find(v => v.id === 281)?.rarity, "special");
+        assert.ok(data.families[0].variants.every(v => v.detailStatus === "complete" && v.sourceSeasonKey === "43"));
+        assert.strictEqual(requests.filter(url => url.endsWith("/sprites")).length, 1);
+        assert.ok(!requests.some(url => url.includes("season-countdown")));
+    } finally {
+        axios.get = originalGet;
+    }
+}
+
+async function testChallengeHtmlIsNotInstalled() {
+    const originalGet = axios.get;
+    try {
+        axios.get = (async () => ({ data: '<title>Just a moment...</title><script>cf-chl-test</script>' })) as typeof axios.get;
+        let fallbackCalls = 0;
+        const html = await fetchFortniteGgHtml("https://fortnite.gg/sprites", async () => {
+            fallbackCalls++;
+            return readFixture("fortnite-gg-sprites-mini-season.html");
+        });
+        assert.strictEqual(fallbackCalls, 1);
+        assert.ok(html.includes("data-sprite-season"));
+        await assert.rejects(fetchFortniteGgHtml("https://fortnite.gg/sprites", async () => '<title>Just a moment...</title>'), /unexpected response/);
+    } finally {
+        axios.get = originalGet;
+    }
+}
+
+async function testRolloverFailuresPreserveCurrentData() {
+    const previous = spriteData("4", "2026-10-24T00:00:00.000Z");
+    const latest = spriteData("MS", "2026-11-01T00:00:00.000Z");
+    latest.families[0].variants[0].detailStatus = "partial";
+    const events: string[] = [];
+    const options = {
+        existingData: previous,
+        existingJson: stableSpriteDataJson(previous),
+        history: updateSpriteHistory({ schemaVersion: 1, records: [] }, previous),
+        fetchLatest: async () => latest,
+        archivePrevious: async () => { events.push("archive"); },
+        backupHistory: async () => { events.push("backup"); throw new Error("Backup unavailable"); },
+        persistData: async () => { events.push("data"); },
+        persistHistory: async () => { events.push("history"); }
+    };
+    await assert.rejects(syncSpriteCatalog(options), /fetch is incomplete/);
+    assert.deepStrictEqual(events, []);
+    latest.families[0].variants[0].detailStatus = "complete";
+    await assert.rejects(syncSpriteCatalog({
+        ...options,
+        archivePrevious: async () => { events.push("archive-failed"); throw new Error("Archive backup unavailable"); }
+    }), /Archive backup unavailable/);
+    assert.deepStrictEqual(events, ["archive-failed"]);
+    events.length = 0;
+    await assert.rejects(syncSpriteCatalog(options), /Backup unavailable/);
+    assert.deepStrictEqual(events, ["archive", "backup"]);
 }
 
 async function testRolloverOrdering() {
@@ -489,6 +570,9 @@ async function testTrackedMessageRefreshPayload() {
 async function main() {
     await testSeasonFixtures();
     await testFortniteGgBrowserFallbackHook();
+    await testModernMiniSeasonCatalog();
+    await testChallengeHtmlIsNotInstalled();
+    await testRolloverFailuresPreserveCurrentData();
     await testRolloverOrdering();
     await testSameSeasonDoesNotRewriteForTimestamp();
     await testPartialArchiveRepairsOnRetry();

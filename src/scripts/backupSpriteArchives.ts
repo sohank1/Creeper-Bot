@@ -43,7 +43,7 @@ async function main() {
             const archivePath = path.join(archiveRoot, entry.name);
             const manifest = await verifySpriteArchive(archivePath);
             try {
-                await backupSpriteArchive(archivePath, manifest);
+                await backupSpriteArchive(archivePath, manifest, entry.name.includes("-bootstrap-") ? { archiveKey: entry.name } : {});
                 console.log(`Backed up ${manifest.season.displayName} to the configured archive provider(s).`);
             } catch (error) {
                 if (!isImmutableDestinationCollision(error)) throw error;

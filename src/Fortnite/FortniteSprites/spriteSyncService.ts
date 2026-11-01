@@ -70,6 +70,10 @@ export async function syncSpriteCatalog(options: SpriteSyncOptions): Promise<Spr
         && previousSeasonId
         && latest.seasonContext.id !== previousSeasonId;
     if (seasonChanged) {
+        const incomplete = latest.families.flatMap(family => family.variants).filter(variant => variant.detailStatus !== "complete");
+        if (incomplete.length) {
+            throw new Error(`New-season sprite fetch is incomplete (${incomplete.length} detail pages); keeping the previous season installed.`);
+        }
         if (!options.archivePrevious) {
             throw new Error("A sprite season changed but no archive handler was provided.");
         }
