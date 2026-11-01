@@ -2679,6 +2679,19 @@ export class FortniteSprites {
     }
 
     private async replySprites(i: BaseCommandInteraction<CacheType>) {
+        try {
+            await this.sendSpritesReply(i);
+        } catch (error: any) {
+            console.error("[FortniteSprites] Failed sprite command:", error?.message || String(error));
+            if (i.deferred || i.replied) {
+                await i.editReply({ content: "I couldn't load that sprite view. Please try again." }).catch((replyError) => {
+                    console.warn("[FortniteSprites] Failed to send sprite command error:", replyError?.message || String(replyError));
+                });
+            }
+        }
+    }
+
+    private async sendSpritesReply(i: BaseCommandInteraction<CacheType>) {
         const search = i.options.get("search")?.value as string | undefined;
         const requestedSeason = i.options.get("season")?.value as string | undefined;
         await i.deferReply();
@@ -4970,7 +4983,14 @@ export class FortniteSprites {
             const width = allSeasonsView ? 2500 : 2100;
             const rowHeight = allSeasonsView ? 108 : 92;
             const height = Math.max(allSeasonsView ? 1500 : 1300, 520 + Math.max(renderFamilies.length, 1) * rowHeight);
-            const deviceScaleFactor = allSeasonsView ? 2.1 : 2;
+            // Large archive overviews can exceed 80 million pixels at a fixed
+            // scale, exhausting Chromium during capture. Keep every row while
+            // bounding the screenshot's pixel count and longest edge.
+            const deviceScaleFactor = Math.min(
+                allSeasonsView ? 2.1 : 2,
+                Math.sqrt(24_000_000 / (width * height)),
+                16_000 / Math.max(width, height)
+            );
             const tagSuffixes = [
                 state.searchQuery ? `Search: "${state.searchQuery}"` : null,
                 state.variantFilter && state.variantFilter !== "all" ? this.variantLabel(state.variantFilter) : null,
@@ -5879,14 +5899,16 @@ export class FortniteSprites {
         const parsed = this.parseSeasonId(id);
         if (!parsed) return this.titleCase(id.replace(/-/g, " "));
         const emoji = getFortniteSeasonEmoji(parsed.chapter, Number(parsed.season));
-        return `Chapter ${parsed.chapter} Season ${this.titleCase(parsed.season)}${emoji ? ` ${emoji}` : ""}`;
+        const season = /^ms\d*$/i.test(parsed.season) ? parsed.season.toUpperCase() : this.titleCase(parsed.season);
+        return `Chapter ${parsed.chapter} Season ${season}${emoji ? ` ${emoji}` : ""}`;
     }
 
     private formatCompactSeasonId(id: string) {
         const parsed = this.parseSeasonId(id);
         if (!parsed) return this.titleCase(id.replace(/-/g, " "));
         const emoji = getFortniteSeasonEmoji(parsed.chapter, Number(parsed.season));
-        return `C${parsed.chapter} S${this.titleCase(parsed.season)}${emoji ? ` ${emoji}` : ""}`;
+        const season = /^ms\d*$/i.test(parsed.season) ? parsed.season.toUpperCase() : `S${this.titleCase(parsed.season)}`;
+        return `C${parsed.chapter} ${season}${emoji ? ` ${emoji}` : ""}`;
     }
 
     private formatAutocompleteChoice(item: SpriteSearchItem) {
@@ -5993,7 +6015,28 @@ export class FortniteSprites {
             onigiri: "🍙",
             blinky: "👻",
             "crash-bandicoot": "🦊",
-            pond: "🐸"
+            pond: "🐸",
+            birthday: "🎂",
+            morgana: "🐈‍⬛",
+            "spooky-dash": "🎃",
+            vampire: "🦷",
+            "the-deer": "🦌",
+            "dumpster-dive": "🦝",
+            honey: "🍯",
+            "one-wish-willow": "🪵",
+            "halfpeel-d": "🦴",
+            "re-pete": "🦜",
+            "barry-o-fish": "🛢️",
+            chester: "💰",
+            exmarks: "🗺️",
+            wayfinder: "🧭",
+            kelper: "🐠",
+            "sweet-dreams": "💤",
+            "lil-squibbly": "🦑",
+            "lil-flacko": "🕶️",
+            "lil-uzi-vert-jr": "🏴‍☠️",
+            plundarrgh: "💀",
+            "transponder-snail": "🐌"
         };
         return familyKey ? emojis[familyKey] || "🧚" : "🧚";
     }
@@ -6020,7 +6063,11 @@ export class FortniteSprites {
             Cube: "🧊",
             Quack: "🐥",
             Cheatmaster: "🃏",
-            Hacker: "💻"
+            Hacker: "💻",
+            "Bounty Hunter": "🎯",
+            "Trick or Treat": "🎃",
+            Fortune: "💎",
+            Cursed: "👻"
         };
         return variant ? emojis[variant] || "🧩" : "🎭";
     }
