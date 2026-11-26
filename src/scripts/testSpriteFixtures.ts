@@ -9,7 +9,7 @@ import { archiveCurrentSpriteSnapshot, archiveSpriteSnapshot, verifySpriteArchiv
 import { backupSpriteArchive, backupSpriteHistory, B2Request } from "../Fortnite/FortniteSprites/spriteArchiveBackup";
 import { buildTrackedSpriteMessageEditPayload } from "../Fortnite/FortniteSprites/spriteMessage";
 import { SPRITE_STORAGE_NAMESPACE } from "../Fortnite/FortniteSprites/spriteStorage";
-import { applySpriteHistory, fetchSpriteData, mergeSpriteCatalog, SpriteDataFile, stableSpriteDataJson, updateSpriteHistory, validateSpriteData } from "../Fortnite/FortniteSprites/spriteDataSource";
+import { applySpriteHistory, fetchSpriteData, hasReleasedSpriteArtwork, mergeSpriteCatalog, SpriteDataFile, stableSpriteDataJson, updateSpriteHistory, validateSpriteData } from "../Fortnite/FortniteSprites/spriteDataSource";
 import { syncSpriteCatalog } from "../Fortnite/FortniteSprites/spriteSyncService";
 
 const fixtureRoot = path.join(process.cwd(), "test", "fixtures");
@@ -306,6 +306,44 @@ async function testCatalogMergeRejectsCrossFamilyIdCollision() {
     assert.deepStrictEqual(merged.families.map(family => family.key), ["water"]);
 }
 
+async function testArchivedPlaceholdersDoNotReplaceReleasedSprites() {
+    const released = spriteData("4", "2026-10-15T14:29:41.720Z", "Overshield");
+    released.listedVariantIds = [83];
+    released.families[0].key = "overshield";
+    released.families[0].displayName = "Overshield";
+    released.families[0].variants[0] = {
+        ...released.families[0].variants[0], id: 83,
+        imageUrl: "https://fortnite.gg/img/x/sprites/icons/overshield.png"
+    };
+    const placeholder = spriteData("3", "2026-07-09T00:00:00.000Z", "Cube Water");
+    placeholder.listedVariantIds = [83];
+    placeholder.families[0].variants[0] = {
+        ...placeholder.families[0].variants[0], id: 83, variant: "Cube",
+        imageUrl: "https://fortnite.gg/img/x/sprites/icons/tmp_water_cube.png"
+    };
+    const originalReleased = JSON.stringify(released);
+    const originalPlaceholder = JSON.stringify(placeholder);
+    const history = updateSpriteHistory(updateSpriteHistory({ schemaVersion: 1, records: [] }, placeholder), released);
+
+    // Directory iteration can put either season first. Both orders must keep
+    // the real card and its own season identity, rather than the reused ID.
+    for (const [previous, latest] of [[released, placeholder], [placeholder, released]]) {
+        const merged = applySpriteHistory(mergeSpriteCatalog(previous, latest), history);
+        validateSpriteData(merged);
+        assert.strictEqual(merged.totalSprites, 1);
+        assert.strictEqual(merged.families[0].key, "overshield");
+        const variant = merged.families[0].variants[0];
+        assert.strictEqual(variant.name, "Overshield");
+        assert.strictEqual(variant.introducedSeasonId, "chapter-7-season-4");
+        assert.deepStrictEqual(variant.availableSeasonIds, ["chapter-7-season-4"]);
+    }
+    assert.strictEqual(JSON.stringify(released), originalReleased);
+    assert.strictEqual(JSON.stringify(placeholder), originalPlaceholder);
+    assert.ok(hasReleasedSpriteArtwork(released.families[0].variants[0]));
+    assert.ok(!hasReleasedSpriteArtwork(placeholder.families[0].variants[0]));
+    assert.ok(!hasReleasedSpriteArtwork({ imageUrl: "/archive/tmp_water_cube.webp?version=1" }));
+}
+
 async function testArchiveAndBackupHook() {
     const archiveRoot = fs.mkdtempSync(path.join(os.tmpdir(), "creeper-sprite-archive-test-"));
     try {
@@ -577,6 +615,7 @@ async function main() {
     await testSameSeasonDoesNotRewriteForTimestamp();
     await testPartialArchiveRepairsOnRetry();
     await testCatalogMergeRejectsCrossFamilyIdCollision();
+    await testArchivedPlaceholdersDoNotReplaceReleasedSprites();
     await testArchiveAndBackupHook();
     await testCurrentBootstrapArchive();
     await testTrackedMessageRefreshPayload();

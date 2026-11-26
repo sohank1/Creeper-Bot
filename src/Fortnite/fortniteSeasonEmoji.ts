@@ -9,8 +9,18 @@ const FORTNITE_SEASON_EMOJIS: Record<number, Record<number, string>> = {
     7: { 1: "🏝️", 2: "⚔️", 3: "🏃", 4: "🎮" }
 };
 
-export function getFortniteSeasonEmoji(chapter: number, season: number): string | undefined {
-    return FORTNITE_SEASON_EMOJIS[chapter]?.[season];
+const FORTNITE_MINI_SEASON_EMOJIS: Record<number, Record<string, string>> = {
+    // Treasure Hunters is Fortnite's Chapter 7 mini season, also known as MS.
+    7: { MS: "🏴‍☠️" }
+};
+
+export function getFortniteSeasonEmoji(chapter: number, season: number | string): string | undefined {
+    if (typeof season === "string" && /^MS\d*$/i.test(season.trim())) {
+        return FORTNITE_MINI_SEASON_EMOJIS[chapter]?.[season.trim().toUpperCase()]
+            || FORTNITE_MINI_SEASON_EMOJIS[chapter]?.MS;
+    }
+    const seasonNumber = typeof season === "number" ? season : Number(season);
+    return FORTNITE_SEASON_EMOJIS[chapter]?.[seasonNumber];
 }
 
 /** The Twemoji asset URL used by the Fortnite sprites UI for a season emoji. */

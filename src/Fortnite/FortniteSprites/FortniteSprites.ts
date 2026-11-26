@@ -24,7 +24,7 @@ import type { Browser, Page } from "puppeteer";
 import https from "https";
 import { performance } from "perf_hooks";
 import { createCanvas, loadImage } from "@napi-rs/canvas";
-import { applySpriteHistory, fetchSpriteData, mergeSpriteCatalog, mergeSpriteHistories, sanitizeSpriteHistory, SpriteDataFile, SpriteFamily, SpriteHistoryFile, SpriteRarity, SpriteVariant, SpriteVariantName, updateSpriteHistory, validateSpriteData } from "./spriteDataSource";
+import { applySpriteHistory, fetchSpriteData, hasReleasedSpriteArtwork, mergeSpriteCatalog, mergeSpriteHistories, sanitizeSpriteHistory, SpriteDataFile, SpriteFamily, SpriteHistoryFile, SpriteRarity, SpriteVariant, SpriteVariantName, updateSpriteHistory, validateSpriteData } from "./spriteDataSource";
 import { FortniteSeasonContext } from "./fortniteSeason";
 import { fetchFortniteGgBrowserHtml } from "./fortniteGgBrowser";
 import { getFortniteSeasonEmoji, getFortniteSeasonEmojiAssetUrl } from "../fortniteSeasonEmoji";
@@ -2413,7 +2413,7 @@ export class FortniteSprites {
         // The detail dataset includes future variants with temporary black placeholder
         // assets. A real image asset is sufficient to show a variant even when the
         // base /sprites listing has not started listing it yet.
-        return !!variant.imageUrl && !/(?:^|\/)tmp_[^/]+(?:\.[^/]*)?$/i.test(variant.imageUrl);
+        return hasReleasedSpriteArtwork(variant);
     }
 
     private getDisplayFamilies(families: SpriteFamily[]) {
@@ -3327,6 +3327,7 @@ export class FortniteSprites {
             .update(JSON.stringify(RARITY_HEX_COLORS))
             .update(getFortniteSeasonEmoji.toString())
             .update(getFortniteSeasonEmojiAssetUrl.toString())
+            .update(hasReleasedSpriteArtwork.toString())
             .digest("hex");
     }
 
@@ -5821,7 +5822,7 @@ export class FortniteSprites {
     private renderSeasonLabel(id: string, compact = false) {
         const label = compact ? this.formatCompactSeasonId(id) : this.formatSeasonId(id);
         const parsed = this.parseSeasonId(id);
-        const emoji = parsed ? getFortniteSeasonEmoji(parsed.chapter, Number(parsed.season)) : undefined;
+        const emoji = parsed ? getFortniteSeasonEmoji(parsed.chapter, parsed.season) : undefined;
         if (!emoji || !label.endsWith(emoji)) return this.escapeHtml(label);
         const text = label.slice(0, -emoji.length).trimEnd();
         const emojiUrl = this.getSeasonEmojiAssetUrl(emoji);
@@ -5898,7 +5899,7 @@ export class FortniteSprites {
     private formatSeasonId(id: string) {
         const parsed = this.parseSeasonId(id);
         if (!parsed) return this.titleCase(id.replace(/-/g, " "));
-        const emoji = getFortniteSeasonEmoji(parsed.chapter, Number(parsed.season));
+        const emoji = getFortniteSeasonEmoji(parsed.chapter, parsed.season);
         const season = /^ms\d*$/i.test(parsed.season) ? parsed.season.toUpperCase() : this.titleCase(parsed.season);
         return `Chapter ${parsed.chapter} Season ${season}${emoji ? ` ${emoji}` : ""}`;
     }
@@ -5906,7 +5907,7 @@ export class FortniteSprites {
     private formatCompactSeasonId(id: string) {
         const parsed = this.parseSeasonId(id);
         if (!parsed) return this.titleCase(id.replace(/-/g, " "));
-        const emoji = getFortniteSeasonEmoji(parsed.chapter, Number(parsed.season));
+        const emoji = getFortniteSeasonEmoji(parsed.chapter, parsed.season);
         const season = /^ms\d*$/i.test(parsed.season) ? parsed.season.toUpperCase() : `S${this.titleCase(parsed.season)}`;
         return `C${parsed.chapter} ${season}${emoji ? ` ${emoji}` : ""}`;
     }

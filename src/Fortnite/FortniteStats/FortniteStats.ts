@@ -934,10 +934,7 @@ export class FortniteStats {
     private getSeasonCardLabel(season: FortniteSeasonContext | null): SeasonCardLabel | null {
         if (!season?.displayName?.trim()) return null;
 
-        const seasonNumber = Number(season.season);
-        const emoji = Number.isFinite(seasonNumber)
-            ? getFortniteSeasonEmoji(season.chapter, seasonNumber)
-            : undefined;
+        const emoji = getFortniteSeasonEmoji(season.chapter, season.season);
 
         return {
             name: season.displayName.trim(),

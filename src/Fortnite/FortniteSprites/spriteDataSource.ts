@@ -559,10 +559,27 @@ export function applySpriteHistory(data: SpriteDataFile, history: SpriteHistoryF
     };
 }
 
-/** Retains prior-season sprites while preferring the latest scrape for matching variants. */
+/** Temporary artwork is not a released sprite, even when the source assigned it an ID. */
+export function hasReleasedSpriteArtwork(variant: Pick<SpriteVariant, "imageUrl">): boolean {
+    return !!variant.imageUrl && !/(?:^|\/)tmp_[^/]+(?:\.[^/]*)?$/i.test(variant.imageUrl);
+}
+
+/** Retains prior-season sprites while preferring released artwork over competing placeholders. */
 export function mergeSpriteCatalog(previous: SpriteDataFile | null, latest: SpriteDataFile): SpriteDataFile {
     if (!previous) return latest;
-    const latestIds = new Set(latest.families.flatMap(family => family.variants.map(variant => variant.id)));
+    const releasedIds = new Set(previous.families.flatMap(family => family.variants
+        .filter(hasReleasedSpriteArtwork)
+        .map(variant => variant.id)));
+    // Older archives contain tmp_ cards whose IDs were later reused by real
+    // sprites. Resolve those placeholders before ID deduplication; hiding them
+    // only after the merge would also remove the released sprites they replaced.
+    const latestFamilies = latest.families
+        .map(family => ({
+            ...family,
+            variants: family.variants.filter(variant => hasReleasedSpriteArtwork(variant) || !releasedIds.has(variant.id))
+        }))
+        .filter(family => family.variants.length > 0);
+    const latestIds = new Set(latestFamilies.flatMap(family => family.variants.map(variant => variant.id)));
     // The catalog schema requires globally unique variant IDs. If the source
     // ever reuses an ID in a different family, prefer the newly scraped
     // variant everywhere instead of creating a merged catalog that cannot be
@@ -576,7 +593,7 @@ export function mergeSpriteCatalog(previous: SpriteDataFile | null, latest: Spri
             .filter(([, family]) => family.variants.length > 0)
     );
 
-    for (const latestFamily of latest.families) {
+    for (const latestFamily of latestFamilies) {
         const existing = families.get(latestFamily.key);
         if (!existing) {
             families.set(latestFamily.key, { ...latestFamily, variants: [...latestFamily.variants] });

@@ -14,16 +14,20 @@ export async function fetchFortniteGgBrowserHtml(browser: Browser, url: string):
         });
         const response = await page.goto(url, { waitUntil: "domcontentloaded", timeout: 30_000 });
         const pathname = new URL(url).pathname;
+        const isCountdown = pathname.startsWith("/season-countdown");
         const selector = pathname.startsWith("/sprites/") && pathname !== "/sprites/"
             ? ".sprite-detail-panel"
             : pathname.startsWith("/sprites") ? ".sprite-card" : "#big-countdown";
+        const expected = isCountdown ? "#big-countdown or a Chapter/Season page title" : selector;
         try {
-            await page.waitForFunction((expectedSelector: string) => {
-                return !/just a moment|verify you are human/i.test(document.title)
-                    && !!document.querySelector(expectedSelector);
-            }, { timeout: 30_000 }, selector);
+            await page.waitForFunction((expectedSelector: string, countdownPage: boolean) => {
+                if (/just a moment|verify you are human|checking your browser/i.test(document.title)) return false;
+                if (countdownPage) return !!document.querySelector(expectedSelector)
+                    || /chapter\s*\d+\s*season/i.test(document.title);
+                return !!document.querySelector(expectedSelector);
+            }, { timeout: 30_000 }, selector, isCountdown);
         } catch {
-            throw new Error(`Fortnite.GG source unavailable at ${url}: HTTP ${response?.status() ?? "unknown"}, page "${await page.title()}"; expected ${selector}.`);
+            throw new Error(`Fortnite.GG source unavailable at ${url}: HTTP ${response?.status() ?? "unknown"}, page "${await page.title()}"; expected ${expected}.`);
         }
         return await page.content();
     } finally {

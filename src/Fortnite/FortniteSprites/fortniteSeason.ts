@@ -85,6 +85,8 @@ function seasonId(chapter: number, season: string) {
 
 export function parseSeasonLabel(value: unknown): { chapter: number; season: string } | null {
     const label = String(value || "");
+    const treasureHunters = label.match(/(?:Chapter|C)\s*([0-9]+)\s*[,:-]?\s*Season\s+Treasure\s+Hunters\b/i);
+    if (treasureHunters && Number(treasureHunters[1]) === 7) return { chapter: 7, season: "MS" };
     const match = label.match(/(?:Chapter|C)\s*([0-9]+)\s*[,:-]?\s*(?:Season|S)\s*([A-Za-z0-9-]+)/i)
         || label.match(/^\s*C\s*([0-9]+)\s+(MS[0-9]*|REMIX|OG)\s*$/i);
     if (!match) return null;
@@ -103,7 +105,7 @@ export type FortniteGgCountdownData = {
 };
 
 export function parseFortniteGgCountdownHtml(countdownHtml: string): FortniteGgCountdownData {
-    const title = countdownHtml.match(/<title>[^<]*?(Chapter\s*\d+\s*Season\s*[A-Za-z0-9-]+)/i)?.[1];
+    const title = cheerio.load(countdownHtml)("title").first().text();
     const parsed = parseSeasonLabel(title);
     if (!parsed) throw new Error("fortnite.gg season countdown had no current season title.");
 

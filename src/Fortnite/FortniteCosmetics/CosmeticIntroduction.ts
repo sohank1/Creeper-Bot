@@ -18,6 +18,9 @@ export function cosmeticIntroduction<T extends { text?: string; chapter?: string
 
 /** Shared emoji table uses chronological season slots, not display numbers. */
 export function getCosmeticSeasonEmoji(chapter: number, season: string): string | undefined {
+    if (chapter === 7 && /^(?:MS\d*|Treasure Hunters)$/i.test(season.trim())) {
+        return getFortniteSeasonEmoji(chapter, "MS");
+    }
     const slot = chapter === 6 ? ({ "Galactic Battle": 3, "3": 4, "4": 5, "The Simpsons": 6 }[season] ?? Number(season))
         : season.toUpperCase() === "X" ? 10 : Number(season);
     return getFortniteSeasonEmoji(chapter, slot);
