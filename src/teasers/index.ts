@@ -1,10 +1,12 @@
 import { scheduleJob } from "node-schedule";
+import { createTrackedJob, registerComponent } from "../runtimeDiagnostics";
 import teasers from "./teaserData.json";
 import { Message, Client, TextChannel, MessageAttachment } from "discord.js";
 import Teaser from "./types/Teaser";
 
 export default class Teasers {
     constructor(private client: Client) {
+        registerComponent("teasers", this);
         teasers.forEach(t => console.log("local time", new Date(t.time).toLocaleString()))
         console.log(new Date("9/1/2020, 2:00:00 PM"));
         console.log(new Date("9/2/2020, 10:00:00 AM"));
@@ -18,10 +20,15 @@ export default class Teasers {
             console.log("scheduleing.. ");
             const utcDate = new Date(t.time)
             const estDate = new Date(utcDate.toLocaleString("en-US", { timeZone: "America/New_York" }))
-            scheduleJob(new Date(t.time), () => {
-                console.log("sending");
-                this.sendMessage(t);
-            });
+            scheduleJob(new Date(t.time), createTrackedJob(
+                `teaser-${new Date(t.time).getTime()}`,
+                `Teaser: ${t.status || t.name || 'Unknown'}`,
+                `Once at ${new Date(t.time).toISOString()}`,
+                () => {
+                    console.log("sending");
+                    this.sendMessage(t);
+                }
+            ));
         }
     }
 
@@ -42,5 +49,11 @@ export default class Teasers {
         message.react("👀");
         message.react("😱");
         message.react("🎵");
+    }
+
+    public getDiagnostics() {
+        return {
+            scheduledCount: teasers.length,
+        };
     }
 }

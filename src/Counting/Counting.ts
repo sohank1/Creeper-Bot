@@ -1,6 +1,7 @@
 import { ApplicationCommandOptionChoice, AutocompleteInteraction, BaseCommandInteraction, ButtonInteraction, CacheType, Client, Message, MessageActionRow, MessageButton, MessageEmbed, PartialMessage, TextChannel, User } from "discord.js";
 import CountingModel, { CountingDoc } from "./Counting.model";
 import { CountingService } from "./CountingService";
+import { registerComponent } from "../runtimeDiagnostics";
 
 // export const savesLootPool = [1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 3, 3];
 export const savesLootPool = [0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 1]
@@ -16,6 +17,7 @@ export class Counting {
     private _service = new CountingService();
 
     constructor(private client: Client) {
+        registerComponent("counting", this);
 
 
         console.log("ready")
@@ -56,6 +58,10 @@ export class Counting {
         })
 
         this.client.on("messageDelete", (m) => this.onMessageDelete(m))
+    }
+
+    public getDiagnostics() {
+        return this._service.getDiagnostics();
     }
 
 

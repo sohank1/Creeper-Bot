@@ -1,0 +1,628 @@
+import * as assert from "assert";
+import axios from "axios";
+import { createHash } from "crypto";
+import * as fs from "fs";
+import * as os from "os";
+import * as path from "path";
+import { fetchFortniteGgHtml, parseActiveFortniteGgSeason, parseFortniteGgCountdownHtml, parseFortniteGgSeasonFilter } from "../Fortnite/FortniteSprites/fortniteSeason";
+import { archiveCurrentSpriteSnapshot, archiveSpriteSnapshot, verifySpriteArchive } from "../Fortnite/FortniteSprites/spriteArchive";
+import { backupSpriteArchive, backupSpriteHistory, B2Request } from "../Fortnite/FortniteSprites/spriteArchiveBackup";
+import { buildTrackedSpriteMessageEditPayload } from "../Fortnite/FortniteSprites/spriteMessage";
+import { SPRITE_STORAGE_NAMESPACE } from "../Fortnite/FortniteSprites/spriteStorage";
+import { applySpriteHistory, fetchSpriteData, hasReleasedSpriteArtwork, mergeSpriteCatalog, SpriteDataFile, stableSpriteDataJson, updateSpriteHistory, validateSpriteData } from "../Fortnite/FortniteSprites/spriteDataSource";
+import { syncSpriteCatalog } from "../Fortnite/FortniteSprites/spriteSyncService";
+
+const fixtureRoot = path.join(process.cwd(), "test", "fixtures");
+
+function readFixture(name: string): string {
+    return fs.readFileSync(path.join(fixtureRoot, name), "utf8");
+}
+
+function seasonContext(season: string, seasonKey: string) {
+    return {
+        id: `chapter-7-season-${season}`,
+        chapter: 7,
+        season,
+        seasonKey,
+        displayName: `Chapter 7 Season ${season}`,
+        source: "fortnite-gg" as const,
+        validatedBy: ["fortnite-gg" as const]
+    };
+}
+
+function spriteData(season: string, fetchedAt: string, name = "Water Sprite"): SpriteDataFile {
+    return {
+        fetchedAt,
+        totalSprites: 1,
+        totalLevels: 1,
+        listedVariantIds: [1],
+        seasonContext: seasonContext(season, season === "4" ? "42" : "41"),
+        families: [{
+            key: "water",
+            displayName: "Water Sprite",
+            effectSummary: "Restores shields.",
+            levelScaling: "Scales with level.",
+            location: "The island",
+            variants: [{
+                id: 1,
+                name,
+                rarity: "rare",
+                chancePercent: 10,
+                chanceLabel: "10%",
+                starter: false,
+                variant: "Base",
+                summonCost: 1,
+                imageUrl: "https://fortnite.gg/img/sprite-water.png",
+                effectText: "Restores shields.",
+                detailStatus: "complete",
+                sourceSeasonKey: season === "4" ? "42" : "41"
+            }]
+        }]
+    };
+}
+
+async function testSeasonFixtures() {
+    const countdown = parseFortniteGgCountdownHtml(readFixture("fortnite-gg-season-countdown.html"));
+    assert.deepStrictEqual(countdown, {
+        chapter: 7,
+        season: "4",
+        displayName: "Chapter 7 Season 4",
+        endsAt: new Date(1893456000000).toISOString()
+    });
+
+    const selected = parseFortniteGgSeasonFilter(readFixture("fortnite-gg-sprites.html"), countdown);
+    assert.deepStrictEqual(selected, { seasonKey: "42", chapter: 7, season: "4" });
+
+    const reversedCountdown = parseFortniteGgCountdownHtml(
+        readFixture("fortnite-gg-season-countdown.html").replace(
+            "id=\"big-countdown\" data-target=\"1893456000\"",
+            "data-target=\"1893456000\" id=\"big-countdown\""
+        )
+    );
+    assert.strictEqual(reversedCountdown.endsAt, countdown.endsAt);
+
+    const fallback = parseFortniteGgSeasonFilter(
+        "<html><body><div class='filter-season'></div></body></html>",
+        countdown,
+        seasonContext("4", "42")
+    );
+    assert.deepStrictEqual(fallback, { seasonKey: "42", chapter: 7, season: "4" });
+}
+
+async function testFortniteGgBrowserFallbackHook() {
+    const originalGet = axios.get;
+    let fallbackCalls = 0;
+    try {
+        axios.get = (async () => {
+            const error: any = new Error("Request failed with status code 403");
+            error.response = {
+                status: 403,
+                headers: { "cf-mitigated": "challenge" },
+                data: "Just a moment..."
+            };
+            throw error;
+        }) as typeof axios.get;
+
+        const html = await fetchFortniteGgHtml(
+            "https://fortnite.gg/season-countdown",
+            async () => {
+                fallbackCalls++;
+                return readFixture("fortnite-gg-season-countdown.html");
+            }
+        );
+
+        assert.strictEqual(fallbackCalls, 1);
+        assert.ok(html.includes("Chapter 7 Season 4"));
+    } finally {
+        axios.get = originalGet;
+    }
+}
+
+async function testModernMiniSeasonCatalog() {
+    const list = readFixture("fortnite-gg-sprites-mini-season.html");
+    const active = parseActiveFortniteGgSeason(list);
+    assert.strictEqual(active?.id, "chapter-7-season-ms");
+    assert.strictEqual(active?.seasonKey, "43");
+    assert.deepStrictEqual(parseFortniteGgSeasonFilter(list, { chapter: 7, season: "MS" }), {
+        chapter: 7, season: "MS", seasonKey: "43"
+    });
+    assert.throws(() => parseActiveFortniteGgSeason(list.replace('class="filter active" data-sprite-season="43"', 'class="filter active" data-sprite-season="99"')), /no sprite cards/);
+
+    const originalGet = axios.get;
+    const requests: string[] = [];
+    try {
+        axios.get = (async (url: string) => {
+            requests.push(url);
+            if (url === "https://fortnite.gg/sprites") return { data: list };
+            assert.ok(/\/sprites\/28[01]-/.test(url), `Unexpected source request: ${url}`);
+            return { data: `<div class="sprite-detail-panel"><div class="sprite-desc">Restores shields.</div>
+                <div class="sprite-fact"><span>Variant</span><b>${url.includes("281-") ? "Fortune" : "Base"}</b></div>
+                <div class="sprite-fact"><span>Summon Cost</span><b>100</b></div></div>
+                <div class="sprite-related"><a class="sprite-name">Water Sprite</a></div>` };
+        }) as typeof axios.get;
+        const data = await fetchSpriteData(0, undefined, seasonContext("4", "42"));
+        assert.strictEqual(data.seasonContext?.id, "chapter-7-season-ms");
+        assert.strictEqual(data.totalSprites, 2);
+        assert.strictEqual(data.families.length, 1);
+        assert.deepStrictEqual(data.listedVariantIds, [280, 281]);
+        assert.strictEqual(data.families[0].variants.find(v => v.id === 281)?.rarity, "special");
+        assert.ok(data.families[0].variants.every(v => v.detailStatus === "complete" && v.sourceSeasonKey === "43"));
+        assert.strictEqual(requests.filter(url => url.endsWith("/sprites")).length, 1);
+        assert.ok(!requests.some(url => url.includes("season-countdown")));
+    } finally {
+        axios.get = originalGet;
+    }
+}
+
+async function testChallengeHtmlIsNotInstalled() {
+    const originalGet = axios.get;
+    try {
+        axios.get = (async () => ({ data: '<title>Just a moment...</title><script>cf-chl-test</script>' })) as typeof axios.get;
+        let fallbackCalls = 0;
+        const html = await fetchFortniteGgHtml("https://fortnite.gg/sprites", async () => {
+            fallbackCalls++;
+            return readFixture("fortnite-gg-sprites-mini-season.html");
+        });
+        assert.strictEqual(fallbackCalls, 1);
+        assert.ok(html.includes("data-sprite-season"));
+        await assert.rejects(fetchFortniteGgHtml("https://fortnite.gg/sprites", async () => '<title>Just a moment...</title>'), /unexpected response/);
+    } finally {
+        axios.get = originalGet;
+    }
+}
+
+async function testRolloverFailuresPreserveCurrentData() {
+    const previous = spriteData("4", "2026-10-24T00:00:00.000Z");
+    const latest = spriteData("MS", "2026-11-01T00:00:00.000Z");
+    latest.families[0].variants[0].detailStatus = "partial";
+    const events: string[] = [];
+    const options = {
+        existingData: previous,
+        existingJson: stableSpriteDataJson(previous),
+        history: updateSpriteHistory({ schemaVersion: 1, records: [] }, previous),
+        fetchLatest: async () => latest,
+        archivePrevious: async () => { events.push("archive"); },
+        backupHistory: async () => { events.push("backup"); throw new Error("Backup unavailable"); },
+        persistData: async () => { events.push("data"); },
+        persistHistory: async () => { events.push("history"); }
+    };
+    await assert.rejects(syncSpriteCatalog(options), /fetch is incomplete/);
+    assert.deepStrictEqual(events, []);
+    latest.families[0].variants[0].detailStatus = "complete";
+    await assert.rejects(syncSpriteCatalog({
+        ...options,
+        archivePrevious: async () => { events.push("archive-failed"); throw new Error("Archive backup unavailable"); }
+    }), /Archive backup unavailable/);
+    assert.deepStrictEqual(events, ["archive-failed"]);
+    events.length = 0;
+    await assert.rejects(syncSpriteCatalog(options), /Backup unavailable/);
+    assert.deepStrictEqual(events, ["archive", "backup"]);
+}
+
+async function testRolloverOrdering() {
+    const previous = spriteData("3", "2026-07-01T00:00:00.000Z");
+    const latest = spriteData("4", "2026-08-01T00:00:00.000Z");
+    const events: string[] = [];
+    let persistedData = "";
+    let persistedHistory = "";
+
+    const result = await syncSpriteCatalog({
+        existingData: previous,
+        existingJson: stableSpriteDataJson(previous),
+        history: { schemaVersion: 1, records: [] },
+        fetchLatest: async () => latest,
+        archivePrevious: async args => {
+            events.push("archive");
+            assert.strictEqual(args.previousData.seasonContext?.id, "chapter-7-season-3");
+            assert.strictEqual(args.nextSeason.id, "chapter-7-season-4");
+        },
+        persistHistory: async history => {
+            events.push("history");
+            persistedHistory = JSON.stringify(history);
+        },
+        persistData: async json => {
+            events.push("data");
+            persistedData = json;
+        }
+    });
+
+    assert.strictEqual(result.changed, true);
+    assert.deepStrictEqual(events, ["archive", "data", "history"]);
+    assert.ok(persistedData.includes("chapter-7-season-4"));
+    assert.ok(persistedHistory.includes("chapter-7-season-4"));
+}
+
+async function testSameSeasonDoesNotRewriteForTimestamp() {
+    const previous = spriteData("4", "2026-08-01T00:00:00.000Z");
+    const latest = spriteData("4", "2026-08-02T00:00:00.000Z");
+    const previousHistory = updateSpriteHistory({ schemaVersion: 1, records: [] }, previous);
+    const persistedPrevious = applySpriteHistory(previous, previousHistory);
+    let archiveCalls = 0;
+    let dataWrites = 0;
+    const result = await syncSpriteCatalog({
+        existingData: persistedPrevious,
+        existingJson: stableSpriteDataJson(persistedPrevious),
+        history: previousHistory,
+        fetchLatest: async () => latest,
+        archivePrevious: async () => { archiveCalls++; },
+        persistHistory: async () => { },
+        persistData: async () => { dataWrites++; }
+    });
+
+    assert.strictEqual(result.changed, false);
+    assert.strictEqual(archiveCalls, 0);
+    assert.strictEqual(dataWrites, 0);
+}
+
+async function testPartialArchiveRepairsOnRetry() {
+    const archiveRoot = fs.mkdtempSync(path.join(os.tmpdir(), "creeper-partial-sprite-archive-test-"));
+    try {
+        const current = spriteData("4", "2026-08-26T00:00:00.000Z");
+        const json = stableSpriteDataJson(current);
+        let resolverCalls = 0;
+        const backup = async (_archivePath: string, manifest: { missingAssetCount: number }) => {
+            if (manifest.missingAssetCount > 0) throw new Error("partial archive rejected by fixture backup");
+        };
+        const options = {
+            archiveRoot,
+            data: current,
+            json,
+            assetResolver: async () => {
+                resolverCalls += 1;
+                return resolverCalls === 1
+                    ? null
+                    : {
+                        buffer: Buffer.from("recovered sprite"),
+                        contentType: "image/png",
+                        resolvedUrl: "https://fortnite.gg/img/sprite-water.png"
+                    };
+            },
+            backup
+        };
+
+        await assert.rejects(() => archiveCurrentSpriteSnapshot(options), /partial archive rejected/);
+        const repaired = await archiveCurrentSpriteSnapshot(options);
+        assert.strictEqual(repaired.created, false);
+        assert.strictEqual(repaired.manifest.missingAssetCount, 0);
+        assert.strictEqual(resolverCalls, 2);
+        await verifySpriteArchive(repaired.archivePath);
+    } finally {
+        fs.rmSync(archiveRoot, { recursive: true, force: true });
+    }
+}
+
+async function testCatalogMergeRejectsCrossFamilyIdCollision() {
+    const previous = spriteData("3", "2026-07-01T00:00:00.000Z");
+    const previousWithDifferentFamily = {
+        ...previous,
+        families: [{
+            ...previous.families[0],
+            key: "fire",
+            displayName: "Fire Sprite"
+        }]
+    };
+    const merged = mergeSpriteCatalog(previousWithDifferentFamily, spriteData("4", "2026-08-01T00:00:00.000Z"));
+    validateSpriteData(merged);
+    assert.deepStrictEqual(merged.families.map(family => family.key), ["water"]);
+}
+
+async function testArchivedPlaceholdersDoNotReplaceReleasedSprites() {
+    const released = spriteData("4", "2026-10-15T14:29:41.720Z", "Overshield");
+    released.listedVariantIds = [83];
+    released.families[0].key = "overshield";
+    released.families[0].displayName = "Overshield";
+    released.families[0].variants[0] = {
+        ...released.families[0].variants[0], id: 83,
+        imageUrl: "https://fortnite.gg/img/x/sprites/icons/overshield.png"
+    };
+    const placeholder = spriteData("3", "2026-07-09T00:00:00.000Z", "Cube Water");
+    placeholder.listedVariantIds = [83];
+    placeholder.families[0].variants[0] = {
+        ...placeholder.families[0].variants[0], id: 83, variant: "Cube",
+        imageUrl: "https://fortnite.gg/img/x/sprites/icons/tmp_water_cube.png"
+    };
+    const originalReleased = JSON.stringify(released);
+    const originalPlaceholder = JSON.stringify(placeholder);
+    const history = updateSpriteHistory(updateSpriteHistory({ schemaVersion: 1, records: [] }, placeholder), released);
+
+    // Directory iteration can put either season first. Both orders must keep
+    // the real card and its own season identity, rather than the reused ID.
+    for (const [previous, latest] of [[released, placeholder], [placeholder, released]]) {
+        const merged = applySpriteHistory(mergeSpriteCatalog(previous, latest), history);
+        validateSpriteData(merged);
+        assert.strictEqual(merged.totalSprites, 1);
+        assert.strictEqual(merged.families[0].key, "overshield");
+        const variant = merged.families[0].variants[0];
+        assert.strictEqual(variant.name, "Overshield");
+        assert.strictEqual(variant.introducedSeasonId, "chapter-7-season-4");
+        assert.deepStrictEqual(variant.availableSeasonIds, ["chapter-7-season-4"]);
+    }
+    assert.strictEqual(JSON.stringify(released), originalReleased);
+    assert.strictEqual(JSON.stringify(placeholder), originalPlaceholder);
+    assert.ok(hasReleasedSpriteArtwork(released.families[0].variants[0]));
+    assert.ok(!hasReleasedSpriteArtwork(placeholder.families[0].variants[0]));
+    assert.ok(!hasReleasedSpriteArtwork({ imageUrl: "/archive/tmp_water_cube.webp?version=1" }));
+}
+
+async function testArchiveAndBackupHook() {
+    const archiveRoot = fs.mkdtempSync(path.join(os.tmpdir(), "creeper-sprite-archive-test-"));
+    try {
+        const previous = spriteData("3", "2026-07-01T00:00:00.000Z");
+        let backupPath = "";
+        const result = await archiveSpriteSnapshot({
+            archiveRoot,
+            previousData: previous,
+            previousJson: stableSpriteDataJson(previous),
+            nextSeason: seasonContext("4", "42"),
+            assetResolver: async () => ({
+                buffer: Buffer.from("frozen sprite"),
+                contentType: "image/png",
+                resolvedUrl: "https://fortnite.gg/img/sprite-water.png"
+            }),
+            backup: async archivePath => { backupPath = archivePath; }
+        });
+
+        assert.strictEqual(result.created, true);
+        assert.strictEqual(backupPath, result.archivePath);
+        assert.ok(fs.existsSync(path.join(result.archivePath, "manifest.json")));
+        assert.strictEqual(result.manifest.missingAssetCount, 0);
+
+        const backupKeys = [
+            "FORTNITE_SPRITE_ARCHIVE_BACKUP_DIR",
+            "FORTNITE_SPRITE_ARCHIVE_BACKUP_REQUIRED",
+            "FORTNITE_SPRITE_ARCHIVE_B2_KEY_ID",
+            "FORTNITE_SPRITE_ARCHIVE_B2_APPLICATION_KEY",
+            "FORTNITE_SPRITE_ARCHIVE_B2_BUCKET",
+            "FORTNITE_SPRITE_ARCHIVE_B2_BUCKET_ID",
+            "FORTNITE_SPRITE_ARCHIVE_B2_PREFIX",
+            "FORTNITE_SPRITE_ARCHIVE_B2_API_URL"
+        ];
+        const previousEnvironment = new Map(backupKeys.map(key => [key, process.env[key]]));
+        const backupRoot = fs.mkdtempSync(path.join(os.tmpdir(), "creeper-sprite-backup-test-"));
+        try {
+            for (const key of backupKeys.slice(2)) delete process.env[key];
+            process.env.FORTNITE_SPRITE_ARCHIVE_BACKUP_DIR = backupRoot;
+            process.env.FORTNITE_SPRITE_ARCHIVE_BACKUP_REQUIRED = "true";
+            process.env.FORTNITE_SPRITE_ARCHIVE_B2_PREFIX = "prefix-only-fixture";
+            await backupSpriteArchive(result.archivePath, result.manifest);
+            const backedUpArchive = path.join(backupRoot, SPRITE_STORAGE_NAMESPACE, "chapter-7-season-3");
+            assert.ok(fs.existsSync(path.join(backedUpArchive, "manifest.json")));
+            assert.deepStrictEqual(
+                JSON.parse(fs.readFileSync(path.join(backedUpArchive, "manifest.json"), "utf8")).season,
+                result.manifest.season
+            );
+
+            const destinationManifestPath = path.join(backedUpArchive, "manifest.json");
+            const destinationManifest = JSON.parse(fs.readFileSync(destinationManifestPath, "utf8"));
+            fs.writeFileSync(destinationManifestPath, JSON.stringify({
+                ...destinationManifest,
+                totalAssetBytes: 0,
+                missingAssetCount: 1,
+                assets: []
+            }));
+            await assert.rejects(
+                () => verifySpriteArchive(backedUpArchive),
+                /asset coverage|local sprite data|asset byte total|untracked artwork/
+            );
+            await backupSpriteArchive(result.archivePath, result.manifest);
+            await verifySpriteArchive(backedUpArchive);
+
+            // A manifest can be internally consistent while still recording a
+            // partial copy. A later complete source must repair that backup.
+            const partialLocalDataPath = path.join(backedUpArchive, "spriteData.local.json");
+            const partialLocalData = JSON.parse(fs.readFileSync(partialLocalDataPath, "utf8"));
+            partialLocalData.families[0].variants[0].imageUrl = result.manifest.assets[0].sourceUrl;
+            fs.writeFileSync(partialLocalDataPath, `${JSON.stringify(partialLocalData, null, 2)}\n`);
+            const validPartialManifest = {
+                ...result.manifest,
+                missingAssetCount: 1,
+                totalAssetBytes: 0,
+                assets: []
+            };
+            fs.writeFileSync(destinationManifestPath, `${JSON.stringify(validPartialManifest, null, 2)}\n`);
+            await verifySpriteArchive(backedUpArchive);
+            await backupSpriteArchive(result.archivePath, result.manifest);
+            await verifySpriteArchive(backedUpArchive);
+
+            // Reusing the configured backup directory as the archive source is
+            // safe during disaster recovery and should not trip the overlap
+            // guard when it is already the verified destination.
+            process.env.FORTNITE_SPRITE_ARCHIVE_BACKUP_DIR = path.dirname(result.archivePath);
+            await backupSpriteArchive(result.archivePath, result.manifest);
+            delete process.env.FORTNITE_SPRITE_ARCHIVE_BACKUP_DIR;
+            process.env.FORTNITE_SPRITE_ARCHIVE_B2_KEY_ID = "fixture-key-id";
+            process.env.FORTNITE_SPRITE_ARCHIVE_B2_APPLICATION_KEY = "fixture-application-key";
+            process.env.FORTNITE_SPRITE_ARCHIVE_B2_BUCKET = "fixture-sprite-archives";
+            process.env.FORTNITE_SPRITE_ARCHIVE_B2_PREFIX = "creeper-bot/fortnite-sprite-archives";
+            const b2ArchiveRoot = [
+                process.env.FORTNITE_SPRITE_ARCHIVE_B2_PREFIX,
+                SPRITE_STORAGE_NAMESPACE,
+                "chapter-7-season-3"
+            ].join("/");
+
+            const remoteFiles = new Map<string, { bytes: Buffer; sha1: string }>();
+            const uploadedNames: string[] = [];
+            const b2Request: B2Request = async options => {
+                if (options.url.endsWith("/b2_authorize_account")) {
+                    return {
+                        status: 200,
+                        data: {
+                            accountId: "fixture-account",
+                            authorizationToken: "fixture-account-token",
+                            apiInfo: { storageApi: { apiUrl: "https://fixture-b2-api.example" } }
+                        }
+                    };
+                }
+                if (options.url.endsWith("/b2_list_buckets")) {
+                    return {
+                        status: 200,
+                        data: { buckets: [{ bucketId: "fixture-bucket-id", bucketName: "fixture-sprite-archives" }] }
+                    };
+                }
+                if (options.url.endsWith("/b2_list_file_names")) {
+                    const prefix = String(options.params?.prefix || "");
+                    return {
+                        status: 200,
+                        data: {
+                            files: Array.from(remoteFiles.entries())
+                                .filter(([fileName]) => fileName.startsWith(prefix))
+                                .sort(([left], [right]) => left.localeCompare(right))
+                                .map(([fileName, file]) => ({
+                                    fileName,
+                                    contentLength: file.bytes.length,
+                                    contentSha1: file.sha1,
+                                    action: "upload"
+                                }))
+                        }
+                    };
+                }
+                if (options.url.endsWith("/b2_get_upload_url")) {
+                    return {
+                        status: 200,
+                        data: { uploadUrl: "https://fixture-b2-upload.example", authorizationToken: "fixture-upload-token" }
+                    };
+                }
+                if (options.url === "https://fixture-b2-upload.example") {
+                    const fileName = decodeURIComponent(String(options.headers?.["X-Bz-File-Name"] || ""));
+                    const bytes = Buffer.from(options.data as Buffer);
+                    remoteFiles.set(fileName, {
+                        bytes,
+                        sha1: String(options.headers?.["X-Bz-Content-Sha1"] || "")
+                    });
+                    uploadedNames.push(fileName);
+                    return { status: 200, data: { fileName } };
+                }
+                throw new Error(`Unexpected B2 fixture request: ${options.method} ${options.url}`);
+            };
+
+            await backupSpriteArchive(result.archivePath, result.manifest, { b2Request });
+            assert.strictEqual(uploadedNames[uploadedNames.length - 1].endsWith("/manifest.json"), true);
+            const uploadCount = uploadedNames.length;
+            assert.ok(uploadCount > 0);
+            const missingRemoteAsset = `${b2ArchiveRoot}/${result.manifest.assets[0].file}`;
+            remoteFiles.delete(missingRemoteAsset);
+            await backupSpriteArchive(result.archivePath, result.manifest, { b2Request });
+            assert.ok(uploadedNames.length > uploadCount);
+            const repairedUploadCount = uploadedNames.length;
+            await backupSpriteArchive(result.archivePath, result.manifest, { b2Request });
+            assert.strictEqual(uploadedNames.length, repairedUploadCount);
+
+            // Repair the case where the previous run published a partial
+            // manifest before the source catalog was fully frozen.
+            const remoteManifestName = `${b2ArchiveRoot}/manifest.json`;
+            const partialRemoteManifest = JSON.parse(remoteFiles.get(remoteManifestName)!.bytes.toString("utf8"));
+            partialRemoteManifest.archivedAt = "2026-08-26T00:00:00.000Z";
+            partialRemoteManifest.missingAssetCount = 1;
+            partialRemoteManifest.totalAssetBytes = 0;
+            partialRemoteManifest.assets = [];
+            const partialRemoteManifestBytes = Buffer.from(`${JSON.stringify(partialRemoteManifest, null, 2)}\n`);
+            remoteFiles.set(remoteManifestName, {
+                bytes: partialRemoteManifestBytes,
+                sha1: createHash("sha1").update(partialRemoteManifestBytes).digest("hex")
+            });
+            remoteFiles.delete(missingRemoteAsset);
+            await backupSpriteArchive(result.archivePath, result.manifest, { b2Request });
+            assert.strictEqual(
+                JSON.parse(remoteFiles.get(remoteManifestName)!.bytes.toString("utf8")).missingAssetCount,
+                0
+            );
+
+            await backupSpriteArchive(result.archivePath, result.manifest, {
+                b2Request,
+                archiveKey: "chapter-7-season-3--fixture-duplicate"
+            });
+            assert.ok(Array.from(remoteFiles.keys()).some(fileName => fileName.includes(`${SPRITE_STORAGE_NAMESPACE}/chapter-7-season-3--fixture-duplicate/manifest.json`)));
+
+            await backupSpriteHistory({ schemaVersion: 1, records: [] }, { b2Request });
+            const historyUploadCount = uploadedNames.length;
+            assert.ok(Array.from(remoteFiles.keys()).some(fileName => fileName.endsWith("/spriteHistory.json")));
+            await backupSpriteHistory({ schemaVersion: 1, records: [] }, { b2Request });
+            assert.strictEqual(uploadedNames.length, historyUploadCount);
+        } finally {
+            for (const [key, value] of previousEnvironment) {
+                if (value == null) delete process.env[key];
+                else process.env[key] = value;
+            }
+            fs.rmSync(backupRoot, { recursive: true, force: true });
+        }
+    } finally {
+        fs.rmSync(archiveRoot, { recursive: true, force: true });
+    }
+}
+
+async function testCurrentBootstrapArchive() {
+    const archiveRoot = fs.mkdtempSync(path.join(os.tmpdir(), "creeper-current-sprite-archive-test-"));
+    try {
+        const current = spriteData("4", "2026-08-26T00:00:00.000Z");
+        const json = stableSpriteDataJson(current);
+        let backupCalls = 0;
+        const options = {
+            archiveRoot,
+            data: current,
+            json,
+            archiveKey: "chapter-7-season-4--bootstrap-fixture",
+            assetResolver: async () => ({
+                buffer: Buffer.from("frozen current sprite"),
+                contentType: "image/png",
+                resolvedUrl: "https://fortnite.gg/img/sprite-water.png"
+            }),
+            backup: async () => { backupCalls++; }
+        };
+
+        const first = await archiveCurrentSpriteSnapshot(options);
+        assert.strictEqual(first.created, true);
+        assert.strictEqual(first.manifest.season.id, "chapter-7-season-4");
+        assert.strictEqual(first.manifest.missingAssetCount, 0);
+        assert.ok(first.archivePath.endsWith("chapter-7-season-4-bootstrap-fixture"));
+
+        const second = await archiveCurrentSpriteSnapshot(options);
+        assert.strictEqual(second.created, false);
+        assert.strictEqual(second.archivePath, first.archivePath);
+        assert.strictEqual(backupCalls, 2);
+    } finally {
+        fs.rmSync(archiveRoot, { recursive: true, force: true });
+    }
+}
+
+async function testTrackedMessageRefreshPayload() {
+    const visualResponse = buildTrackedSpriteMessageEditPayload({
+        content: "Sprite fetch in progress",
+        embeds: [{}],
+        files: [{}],
+        components: []
+    });
+    assert.strictEqual("content" in visualResponse, false);
+    assert.deepStrictEqual(visualResponse.attachments, []);
+
+    const textResponse = buildTrackedSpriteMessageEditPayload({
+        content: "Sprite family not found.",
+        components: []
+    });
+    assert.strictEqual(textResponse.content, "Sprite family not found.");
+    assert.deepStrictEqual(textResponse.attachments, []);
+
+    const emptyResponse = buildTrackedSpriteMessageEditPayload({ content: "", components: [] });
+    assert.ok(typeof emptyResponse.content === "string" && emptyResponse.content.length > 0);
+}
+
+async function main() {
+    await testSeasonFixtures();
+    await testFortniteGgBrowserFallbackHook();
+    await testModernMiniSeasonCatalog();
+    await testChallengeHtmlIsNotInstalled();
+    await testRolloverFailuresPreserveCurrentData();
+    await testRolloverOrdering();
+    await testSameSeasonDoesNotRewriteForTimestamp();
+    await testPartialArchiveRepairsOnRetry();
+    await testCatalogMergeRejectsCrossFamilyIdCollision();
+    await testArchivedPlaceholdersDoNotReplaceReleasedSprites();
+    await testArchiveAndBackupHook();
+    await testCurrentBootstrapArchive();
+    await testTrackedMessageRefreshPayload();
+    console.log("Sprite fixture tests passed.");
+}
+
+main().catch(error => {
+    console.error(error);
+    process.exitCode = 1;
+});

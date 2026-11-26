@@ -42,4 +42,10 @@ export class CountingService {
         return doc;
 
     }
+
+    public getDiagnostics() {
+        return {
+            cachedGuilds: this._cache.size,
+        };
+    }
 }
